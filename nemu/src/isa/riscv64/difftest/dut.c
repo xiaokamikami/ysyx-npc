@@ -1,25 +1,35 @@
-/***************************************************************************************
-* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
-
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  return false;
+  //printf("REF:%08lx,PC:%08lx\n",ref_r->pc,pc);
+  for (uint16_t i = 0; i < 32; i++)
+  {
+    if(ref_r->gpr[i] != cpu.gpr[i]){
+      printf("difftest:gpr error!DNPC:%08lx\t",ref_r->pc);
+      printf(ANSI_FMT("ref_r[%s]: %16lx , dut_r[%s]:%16lx\n",ANSI_FG_RED), reg_name(i,0),ref_r->gpr[i],reg_name(i,0), cpu.gpr[i]);
+      return false;
+    }
+  }
+  if(ref_r->pc != pc){
+    printf("difftest:pc error!DNPC:%08lx\t",ref_r->pc);
+    printf(ANSI_FMT("ref_pc:%08lx , dut_pc:%08lx\n",ANSI_FG_RED),ref_r->pc, pc);
+    return false;
+  }
+  else{
+    return true;
+  }
+
 }
 
-void isa_difftest_attach() {
+void isa_difftest_attach(CPU_state *ref_r) {
+  for (uint16_t i = 0; i < 32; i++)
+  {
+    if(ref_r->gpr[i] != cpu.gpr[i]){
+      printf("difftest:gpr error!\t");
+      printf(ANSI_FMT("dut_r[%d]: %08lx , cpu_r:%08lx\n",ANSI_FG_RED),i,ref_r->gpr[i], cpu.gpr[i]);
+      assert(-1);
+    }
+  }
 }

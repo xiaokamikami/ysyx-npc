@@ -1,18 +1,3 @@
-/***************************************************************************************
-* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
-
 #include <isa.h>
 #include "local-include/reg.h"
 
@@ -24,8 +9,30 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  int i;
+  //printf("%s",reg_name(2,0));
+  for(i=0;i<32;i+=4){
+    printf("R:%s  Value:0x%16lx,",regs[i],gpr(i));
+    printf("  R:%s  Value:0x%16lx,",regs[i+1],gpr(i+1));
+    printf("  R:%s  Value:0x%16lx,",regs[i+2],gpr(i+2));
+    printf("  R:%s  Value:0x%16lx;\n",regs[i+3],gpr(i+3));
+  }
+  
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+  int i;
+  s = s+1;
+  //printf("find: %s\n",s);
+  for (i=0;i<32;i++){
+    //printf("reg:%s\n",regs[i]);
+    if(!strcmp(regs[i],s)){
+      *success = true;
+      //printf("find true\n");
+      return  gpr(i);
+      }
+  }
+  //printf("find error");
+  success= false;
   return 0;
 }
