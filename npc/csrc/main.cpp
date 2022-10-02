@@ -153,7 +153,7 @@ int main(int argc,char **argv){
   sim_init();
   uint32_t Imm = 0;
   uint32_t Imm_hc =0;
-  //uint32_t i = 0;
+  uint32_t i = 0;
 
   printf(BLUE"Run verilog\n"NONE);
   //top_clk();
@@ -175,8 +175,11 @@ int main(int argc,char **argv){
       printf(BLUE "[HIT GOOD ] "GREEN " PC=%08lx\n"NONE,top->CP_PC);
       break;
     }
-    
-    //i++;
+    if(i>5000){
+      printf(RED"vcd break"NONE);
+      break;
+    }
+    i++;
   }
   
   //¹Ø±Õ³ÌÐò

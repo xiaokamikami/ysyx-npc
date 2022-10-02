@@ -31,6 +31,7 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Reg_EN;
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Imm_EN;
     CData/*3:0*/ ysyx_22041412_cpu__DOT__Imm_Type;
+    CData/*0:0*/ ysyx_22041412_cpu__DOT__EQ_EN;
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Immdecode__DOT__I_type;
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Immdecode__DOT__U_type;
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Immdecode__DOT__J_type;
@@ -45,15 +46,17 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
     CData/*0:0*/ ysyx_22041412_cpu__DOT__Mux_Reg_en__DOT__i0__DOT__hit;
     IData/*31:0*/ ysyx_22041412_cpu__DOT__Imm;
     IData/*31:0*/ ysyx_22041412_cpu__DOT__ImmMem__DOT__Immaddr;
+    QData/*63:0*/ ysyx_22041412_cpu__DOT__rsA;
+    QData/*63:0*/ ysyx_22041412_cpu__DOT__rsB;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__rsW;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__immdata;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__ALU_S;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__ALU_A;
-    QData/*63:0*/ ysyx_22041412_cpu__DOT__ALU_Result;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__DNPC;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__PC;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__Alu__DOT__AY;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__Alu__DOT__BY;
+    QData/*63:0*/ ysyx_22041412_cpu__DOT__Alu__DOT__Muxsu;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__Alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__Mux_ALU_rsa__DOT__i0__DOT__lut_out;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__lut_out;
@@ -66,9 +69,9 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
     VlUnpacked<VlWide<3>/*67:0*/, 1> ysyx_22041412_cpu__DOT__Mux_ALU_rsa__DOT__i0__DOT__pair_list;
     VlUnpacked<CData/*3:0*/, 1> ysyx_22041412_cpu__DOT__Mux_ALU_rsa__DOT__i0__DOT__key_list;
     VlUnpacked<QData/*63:0*/, 1> ysyx_22041412_cpu__DOT__Mux_ALU_rsa__DOT__i0__DOT__data_list;
-    VlUnpacked<VlWide<3>/*67:0*/, 3> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__pair_list;
-    VlUnpacked<CData/*3:0*/, 3> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__key_list;
-    VlUnpacked<QData/*63:0*/, 3> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__data_list;
+    VlUnpacked<VlWide<3>/*67:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__pair_list;
+    VlUnpacked<CData/*3:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__key_list;
+    VlUnpacked<QData/*63:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_rsb__DOT__i0__DOT__data_list;
     VlUnpacked<VlWide<3>/*67:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_result__DOT__i0__DOT__pair_list;
     VlUnpacked<CData/*3:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_result__DOT__i0__DOT__key_list;
     VlUnpacked<QData/*63:0*/, 2> ysyx_22041412_cpu__DOT__Mux_ALU_result__DOT__i0__DOT__data_list;
@@ -81,7 +84,7 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
 
     // LOCAL VARIABLES
     CData/*0:0*/ __Vclklast__TOP__clk;
-    VlWide<7>/*203:0*/ ysyx_22041412_cpu__DOT____Vcellinp__Mux_ALU_rsb____pinNumber4;
+    VlWide<5>/*135:0*/ ysyx_22041412_cpu__DOT____Vcellinp__Mux_ALU_rsb____pinNumber4;
     VlWide<5>/*135:0*/ ysyx_22041412_cpu__DOT____Vcellinp__Mux_ALU_result____pinNumber4;
     VlWide<24>/*758:0*/ ysyx_22041412_cpu__DOT__Alu__DOT____Vcellinp__Mux_ALU____pinNumber4;
     VlUnpacked<CData/*0:0*/, 2> __Vm_traceActivity;

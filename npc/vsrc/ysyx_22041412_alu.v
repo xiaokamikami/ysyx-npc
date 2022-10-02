@@ -9,7 +9,9 @@ module ysyx_22041412_alu(
   );
   wire [4:0]Mode;
   wire [63:0]AU,BU,AY,BY;
-  //wire [63:0]Muxsu;
+  wire [63:0]Muxsu;
+  reg  [63:0]Alusu;
+  assign result =Alusu;
   assign AU = scr1;
   assign BU = scr2;
   assign AY = (scr1[63]==0 )?{scr1}: ({scr1[63],~{scr1[62:0]}})+1;
@@ -24,7 +26,7 @@ module ysyx_22041412_alu(
                 0;
 
   //选择计算方式
-  ysyx_22041412_MuxKeyWithDefault #(11, 5, 64)Mux_ALU (result,Mode,`ysyx_22041412_zero_word,{
+  ysyx_22041412_MuxKeyWithDefault #(11, 5, 64)Mux_ALU (Muxsu,Mode,`ysyx_22041412_zero_word,{
     `ysyx_22041412_UADD,(AU + BU),
     `ysyx_22041412_ADD,(AY + BY),
     `ysyx_22041412_SUB,(AY - BY),
@@ -37,8 +39,15 @@ module ysyx_22041412_alu(
     `ysyx_22041412_li,BU,
     `ysyx_22041412_sltiu,AU<<BU
   }); 
-// always @(posedge clk) begin
-
-// end
+always @(*) begin
+  if(Mode == `ysyx_22041412_sltiu)begin
+    if((AU-BU)>0)
+      Alusu=1;
+    else
+      Alusu=0;
+  end
+  else
+    Alusu = Muxsu;
+end
 endmodule
 

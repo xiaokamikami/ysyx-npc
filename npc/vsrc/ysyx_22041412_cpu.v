@@ -45,6 +45,7 @@ module ysyx_22041412_cpu (
 
   assign DNPC = JR_EN ?(immdata+PC):PC+4;
   assign SNPC = PC+4;
+  reg EQ_EN;
   assign CP_PC = PC;//仿真查看PC
   assign CP_NPC =DNPC;
   assign CP_Immen = Imm_EN;
@@ -94,9 +95,8 @@ module ysyx_22041412_cpu (
     4'b0010,PC
   });
   //ALU 数据二选择
-  ysyx_22041412_MuxKeyWithDefault #(3, 4, 64)Mux_ALU_rsb (ALU_S,Imm_Type,rsB,{
+  ysyx_22041412_MuxKeyWithDefault #(2, 4, 64)Mux_ALU_rsb (ALU_S,Imm_Type,rsB,{
     4'b0001,immdata,
-    4'b0011,immdata,
     4'b0010,immdata
   }); 
   //内存赋值对象选择
@@ -113,10 +113,17 @@ module ysyx_22041412_cpu (
     4'b0010,1'b1
   }); 
 
-  assign JR_EN = (Imm_Type=='b1011)?'b1:'b0;
+  assign JR_EN = EQ_EN||(Imm_Type=='b1011)?'b1:'b0;
 
   always @(posedge clk) begin
     cpu_count <= cpu_count+1;
+    if(Imm_Type==4'b0011)begin    //进入跳转
+      if(func3 == 3'b000)begin
+        if((rsA-rsB)==0)EQ_EN=1;
+        else EQ_EN=0;
+      end
+      else EQ_EN=0;
+    end
     if(cpu_count == 6)begin
       PC <=  DNPC ;
       cpu_count <= 0;

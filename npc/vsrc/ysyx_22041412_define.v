@@ -10,6 +10,8 @@
 `define		ysyx_22041412_I_type		7'b0010011
 `define		ysyx_22041412_R_type		7'b0110011
 `define		ysyx_22041412_ebreak        7'b1110011
+`define	    ysyx_22041412_RV64_I        7'b0011011
+
 
 `define 	ysyx_22041412_ADD  			5'b00001
 `define 	ysyx_22041412_UADD  		    5'b10001
@@ -25,4 +27,5 @@
 `define 	ysyx_22041412_AND  			5'b01011
 `define 	ysyx_22041412_li  			5'b01110
 `define 	ysyx_22041412_aui  			5'b01111
-`define     ysyx_22041412_sltiu         5'b10100
+`define     ysyx_22041412_sltiu         5'b10000
+`define     ysyx_22041412_beq           5'b10001
