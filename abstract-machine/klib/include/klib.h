@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-//#define __NATIVE_USE_KLIB__
+#define __NATIVE_USE_KLIB__
 
 // string.h
 void  *memset    (void *s, int c, size_t n);
@@ -35,7 +35,7 @@ int    atoi      (const char *nptr);
 int    printf    (const char *format, ...);
 int    sprintf   (char *str, const char *format, ...);
 int    snprintf  (char *str, size_t size, const char *format, ...);
-int    vsprintf  (char *str, const char *format, va_list ap);
+int    vsprintf  (char *buf, const char *fmt, va_list args);
 int    vsnprintf (char *str, size_t size, const char *format, va_list ap);
 
 // assert.h

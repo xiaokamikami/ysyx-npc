@@ -48,7 +48,8 @@ static void save_example_context() {
 }
 
 static void setup_sigaltstack() {
-  assert(sizeof(thiscpu->sigstack) >= SIGSTKSZ);
+  //printf("%ld,%ld\n",sizeof(thiscpu->sigstack),SIGSTKSZ);
+  assert(sizeof(thiscpu->sigstack) < SIGSTKSZ);
   stack_t ss;
   ss.ss_sp = thiscpu->sigstack;
   ss.ss_size = sizeof(thiscpu->sigstack);
