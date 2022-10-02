@@ -8,7 +8,7 @@ module ysyx_22041412_cpu (
   output [63:0]CP_PC,
   output [63:0]CP_NPC,
   output CP_difftest,
-  output CP_Immen 
+  output CP_Immen
 );
   //状态机
   reg [3:0]cpu_count; 
@@ -28,11 +28,19 @@ module ysyx_22041412_cpu (
   assign CP_Imm = Imm;  //用于让仿真器判断指令是否结束
   //END
 
+  //SRAM
+  wire sram_r;
+  wire sram_w;
+  wire [63:0]sram_addr_r;
+  wire [63:0]sram_addr_w;
+  wire [63:0]sram_data_r;
+  wire [63:0]sram_data_w;
+  //END
+
   //ALU
   wire [63:0]ALU_S;
   wire [63:0]ALU_A;
   wire [63:0]ALU_Result;
-
   //END
 
   //PC寄存器
@@ -70,6 +78,21 @@ module ysyx_22041412_cpu (
 	  .Imm(Imm)
   );
 
+  ysyx_22041412_sram #(
+    .ADDR_WIDTH(64),
+    .DATA_WIDTH(64),
+    .DATA_DEPTH(4096)
+    )sram(
+    .clk(clk),
+    .addr_r(sram_addr_r),
+    .read_en(sram_r),
+    .data_r(sram_data_r),
+
+    .addr_w(sram_addr_w),
+    .wead_en(sram_w),
+    .data_w(sram_data_w)
+);
+
   ysyx_22041412_decode Immdecode( //指令解析
 	  .instr(Imm),
 	  .opcode(opcode),
@@ -100,9 +123,10 @@ module ysyx_22041412_cpu (
     4'b0010,immdata
   }); 
   //内存赋值对象选择
-  ysyx_22041412_MuxKeyWithDefault #(2, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
+  ysyx_22041412_MuxKeyWithDefault #(3, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
     4'b1001,SNPC,
-    4'b1011,SNPC
+    4'b1011,SNPC,
+    4'b1001,sram_data_r
   });
 
   //状态机控制
@@ -110,11 +134,16 @@ module ysyx_22041412_cpu (
     4'b0000,1'b1
   });
   ysyx_22041412_MuxKeyWithDefault #(1, 4, 1)Mux_Reg_en ( Reg_EN,cpu_count,1'b0,{
-    4'b0010,1'b1
+    4'b0011,1'b1
   }); 
-
+  //SRAM
+  assign sram_w= (Imm_Type==4'b0011)&&(cpu_count==4'b0001)?'b1:'b0;
+  assign sram_r= (Imm_Type==4'b1001)?'b1:'b0;
+  assign sram_addr_w =ALU_Result;
+  assign sram_data_w =(func3=='b001)?{{48{1'b0}},{rsB[15:0]}}:0;
+  assign sram_addr_r = rsA+immdata;
+  //JALR
   assign JR_EN = EQ_EN||(Imm_Type=='b1011)?'b1:'b0;
-
   always @(posedge clk) begin
     cpu_count <= cpu_count+1;
     if(Imm_Type==4'b0011)begin    //进入跳转
@@ -125,7 +154,7 @@ module ysyx_22041412_cpu (
       else EQ_EN=0;
     end
     if(cpu_count == 6)begin
-      PC <=  DNPC ;
+      PC <= DNPC ;
       cpu_count <= 0;
     end    
   end

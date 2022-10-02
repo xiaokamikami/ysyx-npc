@@ -14,7 +14,7 @@ module ysyx_22041412_dff(
   	  "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
  	  "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6" */
 import "DPI-C" function void set_gpr_ptr(input logic [63:0] a []);
-initial set_gpr_ptr(DataReg);  // Í¨ÓÃ¼Ä´æÆ÷	
+initial set_gpr_ptr(DataReg);  //read gpr
  always@(posedge clk)
   begin 
    if(Wen & Rw!=5'd0)

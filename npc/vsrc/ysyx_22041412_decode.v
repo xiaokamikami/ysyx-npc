@@ -35,8 +35,10 @@ module ysyx_22041412_decode(
 	assign J_type=(instr[6:0]==`ysyx_22041412_jal) | (instr[6:0]==`ysyx_22041412_ebreak);
 	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
 	assign S_type=(instr[6:0]==`ysyx_22041412_store);
-
-	assign Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?4'b1011:4'b0001 :
+	assign R_type=(instr[6:0]==`ysyx_22041412_R_type);
+	
+	assign Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?4'b1011:
+						(instr[6:0]==`ysyx_22041412_load)?4'b1001:4'b0001:
 				 U_type?4'b0010 :
 				 B_type?4'b0011 :
 				 S_type?4'b0100 :
