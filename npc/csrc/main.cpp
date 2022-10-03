@@ -170,12 +170,15 @@ int main(int argc,char **argv){
       //printf("0x:%016x\n",Imm); //调试用检查指令
       //dump_gpr();//遍历寄存器 
     }
-    if(Imm == 32871||is_exit ==true)  //ebreak
-    {
+    if(Imm == 32871){  //ebreak
       printf(BLUE "[HIT GOOD ] "GREEN " PC=%08lx\n"NONE,top->CP_PC);
       break;
     }
-    if(i>5000){
+    else if(is_exit ==true){
+       printf(RED "[HIT BAD ] "GREEN " PC=%08lx\n"NONE,top->CP_PC);
+      break; 
+    }
+    if(i>10000){
       printf(RED"vcd break"NONE);
       break;
     }
