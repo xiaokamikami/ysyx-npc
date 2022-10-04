@@ -127,7 +127,6 @@ static int cmd_c()
 
     }
   }
-
   if (isebreak || is_exit) {
     if(isebreak)
     printf("\033[1;32mebreak \33[0m\n");

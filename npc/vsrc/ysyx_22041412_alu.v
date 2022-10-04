@@ -23,6 +23,7 @@ module ysyx_22041412_alu(
                                                 (func3=='b011)?`ysyx_22041412_sltiu:0:
                 (opcode==`ysyx_22041412_auipc)?`ysyx_22041412_aui:
                 (opcode==`ysyx_22041412_lui)?`ysyx_22041412_li:
+                (opcode==`ysyx_22041412_load||opcode==`ysyx_22041412_store)?`ysyx_22041412_UADD:
                 0;
 
   //选择计算方式

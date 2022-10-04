@@ -9,9 +9,9 @@ LIBS = -L ./csrc/*.h
 LLVM_CXXFLAGS = $(shell llvm-config-11 --cxxflags)
 LLVM_LIBS = $(shell llvm-config-11 --libs)
 all:
-	make sim
+	#make sim
 	python3 Immobj.py
-	make build 
+	make build -j8
 	make compile 
 	make run 	
 	
