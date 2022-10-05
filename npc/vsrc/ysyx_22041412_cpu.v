@@ -14,7 +14,6 @@ module ysyx_22041412_cpu (
   reg [3:0]cpu_count; 
   wire JR_EN;
   wire Reg_EN,Imm_EN;
-  wire [63:0]rsA,rsB,rsW;
   wire [31:0]Imm;
   //END
 
@@ -35,8 +34,13 @@ module ysyx_22041412_cpu (
   wire [63:0]sram_addr_w;
   wire [63:0]sram_data_r;
   wire [63:0]sram_data_w;
+  wire [63:0]sram_Result;
   //END
+  //REG
+  wire [63:0]rsA,rsB,rsW;
+  wire Rrst;
 
+  //END
   //ALU
   wire [63:0]ALU_S;
   wire [63:0]ALU_A;
@@ -50,7 +54,7 @@ module ysyx_22041412_cpu (
   initial begin        //初始化PC值
     PC = 64'h0000000080000000;
   end
-
+  
   assign DNPC = JR_EN ?(immdata+PC):PC+4;
   assign SNPC = PC+4;
   reg EQ_EN;
@@ -58,7 +62,7 @@ module ysyx_22041412_cpu (
   assign CP_NPC =DNPC;
   assign CP_Immen = Imm_EN;
   //END
-  assign CP_difftest=(cpu_count==5)?1:0;
+
   //基本模块初始化
   ysyx_22041412_dff X_reg (        //通用寄存器
     .clk(clk),
@@ -68,7 +72,8 @@ module ysyx_22041412_cpu (
     .Wen(Reg_EN),
     .BusA(rsA),
     .BusB(rsB),
-    .BusW(rsW)
+    .BusW(rsW),
+    .rst(Rrst)
   );
 
   ysyx_22041412_mem ImmMem (      //指令槽
@@ -78,11 +83,7 @@ module ysyx_22041412_cpu (
 	  .Imm(Imm)
   );
 
-  ysyx_22041412_sram #(
-    .ADDR_WIDTH(64),
-    .DATA_WIDTH(64),
-    .DATA_DEPTH(4096)
-    )sram(
+  ysyx_22041412_sram sram(
     .clk(clk),
     .addr_r(sram_addr_r),
     .read_en(sram_r),
@@ -92,7 +93,7 @@ module ysyx_22041412_cpu (
     .wead_en(sram_w),
     .data_w(sram_data_w)
 );
-
+  
   ysyx_22041412_decode Immdecode( //指令解析
 	  .instr(Imm),
 	  .opcode(opcode),
@@ -118,15 +119,17 @@ module ysyx_22041412_cpu (
     4'b0010,PC
   });
   //ALU 数据二选择
-  ysyx_22041412_MuxKeyWithDefault #(2, 4, 64)Mux_ALU_rsb (ALU_S,Imm_Type,rsB,{
+  ysyx_22041412_MuxKeyWithDefault #(4, 4, 64)Mux_ALU_rsb (ALU_S,Imm_Type,rsB,{
     4'b0001,immdata,
-    4'b0010,immdata
+    4'b0010,immdata,
+    4'b0100,immdata,
+    4'b1001,immdata
+
   }); 
-  //内存赋值对象选择
-  ysyx_22041412_MuxKeyWithDefault #(3, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
-    4'b1001,SNPC,
+  //寄存器赋值来源选择
+  ysyx_22041412_MuxKeyWithDefault #(2, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
     4'b1011,SNPC,
-    4'b1001,sram_data_r
+    4'b1001,sram_Result
   });
 
   //状态机控制
@@ -134,28 +137,39 @@ module ysyx_22041412_cpu (
     4'b0000,1'b1
   });
   ysyx_22041412_MuxKeyWithDefault #(1, 4, 1)Mux_Reg_en ( Reg_EN,cpu_count,1'b0,{
-    4'b0011,1'b1
+    4'b0010,1'b1
   }); 
+  assign Rrst  = (Imm_Type !=4'b0100 && Imm_Type!=4'b0011)?'b0:'b1;   //为1时不写入寄存器
   //SRAM
-  assign sram_w= (Imm_Type==4'b0011)&&(cpu_count==4'b0001)?'b1:'b0;
+  assign sram_w= (Imm_Type==4'b0100)&&(cpu_count==4'b0010)?'b1:'b0;
   assign sram_r= (Imm_Type==4'b1001)?'b1:'b0;
-  assign sram_addr_w =ALU_Result;
-  assign sram_data_w =(func3=='b001)?{{48{1'b0}},{rsB[15:0]}}:0;
-  assign sram_addr_r = rsA+immdata;
+  assign sram_addr_w = ALU_Result;
+  assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
+                      (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
+                      (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
+                      (func3==3'b011)?{rsB[63:0]}:0;          //sd
+  assign sram_addr_r = ALU_Result;
+  assign sram_Result =(func3==3'b000)?{{56{1'b0}},sram_data_r[7:0]}:
+                      (func3==3'b001)?{{48{1'b0}},sram_data_r[15:0]}:
+                      (func3==3'b010)?{{32{1'b0}},sram_data_r[31:0]}:
+                      (func3==3'b011)?{sram_data_r[63:0]}:0;
   //JALR
   assign JR_EN = EQ_EN||(Imm_Type=='b1011)?'b1:'b0;
   always @(posedge clk) begin
     cpu_count <= cpu_count+1;
-    if(Imm_Type==4'b0011)begin    //进入跳转
-      if(func3 == 3'b000)begin
-        if((rsA-rsB)==0)EQ_EN=1;
-        else EQ_EN=0;
-      end
+    if(Imm_Type==4'b0011)begin    //进入跳转判断
+      if((func3 == 3'b000 )&& (rsA-rsB)==0)EQ_EN=1;
+      else if(func3 == 3'b001 && (rsA-rsB)!=0)EQ_EN=1;
+      else if(func3 == 3'b100 && $signed(rsA-rsB)<0)EQ_EN=1; 
       else EQ_EN=0;
     end
-    if(cpu_count == 6)begin
+    else EQ_EN=0;
+    
+    if(cpu_count == 4'b0011)begin
       PC <= DNPC ;
       cpu_count <= 0;
     end    
-  end
+end
+assign CP_difftest=(cpu_count==4'b0011)?1:0;    //difftest
+
 endmodule

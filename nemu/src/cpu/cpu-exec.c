@@ -157,7 +157,7 @@ static void execute(uint64_t n) {
   for (;n > 0; n --) {
     if ((END_flag ==1)){
       //exec_once(&s, cpu.pc);
-      printf("pc:%lx,pc:%lx",s.dnpc, cpu.pc);
+      printf("npc:%lx,pc:%lx",s.dnpc, cpu.pc);
       trace_and_difftest(&s, cpu.pc);
     }
     else if (nemu_state.state == NEMU_RUNNING) {

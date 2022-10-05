@@ -16,12 +16,12 @@ module ysyx_22041412_decode(
 	wire J_type;
 	wire B_type;
 	wire S_type;
+	wire R_type;
 	wire [63:0]I_imme;
 	wire [63:0]U_imme;
 	wire [63:0]J_imme;
 	wire [63:0]B_imme;
 	wire [63:0]S_imme;
-	
 	
 	assign opcode=instr[6:0];
 	assign func3=instr[14:12];
@@ -30,20 +30,22 @@ module ysyx_22041412_decode(
 	assign Rs2=instr[24:20];
 	assign Rd =instr[11:7];
 	
-	assign I_type=(instr[6:0]==`ysyx_22041412_jalr) | (instr[6:0]==`ysyx_22041412_load) | (instr[6:0]==`ysyx_22041412_I_type);
+	assign I_type=(instr[6:0]==`ysyx_22041412_jalr) | (instr[6:0]==`ysyx_22041412_load) | (instr[6:0]==`ysyx_22041412_I_type)|(instr[6:0]==`ysyx_22041412_RV64_I);
 	assign U_type=(instr[6:0]==`ysyx_22041412_lui) | (instr[6:0]==`ysyx_22041412_auipc);
 	assign J_type=(instr[6:0]==`ysyx_22041412_jal) | (instr[6:0]==`ysyx_22041412_ebreak);
 	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
 	assign S_type=(instr[6:0]==`ysyx_22041412_store);
-	assign R_type=(instr[6:0]==`ysyx_22041412_R_type);
+	assign R_type=(instr[6:0]==`ysyx_22041412_R_type)|(instr[6:0]==`ysyx_22041412_RV64_R);
 	
 	assign Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?4'b1011:
 						(instr[6:0]==`ysyx_22041412_load)?4'b1001:4'b0001:
 				 U_type?4'b0010 :
 				 B_type?4'b0011 :
 				 S_type?4'b0100 :
-				 J_type?4'b1011 : 4'b0000;
-						
+				 R_type?4'b0101 :
+				 J_type?4'b1011 :  
+				 4'b0000;
+				 	
 	assign I_imme={{52{instr[31]}},instr[31:20]}; 
 	assign U_imme={{32{instr[31]}},instr[31:12],{12{1'b0}}};
 	assign J_imme={{44{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0};   
