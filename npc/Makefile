@@ -12,7 +12,7 @@ all:
 	#make sim
 	python3 Immobj.py
 	make build -j8
-	make compile 
+	make compile -j8
 	make run 	
 	
 sim:

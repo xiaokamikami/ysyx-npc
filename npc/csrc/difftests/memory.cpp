@@ -81,17 +81,18 @@ static inline void host_write(void *addr, int len, uint64_t data)
   case 8:
     *(uint64_t *)addr = data; return;
   default:
+    printf("len:%d\n",len);
     assert(0);
   }
 }
 
-uint64_t pmem_read(paddr_t addr, int len)
+uint64_t pmem_read(paddr_t addr, size_t len)
 { 
   uint64_t ret = host_read(guest_to_host(addr), len);
   return ret;
 }
 
-void pmem_write(paddr_t addr, int len, uint64_t data)
+void pmem_write(paddr_t addr, size_t len, uint64_t data)
 { 
   host_write(guest_to_host(addr), len, data);
 }

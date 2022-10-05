@@ -41,6 +41,13 @@ bool is_exit = false;
 bool isebreak = false;
 
 
+size_t get_bit(char data) {
+  int sum=0;
+	for (sum; data; sum++)
+		data &= (data - 1);
+  return sum;
+}
+
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
@@ -57,7 +64,16 @@ extern "C" void mem_read(long long raddr, long long *rdata) {
     *rdata = get_time();
   }
 }
-
+extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
+  // 总是往地址为`waddr & ~0x7ull`的8字节按写掩码`wmask`写入`wdata`
+  // `wmask`中每比特表示`wdata`中1个字节的掩码,
+  // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
+  size_t bits_set = get_bit(wmask);
+  if(waddr<0x88000000 && waddr >= 0x80000000 ){
+    pmem_write((waddr & ~0x7ull), bits_set,wdata);
+    //printf("write:%lx\n",wdata);
+  }
+}
 
 
 

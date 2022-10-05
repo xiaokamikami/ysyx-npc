@@ -88,7 +88,7 @@ module ysyx_22041412_cpu (
     .addr_r(sram_addr_r),
     .read_en(sram_r),
     .data_r(sram_data_r),
-
+    .func3(func3),
     .addr_w(sram_addr_w),
     .wead_en(sram_w),
     .data_w(sram_data_w)
@@ -144,10 +144,11 @@ module ysyx_22041412_cpu (
   assign sram_w= (Imm_Type==4'b0100)&&(cpu_count==4'b0010)?'b1:'b0;
   assign sram_r= (Imm_Type==4'b1001)?'b1:'b0;
   assign sram_addr_w = ALU_Result;
-  assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
-                      (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
-                      (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
-                      (func3==3'b011)?{rsB[63:0]}:0;          //sd
+  // assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
+  //                     (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
+  //                     (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
+  //                     (func3==3'b011)?{rsB[63:0]}:0;          //sd\
+  assign sram_data_w = rsB;
   assign sram_addr_r = ALU_Result;
   assign sram_Result =(func3==3'b000)?{{56{1'b0}},sram_data_r[7:0]}:
                       (func3==3'b001)?{{48{1'b0}},sram_data_r[15:0]}:
