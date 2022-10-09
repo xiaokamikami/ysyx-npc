@@ -1,4 +1,3 @@
-/* verilator lint_off UNUSED */
 module ysyx_22041412_mem(
     input clk,
     input en,

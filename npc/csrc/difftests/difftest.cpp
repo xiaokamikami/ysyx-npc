@@ -83,7 +83,9 @@ void init_difftest(char *ref_so_file, long img_size, int port)
   //ref_r.pc = 0x80000000;
   //for(int i = 0; i < 32; i++) cpureg.gpr[i] = 0;
   //ref_difftest_exec(1);
-  printf(BLUE "Difftests Init\n"NONE );
+  
+  printf(BLUE "Difftests Init\n" NONE);
+  
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -103,12 +105,12 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t npc) {
   for(int i = 0; i < 32; i++) {
       if(ref_r->gpr[i] != cpureg.gpr[i]) {
       	  eqreg = false;
-      	  printf("difftest.cpp "CYAN " %d-%s "BLUE" different at pc = 0x%08lx\n", i, reg_name(i), cpureg.pc);
-      	  printf("right reg:%08lx,"RED " wrong reg:%08lx\n"NONE, ref_r->gpr[i], cpureg.gpr[i] );
+      	  printf("difftest.cpp " CYAN " %d-%s " BLUE " different at pc = 0x%08lx\n", i, reg_name(i), cpureg.pc);
+      	  printf("right reg:%08lx," RED " wrong reg:%08lx\n" NONE, ref_r->gpr[i], cpureg.gpr[i] );
       }
   }
   if(ref_r->pc != npc) {
-    printf("difftest.cpp "BLUE "right npc:%08lx   now npc:%08lx\n"NONE,ref_r->pc,npc);
+    printf("difftest.cpp " BLUE "right npc:%08lx   now npc:%08lx\n" NONE,ref_r->pc,npc);
     eqreg = false;
     printf("now pc 0x%08lx\n", cpureg.pc);
   }

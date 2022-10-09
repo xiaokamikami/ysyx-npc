@@ -62,6 +62,7 @@ static inline paddr_t host_read(void *addr, int len)
        return *(uint64_t *)addr;
     default:
     {
+      printf("len:%d\n",len);
       assert(0);
       return 0;
     }

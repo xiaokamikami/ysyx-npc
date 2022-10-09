@@ -57,7 +57,14 @@ extern "C" void mem_read(long long raddr, long long *rdata) {
     // 总是读取地址为`raddr & ~0x7ull`的8字节返回给`rdata`
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;//;
    // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
-    *rdata = pmem_read((raddr & ~0x7ull), 8);
+  *rdata = pmem_read((raddr & ~0x7ull), 8);
+  if (raddr-(raddr & ~0x7ull)>0)
+   {
+    *rdata = *rdata >> (raddr-(raddr & ~0x7ull))*8;
+    
+   }
+    //printf("read:%lx,offst:%lx \n",raddr& ~0x7ull,(raddr-(raddr & ~0x7ull)));
+    //*rdata = pmem_read((raddr), 8);
   }
   if (raddr == CONFIG_RTC_MMIO) {
     // printf("%08lx\n", get_time(0));
@@ -70,8 +77,9 @@ extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   size_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    pmem_write((waddr & ~0x7ull), bits_set,wdata);
-    //printf("write:%lx\n",wdata);
+    //pmem_write((waddr & ~0x7ull), bits_set,wdata);
+    pmem_write((waddr), bits_set,wdata);
+    //printf("write:%lx\n",waddr);
   }
 }
 
@@ -118,13 +126,14 @@ void isa_reg_display() {
 	}
 	printf("pc = \t0x%16lx\n", cpureg.pc);
 }
-
+void isa_reg_print(uint8_t num) {
+	printf("%s\t0x%16lx\n", regs[num], cpu_gpr[num]);
+}
 
 
 static uint32_t thim=0,nxim=0;
 static int cmd_c()
 { 
-  
   static bool bubble;
   static paddr_t pc;
   static paddr_t npc; 
@@ -154,6 +163,7 @@ static int cmd_c()
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
+  //printf("~7ull:%lx\n",~0x7ull);
   #ifdef diff_en
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
     static char *diff_so_file = nemu_str;
@@ -163,14 +173,13 @@ int main(int argc,char **argv){
     refresh_clk();  //刷新CLK与波形记录
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
-    
   #endif
   sim_init();
   uint32_t Imm = 0;
   uint32_t Imm_hc =0;
   uint32_t i = 0;
 
-  printf(BLUE"Run verilog\n"NONE);
+  printf(BLUE "Run verilog\n" NONE);
   //top_clk();
   while (1)
   {
@@ -182,19 +191,20 @@ int main(int argc,char **argv){
     if(Imm != Imm_hc && Imm !=0){
       Imm_hc = Imm;
       //cmd_c();
-      //printf("0x:%016x\n",Imm); //调试用检查指令
-      //dump_gpr();//遍历寄存器 
+      //printf("0x:%08lx\n",top->CP_PC); //调试用检查指令
+      //isa_reg_print(14);    //调试用检查寄存器
+      //isa_reg_display();//遍历寄存器 
     }
     if(Imm == 32871){  //ebreak
-      printf(BLUE "[HIT GOOD ] "GREEN " PC=%08lx\n"NONE,top->CP_PC);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break;
     }
     else if(is_exit ==true){
-       printf(RED "[HIT BAD ] "GREEN " PC=%08lx\n"NONE,top->CP_PC);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break; 
     }
     if(i>10000){
-      printf(RED"vcd break"NONE);
+      printf(RED "vcd break" NONE);
       break;
     }
     i++;
