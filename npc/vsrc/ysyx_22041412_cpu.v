@@ -13,7 +13,7 @@ module ysyx_22041412_cpu (
   //状态机
   reg [3:0]cpu_count; 
   wire JR_EN;
-  wire Reg_EN,Imm_EN;
+  wire Reg_EN,Imm_EN,Mul_EN;
   wire [31:0]Imm;
   //END
 
@@ -34,17 +34,17 @@ module ysyx_22041412_cpu (
   wire [63:0]sram_addr_w;
   wire [63:0]sram_data_r;
   wire [63:0]sram_data_w;
-  wire [63:0]sram_Result;
+  //wire [63:0]sram_Result;
   //END
   //REG
   wire [63:0]rsA,rsB,rsW;
   wire Rrst;
-
   //END
   //ALU
   wire [63:0]ALU_S;
   wire [63:0]ALU_A;
   wire [63:0]ALU_Result;
+  wire [63:0]Mul_Result;
   //END
 
   //PC寄存器
@@ -83,12 +83,12 @@ module ysyx_22041412_cpu (
 	  .Imm(Imm)
   );
 
-  ysyx_22041412_sram sram(
+  ysyx_22041412_sram sram(        //SRAM
     .clk(clk),
     .addr_r(sram_addr_r),
     .read_en(sram_r),
     .data_r(sram_data_r),
-
+    .func3(func3),
     .addr_w(sram_addr_w),
     .wead_en(sram_w),
     .data_w(sram_data_w)
@@ -113,6 +113,15 @@ module ysyx_22041412_cpu (
     .opcode(opcode),
     .result(ALU_Result)
   );
+  assign Mul_EN = (Imm_Type==4'b1111)?1'b1:1'b0;
+  ysyx_22041412_mul Mul (        //乘法器
+    .clk(clk),
+    .en(Mul_EN),
+    .rsA(rsA),
+    .rsB(rsB),
+    .func3(func3),
+    .data(Mul_Result)
+  );
 
   //ALU 数据一选择
   ysyx_22041412_MuxKeyWithDefault #(1, 4, 64)Mux_ALU_rsa ( ALU_A,Imm_Type,rsA,{
@@ -127,9 +136,10 @@ module ysyx_22041412_cpu (
 
   }); 
   //寄存器赋值来源选择
-  ysyx_22041412_MuxKeyWithDefault #(2, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
+  ysyx_22041412_MuxKeyWithDefault #(3, 4, 64)Mux_ALU_result (rsW,Imm_Type,ALU_Result,{
     4'b1011,SNPC,
-    4'b1001,sram_Result
+    4'b1001,sram_data_r,
+    4'b1111,Mul_Result
   });
 
   //状态机控制
@@ -142,25 +152,28 @@ module ysyx_22041412_cpu (
   assign Rrst  = (Imm_Type !=4'b0100 && Imm_Type!=4'b0011)?'b0:'b1;   //为1时不写入寄存器
   //SRAM
   assign sram_w= (Imm_Type==4'b0100)&&(cpu_count==4'b0010)?'b1:'b0;
-  assign sram_r= (Imm_Type==4'b1001)?'b1:'b0;
+  assign sram_r= (Imm_Type==4'b1001)?1'b1:1'b0;
   assign sram_addr_w = ALU_Result;
-  assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
-                      (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
-                      (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
-                      (func3==3'b011)?{rsB[63:0]}:0;          //sd
+  // assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
+  //                     (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
+  //                     (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
+  //                     (func3==3'b011)?{rsB[63:0]}:0;          //sd\
+  assign sram_data_w = rsB;
   assign sram_addr_r = ALU_Result;
-  assign sram_Result =(func3==3'b000)?{{56{1'b0}},sram_data_r[7:0]}:
-                      (func3==3'b001)?{{48{1'b0}},sram_data_r[15:0]}:
-                      (func3==3'b010)?{{32{1'b0}},sram_data_r[31:0]}:
-                      (func3==3'b011)?{sram_data_r[63:0]}:0;
+
+  // assign sram_Result =(func3==3'b000)?{{56{1'b0}},sram_data_r[7:0]}:
+  //                     (func3==3'b001)?{{48{1'b0}},sram_data_r[15:0]}:
+  //                     (func3==3'b010)?{{32{1'b0}},sram_data_r[31:0]}:
+  //                     (func3==3'b011)?{sram_data_r[63:0]}:0;
   //JALR
   assign JR_EN = EQ_EN||(Imm_Type=='b1011)?'b1:'b0;
   always @(posedge clk) begin
     cpu_count <= cpu_count+1;
     if(Imm_Type==4'b0011)begin    //进入跳转判断
       if((func3 == 3'b000 )&& (rsA-rsB)==0)EQ_EN=1;
-      else if(func3 == 3'b001 && (rsA-rsB)!=0)EQ_EN=1;
-      else if(func3 == 3'b100 && $signed(rsA-rsB)<0)EQ_EN=1; 
+      else if(func3 == 3'b001 && (rsA-rsB)!=0)EQ_EN=1;    //bne
+      else if(func3 == 3'b100 && $signed(rsA-rsB)<0)EQ_EN=1;
+      else if(func3 == 3'b101 && $signed(rsA-rsB)>=0)EQ_EN=1; 
       else EQ_EN=0;
     end
     else EQ_EN=0;
