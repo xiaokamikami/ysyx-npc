@@ -30,9 +30,9 @@ assign wmask =  (func3==3'b000)?8'b00000001:    //sb
                 (func3==3'b010)?8'b00001111:    //sw
                 (func3==3'b011)?8'b11111111:    //sd
                 0;  
-assign data_r = (func3==3'b000)?{{56{sram_data_r[15]}},sram_data_r[7:0]}:   //lb
+assign data_r = (func3==3'b000)?{{56{sram_data_r[7]}},sram_data_r[7:0]}:   //lb
                 (func3==3'b001)?{{48{sram_data_r[15]}},sram_data_r[15:0]}:  //lh
-                (func3==3'b010)?{{32{sram_data_r[15]}},sram_data_r[31:0]}:  //lw
+                (func3==3'b010)?{{32{sram_data_r[31]}},sram_data_r[31:0]}:  //lw
                 (func3==3'b011)?{sram_data_r[63:0]}:                        //ld
                 (func3==3'b100)?{{56{1'b0}},sram_data_r[7:0]}:              //lbu
                 (func3==3'b101)?{{48{1'b0}},sram_data_r[15:0]}:             //lhu

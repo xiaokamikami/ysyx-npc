@@ -30,3 +30,5 @@
 `define     ysyx_22041412_beq           5'b10001
 `define 	ysyx_22041412_UADD  		5'b10010
 `define     ysyx_22041412_xori          5'b10011
+`define     ysyx_22041412_srai          5'b10100
+`define     ysyx_22041412_sraiw         5'b10101

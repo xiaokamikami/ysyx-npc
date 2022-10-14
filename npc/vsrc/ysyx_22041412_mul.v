@@ -18,6 +18,9 @@ always@(posedge clk)begin
             result =  rsA*rsB;
         else if (func3==3'b100)
             result =  rsA/rsB;
+        else if (func3==3'b110)begin
+            result = rsA - ((rsA/rsB)*rsB);
+        end
         else result=64'h00000000;
     end  
 end
