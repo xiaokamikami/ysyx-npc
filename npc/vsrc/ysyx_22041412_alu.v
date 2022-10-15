@@ -14,8 +14,8 @@ module ysyx_22041412_alu(
   assign result =Alusu;
   assign AU = scr1;
   assign BU = scr2;
-  assign AY = (scr1[63]==0 )?{scr1}: ({scr1[63],~{scr1[62:0]}})+1;
-  assign BY = (scr2[63]==0 )?{scr2}: ({scr2[63],~{scr2[62:0]}})+1;
+  assign AY = (scr1[63]==0 )?{scr1[63:0]}: ({scr1[63],~{scr1[62:0]}})+1;
+  assign BY = (scr2[63]==0 )?{scr2[63:0]}: ({scr2[63],~{scr2[62:0]}})+1;
   //ALU Ä£Ê½Ñ¡Ôñ   
   assign Mode = (opcode==`ysyx_22041412_R_type)?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:
                                                                (func7=='b1)?`ysyx_22041412_SUB:0:
@@ -33,8 +33,7 @@ module ysyx_22041412_alu(
                                                 (func3=='b100)?`ysyx_22041412_xori:
                                                 (func3=='b101)?`ysyx_22041412_srai:
                                                 (func3=='b111)?`ysyx_22041412_AND:0:
-                (opcode==`ysyx_22041412_RV64_I)?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:
-                                                               (func7=='b1)?`ysyx_22041412_SUB:0:
+                (opcode==`ysyx_22041412_RV64_I)?(func3=='b000)?`ysyx_22041412_UADD:
                                                 (func3=='b001)?`ysyx_22041412_slli:
                                                 (func3=='b101)?`ysyx_22041412_sraiw:0:
                 (opcode==`ysyx_22041412_auipc)?`ysyx_22041412_aui:
@@ -52,9 +51,9 @@ module ysyx_22041412_alu(
     `ysyx_22041412_OR ,(AU | BU),
     `ysyx_22041412_XOR,(AU ^ BU),
     `ysyx_22041412_SLL,(AU << BU[5:0]),
-    `ysyx_22041412_slli,(AU << BU),
+    `ysyx_22041412_slli,(AU << BU[5:0]),
     `ysyx_22041412_SRA,(AU >> BU[5:0]),
-    `ysyx_22041412_srai,$signed(AU >> BU),
+    `ysyx_22041412_srai,$signed(AY >> BU[5:0]),
     `ysyx_22041412_sraiw,{{32{AU[31]}},$signed(AY[31:0] >> BU[5:0])},
     `ysyx_22041412_aui,(AY + BU),
     `ysyx_22041412_li, BU,
@@ -78,7 +77,7 @@ always @(*) begin
     else  Alusu=0;
   end
   else if(opcode==`ysyx_22041412_RV64_R||opcode==`ysyx_22041412_RV64_I ) begin
-    Alusu = {{32{1'b0}},Muxsu[31:0]};
+    Alusu = {{32{Muxsu[31]}},Muxsu[31:0]};
   end
   else
     Alusu = Muxsu;

@@ -41,11 +41,11 @@ assign data_r = (func3==3'b000)?{{56{sram_data_r[7]}},sram_data_r[7:0]}:   //lb
 always @(posedge clk) begin
     if (wead_en == 1'b1)begin      //写信号高有效
         mem_write(addr_w, data_w, wmask);   //写入
-        $display("%lx Write: addr:%16h %16h",addr_w[63:0],data_w[63:0]);     //调试接口
+        //$display("%lx Write: addr:%16h %16h",addr_w[63:0],data_w[63:0]);     //调试接口
     end
     else if (read_en == 1'b1)begin    //读信号高有效
         mem_read(addr_r, sram_data_r);    //读出
-        $display("%lx Read: addr:%16h %16h",addr_r[63:0],sram_data_r[63:0]);
+        //$display("%lx Read: addr:%16h %16h",addr_r[63:0],sram_data_r[63:0]);
     end
     else begin
         data_r = 64'h00000000;

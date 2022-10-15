@@ -10,7 +10,7 @@ module ysyx_22041412_decode(
 	output [63:0]imme,
 	output [3:0]Type
 	);
-	 
+
 	wire I_type;
 	wire U_type;
 	wire J_type;

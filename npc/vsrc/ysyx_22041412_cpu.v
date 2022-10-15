@@ -55,7 +55,7 @@ module ysyx_22041412_cpu (
     PC = 64'h0000000080000000;
   end
   
-  assign DNPC = JR_EN ?(immdata+PC):PC+4;
+  assign DNPC = JR_EN ?(opcode==`ysyx_22041412_jalr)?(rsA+immdata):(immdata+PC):PC+4;
   assign SNPC = PC+4;
   reg EQ_EN;
   assign CP_PC = PC;//·ÂÕæ²é¿´PC
@@ -174,6 +174,7 @@ module ysyx_22041412_cpu (
       else if(func3 == 3'b001 && (rsA-rsB)!=0)EQ_EN=1;    //bne
       else if(func3 == 3'b100 && $signed(rsA-rsB)<0)EQ_EN=1;
       else if(func3 == 3'b101 && $signed(rsA-rsB)>=0)EQ_EN=1; 
+      else if(func3 == 3'b110 && (rsA < rsB))EQ_EN=1;
       else EQ_EN=0;
     end
     else EQ_EN=0;

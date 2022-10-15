@@ -11,8 +11,8 @@ LLVM_LIBS = $(shell llvm-config-11 --libs)
 all:
 	make sim
 	python3 Immobj.py
-	make build 
-	make compile 
+	make build -s
+	make compile -s
 	make run 	
 	
 sim:
