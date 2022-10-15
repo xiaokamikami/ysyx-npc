@@ -10,7 +10,7 @@ module ysyx_22041412_decode(
 	output [63:0]imme,
 	output [3:0]Type
 	);
-	 
+
 	wire I_type;
 	wire U_type;
 	wire J_type;
@@ -42,7 +42,7 @@ module ysyx_22041412_decode(
 				 U_type?4'b0010 :
 				 B_type?4'b0011 :
 				 S_type?4'b0100 :
-				 R_type?(instr[25]==1'b1)?4'b1111:4'b0101:
+				 R_type?(instr[31:25]=='b0000001)?4'b1111:4'b0101:
 				 J_type?4'b1011 :  
 				 4'b0000;
 				 	

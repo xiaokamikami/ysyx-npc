@@ -52,7 +52,7 @@ size_t get_bit(char data) {
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
-extern "C" void mem_read(long long raddr, long long *rdata) { 
+extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   if(raddr<0x88000000 && raddr >= 0x80000000 ){
     // 总是读取地址为`raddr & ~0x7ull`的8字节返回给`rdata`
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;//;
@@ -60,8 +60,7 @@ extern "C" void mem_read(long long raddr, long long *rdata) {
   *rdata = pmem_read((raddr & ~0x7ull), 8);
   if (raddr-(raddr & ~0x7ull)>0)
    {
-    *rdata = *rdata >> (raddr-(raddr & ~0x7ull))*8;
-    
+    *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
    }
     //printf("read:%lx,offst:%lx \n",raddr& ~0x7ull,(raddr-(raddr & ~0x7ull)));
     //*rdata = pmem_read((raddr), 8);
@@ -203,7 +202,7 @@ int main(int argc,char **argv){
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break; 
     }
-    if(i>10000){
+    if(i>100000){
       printf(RED "vcd break" NONE);
       break;
     }
