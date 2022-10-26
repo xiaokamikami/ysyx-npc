@@ -1,9 +1,10 @@
 #include <common.h>
 #include <device/map.h>
-
+#include <utils.h>
 #define SCREEN_W (MUXDEF(CONFIG_VGA_SIZE_800x600, 800, 400))
 #define SCREEN_H (MUXDEF(CONFIG_VGA_SIZE_800x600, 600, 300))
-
+extern word_t mmio_read(paddr_t addr, int len);
+extern void mmio_write(paddr_t addr, int len, word_t data);
 static uint32_t screen_width() {
   return MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_CONFIG).width, SCREEN_W);
 }
@@ -56,7 +57,15 @@ static inline void update_screen() {
 #endif
 
 void vga_update_screen() {
-  // TODO: call `update_screen()` when the sync register is non-zero,
+  // if(mmio_read((CONFIG_VGA_CTL_MMIO+4),4)!=0){
+  //   update_screen();
+  //   mmio_write((CONFIG_VGA_CTL_MMIO+4),4,0);
+  // }
+  if(MUXDEF(CONFIG_TARGET_AM, io_read(AM_GPU_FBDRAW).sync,1)==1){
+    update_screen();
+    //mmio_write((CONFIG_VGA_CTL_MMIO+4),4,0);
+  }
+  //TODO: call `update_screen()` when the sync register is non-zero,
   // then zero out the sync register
 }
 
