@@ -28,8 +28,18 @@ int atoi(const char* nptr) {
   }
   return x;
 }
-
+static int malloc_flag=1;
+static char *addr;
 void *malloc(size_t size) {
+  size = (size_t)ROUNDUP(size, 8);
+  if(malloc_flag){
+    addr = heap.start;
+    malloc_flag = 0;
+    }
+  if(!malloc_flag){
+    addr = addr + size;
+    return addr;
+    }
   // On native, malloc() will be called during initializaion of C runtime.
   // Therefore do not call panic() here, else it will yield a dead recursion:
   //   panic() -> putchar() -> (glibc) -> malloc() -> panic()

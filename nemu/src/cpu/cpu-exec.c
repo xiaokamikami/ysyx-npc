@@ -45,8 +45,23 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
 }
+
+
+static void exec_once(Decode *s, vaddr_t pc) {
+
+  s->pc = pc;
+  s->snpc = pc;
+  isa_exec_once(s);
+  cpu.pc = s->dnpc;
+  //printf("exec6\n");
+
+#ifdef CONFIG_ITRACE
 static uint16_t FUNC_count=0;
 static size_t rtl_flag[128]={0}; //跳转返回点记录
+  if (ftrace_flag ==1)
+  {   
+    ftrace(s->dnpc,s->pc);
+  }
 static void ftrace(size_t dnpc,size_t thpc){
   FILE * out ;    //函数调用记录
   FILE * read;
@@ -113,18 +128,6 @@ static void ftrace(size_t dnpc,size_t thpc){
   fclose(out);
   fclose(read);
 }
-static void exec_once(Decode *s, vaddr_t pc) {
-
-  s->pc = pc;
-  s->snpc = pc;
-  isa_exec_once(s);
-  cpu.pc = s->dnpc;
-  //printf("exec6\n");
-  if (ftrace_flag ==0)
-  {   
-    ftrace(s->dnpc,s->pc);
-  }
-#ifdef CONFIG_ITRACE
   
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
@@ -149,10 +152,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 
 static void execute(uint64_t n) {
   Decode s;
-  if(END_flag !=1){
+  //if(END_flag !=1){
     //exec_once(&s, cpu.pc);
     //n--;
-  }
+  //}
 
   for (;n > 0; n --) {
     if ((END_flag ==1)){
@@ -162,7 +165,7 @@ static void execute(uint64_t n) {
     }
     else if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
-      trace_and_difftest(&s, cpu.pc);
+      //trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
     }
     else{
