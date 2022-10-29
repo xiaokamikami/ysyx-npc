@@ -45,8 +45,23 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
 }
+
+
+static void exec_once(Decode *s, vaddr_t pc) {
+
+  s->pc = pc;
+  s->snpc = pc;
+  isa_exec_once(s);
+  cpu.pc = s->dnpc;
+  //printf("exec6\n");
+
+#ifdef CONFIG_ITRACE
 static uint16_t FUNC_count=0;
 static size_t rtl_flag[128]={0}; //跳转返回点记录
+  if (ftrace_flag ==1)
+  {   
+    ftrace(s->dnpc,s->pc);
+  }
 static void ftrace(size_t dnpc,size_t thpc){
   FILE * out ;    //函数调用记录
   FILE * read;
@@ -113,18 +128,6 @@ static void ftrace(size_t dnpc,size_t thpc){
   fclose(out);
   fclose(read);
 }
-static void exec_once(Decode *s, vaddr_t pc) {
-
-  s->pc = pc;
-  s->snpc = pc;
-  isa_exec_once(s);
-  cpu.pc = s->dnpc;
-  //printf("exec6\n");
-  if (ftrace_flag ==0)
-  {   
-    ftrace(s->dnpc,s->pc);
-  }
-#ifdef CONFIG_ITRACE
   
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
@@ -149,10 +152,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 
 static void execute(uint64_t n) {
   Decode s;
-  if(END_flag !=1){
+  //if(END_flag !=1){
     //exec_once(&s, cpu.pc);
     //n--;
-  }
+  //}
 
   for (;n > 0; n --) {
     if ((END_flag ==1)){
@@ -162,12 +165,12 @@ static void execute(uint64_t n) {
     }
     else if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
-      trace_and_difftest(&s, cpu.pc);
+      //trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
     }
     else{
-      printf("ERROR:%lx\n",cpu.pc);
-      log_write("---> %s\n",s.logbuf);
+      //printf("ERROR:%lx\n",cpu.pc);
+      //log_write("---> %s\n",s.logbuf);
       return;
     }
 
@@ -209,7 +212,7 @@ void cpu_exec(uint64_t n) {
   switch (nemu_state.state) {
     case NEMU_RUNNING: nemu_state.state = NEMU_STOP; break;
     case NEMU_END: case NEMU_ABORT:
-      printf("ret:%d\n",nemu_state.halt_ret);
+      //printf("ret:%d\n",nemu_state.halt_ret);
       Log("nemu: %s at pc = " FMT_WORD,
           (nemu_state.state == NEMU_ABORT ? ANSI_FMT("ABORT", ANSI_FG_RED) :
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
@@ -224,9 +227,10 @@ void cpu_exec(uint64_t n) {
       // fall through
     case NEMU_QUIT:
       nemu_state.state = NEMU_STOP;    //cpu set quit
-      //statistic();
+      statistic();
+      break;
     case NEMU_STOP:
-      is_exit_status_bad();
+      //is_exit_status_bad();
       break;
   }
 }

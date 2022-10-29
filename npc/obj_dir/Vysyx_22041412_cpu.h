@@ -34,6 +34,7 @@ class Vysyx_22041412_cpu VL_NOT_FINAL {
     VL_OUT64(&CP_NPC,63,0);
     VL_OUT8(&CP_difftest,0,0);
     VL_OUT8(&CP_Immen,0,0);
+    VL_OUT8(&Ebreak,0,0);
 
     // CELLS
     // Public to allow access to /* verilator public */ items.

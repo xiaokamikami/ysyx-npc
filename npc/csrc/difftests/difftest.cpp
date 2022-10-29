@@ -125,7 +125,6 @@ static void checkregs(CPU_state *ref, vaddr_t pc)
   {
     exit_now();
     isa_reg_display();
-    
   }
 }
 
