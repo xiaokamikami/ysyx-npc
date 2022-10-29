@@ -19,7 +19,7 @@ module ysyx_22041412_alu(
   //ALU Ä£Ê½Ñ¡Ôñ   
   assign Mode = (opcode==`ysyx_22041412_R_type)?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:
                                                                (func7=='b1)?`ysyx_22041412_SUB:0:
-                                                (func3=='b001)?`ysyx_22041412_slli:
+                                                (func3=='b001)?`ysyx_22041412_SLL:
                                                 (func3=='b100)?`ysyx_22041412_XOR:
                                                 (func3=='b101)?`ysyx_22041412_SRA:
                                                 (func3=='b110)?`ysyx_22041412_OR:
@@ -51,9 +51,9 @@ module ysyx_22041412_alu(
     `ysyx_22041412_OR ,(AU | BU),
     `ysyx_22041412_XOR,(AU ^ BU),
     `ysyx_22041412_SLL,(AU << BU[5:0]),
-    `ysyx_22041412_slli,(AU << BU[5:0]),
+    `ysyx_22041412_slli,(AU << BU),
     `ysyx_22041412_SRA,(AU >> BU[5:0]),
-    `ysyx_22041412_srai,$signed(AY >> BU[5:0]),
+    `ysyx_22041412_srai,(AY >> BU),
     `ysyx_22041412_sraiw,{{32{AU[31]}},$signed(AY[31:0] >> BU[5:0])},
     `ysyx_22041412_aui,(AY + BU),
     `ysyx_22041412_li, BU,

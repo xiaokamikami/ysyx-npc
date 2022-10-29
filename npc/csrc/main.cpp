@@ -13,14 +13,20 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <iostream>//预处理
+//include END
+
 #define CONFIG_MBASE 0x80000000
 #define CONFIG_MSIZE 0x8000000
 #define CONFIG_RTC_MMIO 0xa0000048
+#define CONFIG_KEY      0xa0000060
+#define CONFIG_VGA      0xa0000100
 #define CONFIG_SERIAL_MMIO 0xa00003f8
 
-
+//flags
 #define diff_en
-//include END
+#define vcd_en
+
+
 struct CPU_state
 {
   uint64_t gpr[32];
@@ -55,19 +61,23 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   if(raddr<0x88000000 && raddr >= 0x80000000 ){
     // 总是读取地址为`raddr & ~0x7ull`的8字节返回给`rdata`
-    // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;//;
-   // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
-  *rdata = pmem_read((raddr & ~0x7ull), 8);
-  if (raddr-(raddr & ~0x7ull)>0)
-   {
-    *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
-   }
-    //printf("read:%lx,offst:%lx \n",raddr& ~0x7ull,(raddr-(raddr & ~0x7ull)));
-    //*rdata = pmem_read((raddr), 8);
-  }
-  if (raddr == CONFIG_RTC_MMIO) {
-    // printf("%08lx\n", get_time(0));
-    *rdata = get_time();
+    // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
+    // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
+    if (raddr == CONFIG_RTC_MMIO)
+    {
+      *rdata = get_time();
+      printf("%08lx\n", get_time());
+    }
+    else{
+      *rdata = pmem_read((raddr & ~0x7ull), 8);
+    }
+
+    //mask
+    if (raddr-(raddr & ~0x7ull)>0)
+    {
+      *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
+    }
+      
   }
 }
 extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
@@ -75,10 +85,16 @@ extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   size_t bits_set = get_bit(wmask);
+  //printf("write:%llx\n",waddr);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set,wdata);
-    //printf("write:%lx\n",waddr);
+  }
+  else if(waddr == CONFIG_SERIAL_MMIO ){
+    serial_io_input(wdata);
+  }
+  else{
+    printf("no mem write addr  %llx\n",waddr);
   }
 }
 
@@ -100,7 +116,15 @@ void refresh_clk()
 {
   top->clk = !(top->clk);
   top->eval();
-  tfp->dump(main_time);
+  #ifdef vcd_en
+    uint64_t i;
+    tfp->dump(main_time);
+    if(i>900000){
+      printf(RED "vcd break" NONE);
+      assert(0);
+    }
+    i++;
+  #endif 
   main_time++;   
 }
 double sc_time_stamp()
@@ -143,17 +167,20 @@ static int cmd_c()
   if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)  && thim != nxim ) {
     bubble = top->CP_difftest;
     if(bubble == 1) {
-      //printf("TEST\n");
       nxim = thim;
       for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];}// sp regs are used for addtion
       difftest_step(pc, npc);
       contextp->timeInc(1);
-
+      //printf("next pc=%lx\n",top->CP_NPC);
+      // if (top->CP_PC==0x80000fe8)
+      // {
+      //  printf("puch\n");
+      // }
     }
   }
   if (isebreak || is_exit) {
     if(isebreak)
-    printf("\033[1;32mebreak \33[0m\n");
+      printf("\033[1;32mebreak \33[0m\n");
   }
   
   return 0;
@@ -162,11 +189,16 @@ static int cmd_c()
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
-  //printf("~7ull:%lx\n",~0x7ull);
+  // for (int i = 0; i < argc; i++)
+  // {
+  //   printf("%s\t",argv[i]);
+  // }
+
   #ifdef diff_en
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
+    static char nemu_bin[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
-    static long img_size = load_image("/home/kami/ysyx-workbench/npc/resource/Imm.bin");
+    static long img_size = load_image(nemu_bin);
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
     refresh_clk();  //刷新CLK与波形记录
@@ -176,8 +208,6 @@ int main(int argc,char **argv){
   sim_init();
   uint32_t Imm = 0;
   uint32_t Imm_hc =0;
-  uint32_t i = 0;
-
   printf(BLUE "Run verilog\n" NONE);
   //top_clk();
   while (1)
@@ -186,15 +216,12 @@ int main(int argc,char **argv){
     Imm=top->CP_Imm;
     #ifdef diff_en
       cmd_c();
+      
     #endif
     if(Imm != Imm_hc && Imm !=0){
       Imm_hc = Imm;
-      //cmd_c();
-      //printf("0x:%08lx\n",top->CP_PC); //调试用检查指令
-      //isa_reg_print(14);    //调试用检查寄存器
-      //isa_reg_display();//遍历寄存器 
     }
-    if(Imm == 32871){  //ebreak
+    else if(Imm == 32871 && is_exit ==true){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break;
     }
@@ -202,11 +229,7 @@ int main(int argc,char **argv){
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break; 
     }
-    if(i>100000){
-      printf(RED "vcd break" NONE);
-      break;
-    }
-    i++;
+ 
   }
   
   //关闭程序

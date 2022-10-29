@@ -82,7 +82,8 @@ module ysyx_22041412_cpu (
     .Addr(PC),
 	  .Imm(Imm)
   );
-
+  assign sram_addr_r = immdata+rsA;
+  assign sram_addr_w = immdata+rsA;
   ysyx_22041412_sram sram(        //SRAM
     .clk(clk),
     .addr_r(sram_addr_r),
@@ -153,13 +154,13 @@ module ysyx_22041412_cpu (
   //SRAM
   assign sram_w= (Imm_Type==4'b0100)&&(cpu_count==4'b0010)?'b1:'b0;
   assign sram_r= (Imm_Type==4'b1001)?1'b1:1'b0;
-  assign sram_addr_w = ALU_Result;
+
   // assign sram_data_w =(func3==3'b000)?{{56{1'b0}},rsB[7:0]}: //sb
   //                     (func3==3'b001)?{{48{1'b0}},rsB[15:0]}: //sh
   //                     (func3==3'b010)?{{32{1'b0}},rsB[31:0]}: //sw
   //                     (func3==3'b011)?{rsB[63:0]}:0;          //sd\
   assign sram_data_w = rsB;
-  assign sram_addr_r = ALU_Result;
+
 
   // assign sram_Result =(func3==3'b000)?{{56{1'b0}},sram_data_r[7:0]}:
   //                     (func3==3'b001)?{{48{1'b0}},sram_data_r[15:0]}:
@@ -170,8 +171,8 @@ module ysyx_22041412_cpu (
   always @(posedge clk) begin
     cpu_count <= cpu_count+1;
     if(Imm_Type==4'b0011)begin    //½øÈëÌø×ªÅÐ¶Ï
-      if((func3 == 3'b000 )&& (rsA-rsB)==0)EQ_EN=1;
-      else if(func3 == 3'b001 && (rsA-rsB)!=0)EQ_EN=1;    //bne
+      if((func3 == 3'b000 )&& (rsA==rsB))EQ_EN=1;
+      else if(func3 == 3'b001 && (rsA!=rsB))EQ_EN=1;    //bne
       else if(func3 == 3'b100 && $signed(rsA-rsB)<0)EQ_EN=1;
       else if(func3 == 3'b101 && $signed(rsA-rsB)>=0)EQ_EN=1; 
       else if(func3 == 3'b110 && (rsA < rsB))EQ_EN=1;

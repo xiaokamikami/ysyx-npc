@@ -5,9 +5,6 @@
 using namespace std;
 
 static uint64_t boot_time = 0;
-
- 
-
 static uint64_t get_time_internal() {
 
   struct timespec now;
@@ -26,7 +23,8 @@ uint64_t get_time() {
 }
 
 static void serial_putc(char ch) {
-  cout << ch << endl;
+  //cout << ch << endl;
+  printf("%c",ch);
 }
 
  void serial_io_output() {
@@ -34,7 +32,8 @@ static void serial_putc(char ch) {
 }
 
 void serial_io_input(long long wdata) {
-  putc((uint8_t)wdata, stderr);
+
+  serial_putc((char)wdata);
   
 }
 

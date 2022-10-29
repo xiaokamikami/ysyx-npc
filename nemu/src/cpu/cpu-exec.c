@@ -227,9 +227,10 @@ void cpu_exec(uint64_t n) {
       // fall through
     case NEMU_QUIT:
       nemu_state.state = NEMU_STOP;    //cpu set quit
-      //statistic();
+      statistic();
+      break;
     case NEMU_STOP:
-      is_exit_status_bad();
+      //is_exit_status_bad();
       break;
   }
 }
