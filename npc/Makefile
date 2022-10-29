@@ -9,15 +9,11 @@ LIBS = -L ./csrc/*.h
 LLVM_CXXFLAGS = $(shell llvm-config-11 --cxxflags)
 LLVM_LIBS = $(shell llvm-config-11 --libs)
 all:
-	make sim
-	python3 Immobj.py
+	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+	python3 Immobj.py 
 	make build -s 
 	make compile -s
 	make run 	
-	
-sim:
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
-	@echo "Write this Makefile by your self."
 
 objects = main.o verilated_vcd_c.o 
 TOPNAME = ysyx_22041412_cpu
@@ -44,10 +40,10 @@ build:
 		$(addprefix -LDFLAGS , $(LLVM_LIBS)) -LDFLAGS -ldl 
 
 compile: 
-	make -C $(NPC_HOME)/obj_dir -j -f V$(TOPNAME).mk V$(TOPNAME)
+	make -C $(NPC_HOME)/obj_dir -j -f V$(TOPNAME).mk  V$(TOPNAME) 
 
 run:
-	obj_dir/Vysyx_22041412_cpu
+	./obj_dir/Vysyx_22041412_cpu 
 
 clean:
 	rm obj_dir/*.*

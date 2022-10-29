@@ -42,9 +42,8 @@ module ysyx_22041412_decode(
 				 U_type?4'b0010 :
 				 B_type?4'b0011 :
 				 S_type?4'b0100 :
-				 R_type?(instr[31:25]=='b0000001)?4'b1111:4'b0101:
+				 R_type?(instr[25]=='b1)?4'b1111:4'b0101:
 				 J_type?(instr[6:0]==`ysyx_22041412_jal)?4'b1011:
-				 		(instr[6:0]==`ysyx_22041412_ebreak)?4'b1111:
 						0:
 				 4'b0000;
 				 	

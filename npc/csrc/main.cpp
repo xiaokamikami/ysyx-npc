@@ -117,15 +117,14 @@ void refresh_clk()
   top->clk = !(top->clk);
   top->eval();
   #ifdef vcd_en
-    uint64_t i;
     tfp->dump(main_time);
-    if(i>900000){
+    if(main_time>999999){
       printf(RED "vcd break" NONE);
       assert(0);
     }
-    i++;
+    main_time++;  
   #endif 
-  main_time++;   
+  
 }
 double sc_time_stamp()
 {
@@ -206,27 +205,28 @@ int main(int argc,char **argv){
     init_difftest(diff_so_file, img_size, 1024);
   #endif
   sim_init();
-  uint32_t Imm = 0;
-  uint32_t Imm_hc =0;
+  //uint32_t Imm = 0;
+  //uint32_t Imm_hc =0;
   printf(BLUE "Run verilog\n" NONE);
   //top_clk();
   while (1)
   {
     refresh_clk();  //刷新CLK与波形记录
-    Imm=top->CP_Imm;
+    //Imm=top->CP_Imm;
     #ifdef diff_en
       cmd_c();
-      
     #endif
-    if(Imm != Imm_hc && Imm !=0){
-      Imm_hc = Imm;
-    }
-    else if(Imm == 32871 && is_exit ==true){  //ebreak
+    if(top->Ebreak==1){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       break;
     }
     else if(is_exit ==true){
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      //关闭程序
+      top->final();
+      tfp->close();
+      delete top;
+      return(-1);
       break; 
     }
  
