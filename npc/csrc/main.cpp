@@ -17,14 +17,14 @@
 
 #define CONFIG_MBASE 0x80000000
 #define CONFIG_MSIZE 0x8000000
-#define CONFIG_RTC_MMIO 0xa0000048
-#define CONFIG_KEY      0xa0000060
-#define CONFIG_VGA      0xa0000100
-#define CONFIG_SERIAL_MMIO 0xa00003f8
+#define CONFIG_RTC   0xb0000048
+#define CONFIG_KEY      0xb0000060
+#define CONFIG_VGA      0xb0000100
+#define CONFIG_SERIAL_MMIO 0xb00003f8
 
 //flags
 #define diff_en
-#define vcd_en
+//#define vcd_en
 
 
 struct CPU_state
@@ -53,7 +53,6 @@ size_t get_bit(char data) {
 		data &= (data - 1);
   return sum;
 }
-
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
@@ -63,21 +62,27 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     // 总是读取地址为`raddr & ~0x7ull`的8字节返回给`rdata`
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
     // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
-    if (raddr == CONFIG_RTC_MMIO)
-    {
-      *rdata = get_time();
-      printf("%08lx\n", get_time());
-    }
-    else{
-      *rdata = pmem_read((raddr & ~0x7ull), 8);
-    }
-
+    *rdata = pmem_read((raddr & ~0x7ull), 8);
     //mask
     if (raddr-(raddr & ~0x7ull)>0)
     {
       *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
     }
-      
+  }
+  else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
+  {
+    //printf("npc-rtc\n");
+    uint64_t us =get_time();
+    if(raddr == CONFIG_RTC){
+      *rdata = (uint32_t)us;
+    }
+    else{
+      *rdata = (us >>32);
+    }
+    difftest_skip_ref();
+  } 
+  else{
+    //printf("no mem read addr  %llx\n",raddr);
   }
 }
 extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
@@ -91,6 +96,7 @@ extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
     pmem_write((waddr), bits_set,wdata);
   }
   else if(waddr == CONFIG_SERIAL_MMIO ){
+    //printf("npc-usart\n");
     serial_io_input(wdata);
   }
   else{
@@ -117,7 +123,9 @@ void refresh_clk()
   top->clk = !(top->clk);
   top->eval();
   #ifdef vcd_en
-    tfp->dump(main_time);
+    if(main_time>0){
+      tfp->dump(main_time);
+    }
     if(main_time>999999){
       printf(RED "vcd break" NONE);
       assert(0);
@@ -153,6 +161,7 @@ void isa_reg_print(uint8_t num) {
 }
 
 
+
 static uint32_t thim=0,nxim=0;
 static int cmd_c()
 { 
@@ -167,24 +176,25 @@ static int cmd_c()
     bubble = top->CP_difftest;
     if(bubble == 1) {
       nxim = thim;
-      for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];}// sp regs are used for addtion
+      for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];
+        cpureg.pc=npc;
+      }// sp regs are used for addtion
       difftest_step(pc, npc);
       contextp->timeInc(1);
       //printf("next pc=%lx\n",top->CP_NPC);
-      // if (top->CP_PC==0x80000fe8)
-      // {
-      //  printf("puch\n");
-      // }
     }
   }
-  if (isebreak || is_exit) {
-    if(isebreak)
-      printf("\033[1;32mebreak \33[0m\n");
+  else{
+    is_exit==1;
   }
-  
   return 0;
 }
 
+void npc_init(void){
+  sim_init();
+  rct_init();
+
+}
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
@@ -192,23 +202,20 @@ int main(int argc,char **argv){
   // {
   //   printf("%s\t",argv[i]);
   // }
-
-  #ifdef diff_en
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
     static char nemu_bin[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(nemu_bin);
+  #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
     refresh_clk();  //刷新CLK与波形记录
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
   #endif
-  sim_init();
-  //uint32_t Imm = 0;
-  //uint32_t Imm_hc =0;
+
+  npc_init();
   printf(BLUE "Run verilog\n" NONE);
-  //top_clk();
   while (1)
   {
     refresh_clk();  //刷新CLK与波形记录
@@ -231,12 +238,10 @@ int main(int argc,char **argv){
     }
  
   }
-  
   //关闭程序
   top->final();
   tfp->close();
   delete top;
-  
   return 0;
 }
 

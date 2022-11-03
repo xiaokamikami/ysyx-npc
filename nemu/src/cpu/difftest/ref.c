@@ -20,17 +20,18 @@ void difftest_regcpy(CPU_state *dut, bool direction) {
     for (uint16_t i = 0; i < 32; i++)
     {
      cpu.gpr[i] = dut->gpr[i];
-     cpu.pc = dut->pc;
     }
+    cpu.pc = dut->pc;
   } else if(direction == DIFFTEST_TO_DUT){
     for (uint16_t i = 0; i < 32; i++)
     {
      dut->gpr[i] = cpu.gpr[i]; 
-     dut->pc =cpu.pc;
     }
+    dut->pc =cpu.pc;
   }else{
     assert(0);
   }
+  
 }
 
 void difftest_exec(uint64_t n) {
