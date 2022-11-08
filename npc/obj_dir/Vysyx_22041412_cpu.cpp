@@ -12,11 +12,9 @@
 Vysyx_22041412_cpu::Vysyx_22041412_cpu(VerilatedContext* _vcontextp__, const char* _vcname__)
     : vlSymsp{new Vysyx_22041412_cpu__Syms(_vcontextp__, _vcname__, this)}
     , clk{vlSymsp->TOP.clk}
-    , CP_Imm{vlSymsp->TOP.CP_Imm}
     , CP_PC{vlSymsp->TOP.CP_PC}
     , CP_NPC{vlSymsp->TOP.CP_NPC}
     , CP_difftest{vlSymsp->TOP.CP_difftest}
-    , CP_Immen{vlSymsp->TOP.CP_Immen}
     , Ebreak{vlSymsp->TOP.Ebreak}
     , rootp{&(vlSymsp->TOP)}
 {

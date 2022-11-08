@@ -23,8 +23,8 @@
 #define CONFIG_SERIAL_MMIO 0xb00003f8
 
 //flags
-#define diff_en
-//#define vcd_en
+//#define diff_en
+#define vcd_en
 
 
 struct CPU_state
@@ -126,7 +126,7 @@ void refresh_clk()
     if(main_time>0){
       tfp->dump(main_time);
     }
-    if(main_time>999999){
+    if(main_time>9999){
       printf(RED "vcd break" NONE);
       assert(0);
     }
@@ -171,11 +171,9 @@ static int cmd_c()
   pc = top->CP_PC;
   npc = top->CP_NPC;
   cpureg.pc = pc;
-  thim = top->CP_Imm;
-  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)  && thim != nxim ) {
+  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)   ) {
     bubble = top->CP_difftest;
     if(bubble == 1) {
-      nxim = thim;
       for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion

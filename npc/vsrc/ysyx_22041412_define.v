@@ -32,3 +32,10 @@
 `define 	ysyx_22041412_sra  			5'b10011
 `define     ysyx_22041412_sraw          5'b10100
 `define     ysyx_22041412_sraiw         5'b10101
+
+
+`define     ysyx_22041412_v2imm         1'b1
+`define     ysyx_22041412_v2rsb         1'b0
+`define     ysyx_22041412_v1pc          1'b1
+`define     ysyx_22041412_v1rsa         1'b0
+`define     ysyx_22041412_mulen         1'b1
