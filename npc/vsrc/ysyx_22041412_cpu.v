@@ -18,47 +18,16 @@ module ysyx_22041412_cpu (
   assign Ebreak=(Imm=='b000100000000000001110011)?1:0;
   //指令相关存储
 
-  wire [63:0]immdata;
-  wire [3:0]Imm_Type;
   //END
-
-  //SRAM
-  wire sram_r;
-  wire sram_w;
-  wire [63:0]sram_addr_r;
-  wire [63:0]sram_addr_w;
-  wire [63:0]sram_data_r;
-  wire [63:0]sram_data_w;
-  //wire [63:0]sram_Result;
-  //END
-  //REG
-  wire [63:0]rsA,rsB,rsW;
-  wire Rrst;
-  //END
-  //ALU
-  wire [63:0]ALU_S;
-  wire [63:0]ALU_A;
-  wire [63:0]ALU_Result;
-  wire [63:0]Mul_Result;
-  //END
-
-  //PC寄存器
-  wire [63:0]DNPC;
-  wire [63:0]SNPC;
-  reg [63:0]PC;
-  initial begin        //初始化PC值
-    PC = 64'h0000000080000000;
-  end
-  
   //assign DNPC = JR_EN ?(opcode==`ysyx_22041412_jalr)?(rsA+immdata):(immdata+PC):PC+4;
   //assign SNPC = PC+4;
   //reg EQ_EN;
   //END
   ysyx_22041412_pipeline pip(
     .clk(clk),
-  
     .pip_pc(CP_PC),
     .pip_dnpc(CP_NPC),
+    .pip_imm(Imm),
     .pip_dpic(CP_difftest)
 );
   //基本模块初始化

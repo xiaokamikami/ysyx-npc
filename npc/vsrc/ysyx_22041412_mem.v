@@ -8,7 +8,7 @@ module ysyx_22041412_mem(
     //$readmemh("resource/test.txt", ImmMemory);
     $readmemh("resource/Imm_init.hex", ImmMemory);
  end
- always @(posedge clk) begin
-    Imm <= ImmMemory[Addr[26:0]];
+ always @(*) begin
+    Imm = ImmMemory[Addr[26:0]];
  end
 endmodule

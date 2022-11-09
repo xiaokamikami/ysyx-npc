@@ -23,7 +23,7 @@
 #define CONFIG_SERIAL_MMIO 0xb00003f8
 
 //flags
-//#define diff_en
+#define diff_en
 #define vcd_en
 
 
@@ -81,8 +81,8 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     difftest_skip_ref();
   } 
-  else{
-    //printf("no mem read addr  %llx\n",raddr);
+  else if(raddr !=0){
+    printf("error mem read addr  %llx\n",raddr);
   }
 }
 extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
@@ -99,8 +99,8 @@ extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
-  else{
-    printf("no mem write addr  %llx\n",waddr);
+  else if(waddr !=0){
+    printf("error mem write addr  %llx\n",waddr);
   }
 }
 

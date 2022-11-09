@@ -6,7 +6,6 @@ module ysyx_22041412_sram#(
     input clk,
     input [2:0]func3,
     input [ ADDR_WIDTH-1:0] addr,
-    input rw,
     input wen,
     output reg[DATA_WIDTH-1:0] data
 );
@@ -24,7 +23,7 @@ assign wmask =  (func3==3'b000)?8'b00000001:    //sb
                 0;  
                  
 always @(posedge clk) begin
-    if (wen == 1'b1)begin      //写信号高有效
+    if(wen == 1'b1)begin      //写信号高有效
         mem_write(addr, data, wmask);   //写入
         data <= (func3==3'b000)?{{56{sram_data_r[7]}},sram_data_r[7:0]}:   //lb
                 (func3==3'b001)?{{48{sram_data_r[15]}},sram_data_r[15:0]}:  //lh
