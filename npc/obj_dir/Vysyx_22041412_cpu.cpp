@@ -14,7 +14,7 @@ Vysyx_22041412_cpu::Vysyx_22041412_cpu(VerilatedContext* _vcontextp__, const cha
     , clk{vlSymsp->TOP.clk}
     , CP_PC{vlSymsp->TOP.CP_PC}
     , CP_NPC{vlSymsp->TOP.CP_NPC}
-    , CP_difftest{vlSymsp->TOP.CP_difftest}
+    , CP_IMM{vlSymsp->TOP.CP_IMM}
     , Ebreak{vlSymsp->TOP.Ebreak}
     , rootp{&(vlSymsp->TOP)}
 {

@@ -41,7 +41,7 @@ module ysyx_22041412_decode(
 	assign S_type=(instr[6:0]==`ysyx_22041412_store);
 	assign R_type=(instr[6:0]==`ysyx_22041412_R_type)|(instr[6:0]==`ysyx_22041412_RV64_R);
 	
-	assign V1Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?(func3=='b000)?`ysyx_22041412_v2rsb:`ysyx_22041412_v2imm:
+	assign V2Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?(func3=='b000)?`ysyx_22041412_v2rsb:`ysyx_22041412_v2imm:
 						(instr[6:0]==`ysyx_22041412_load)?`ysyx_22041412_v2imm:`ysyx_22041412_v2imm:
 				 U_type?`ysyx_22041412_v2imm :
 				 B_type?`ysyx_22041412_v2rsb :
@@ -49,7 +49,7 @@ module ysyx_22041412_decode(
 				 R_type?`ysyx_22041412_v2rsb:
 				 J_type?(instr[6:0]==`ysyx_22041412_jal)?`ysyx_22041412_v2rsb:`ysyx_22041412_v2rsb:
 				 `ysyx_22041412_v2rsb;
-	assign V2Type= U_type?`ysyx_22041412_v1pc:`ysyx_22041412_v1rsa;
+	assign V1Type= U_type?`ysyx_22041412_v1pc:`ysyx_22041412_v1rsa;
 	assign Mul_en= (instr[25]=='b1)?`ysyx_22041412_mulen:1'b0;
 	// assign Ram_en= S_type?1'b1:
 	// 			   I_type?(instr[6:0]==`ysyx_22041412_load)?1'b1:1'b0:1'b0;

@@ -6,7 +6,7 @@ module ysyx_22041412_cpu (
   input clk,
   output [63:0]CP_PC,
   output [63:0]CP_NPC,
-  output CP_difftest,
+  output [31:0]CP_IMM,
   output Ebreak
 );
   //状态机
@@ -15,6 +15,7 @@ module ysyx_22041412_cpu (
   wire Mul_EN;
   wire [31:0]Imm;
   //END
+  assign CP_IMM=Imm;
   assign Ebreak=(Imm=='b000100000000000001110011)?1:0;
   //指令相关存储
 
@@ -27,8 +28,7 @@ module ysyx_22041412_cpu (
     .clk(clk),
     .pip_pc(CP_PC),
     .pip_dnpc(CP_NPC),
-    .pip_imm(Imm),
-    .pip_dpic(CP_difftest)
+    .pip_imm(Imm)
 );
   //基本模块初始化
 

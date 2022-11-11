@@ -45,7 +45,7 @@ Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
 uint64_t *cpu_gpr = NULL;
 bool is_exit = false;
 bool isebreak = false;
-
+static uint32_t imm;
 
 size_t get_bit(char data) {
   int sum=0;
@@ -111,6 +111,8 @@ void sim_init() {
   contextp->traceEverOn(true);
   top->trace(tfp,0);
   tfp->open("wave.vcd");
+  imm=top->CP_IMM;
+  printf("get:imm %lx \n",imm);
 }
 
 //end
@@ -162,19 +164,23 @@ void isa_reg_print(uint8_t num) {
 
 
 
-static uint32_t thim=0,nxim=0;
 static int cmd_c()
 { 
   static bool bubble;
   static paddr_t pc;
-  static paddr_t npc; 
+  static paddr_t npc;        
   pc = top->CP_PC;
   npc = top->CP_NPC;
   cpureg.pc = pc;
-  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)   ) {
-    bubble = top->CP_difftest;
-    if(bubble == 1) {
-      for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];
+  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)) {
+    if(imm != top->CP_PC  && pc>CONFIG_MBASE){
+      imm=top->CP_PC;
+      //refresh_clk();  //刷新CLK与波形记录
+      pc = top->CP_PC;
+      npc = top->CP_NPC;
+      printf("%lx\n",pc);
+      for(int i = 0; i < 32; i++) {
+        cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
       difftest_step(pc, npc);
@@ -183,7 +189,7 @@ static int cmd_c()
     }
   }
   else{
-    is_exit==1;
+    //is_exit==1;
   }
   return 0;
 }
