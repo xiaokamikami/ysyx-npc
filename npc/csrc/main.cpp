@@ -172,8 +172,8 @@ static int cmd_c()
   pc = top->CP_PC;
   npc = top->CP_NPC;
   cpureg.pc = pc;
-  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)) {
-    if(imm != top->CP_PC  && pc>CONFIG_MBASE){
+  if((pc >= CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
+    if(imm != top->CP_PC && top->CP_PC > CONFIG_MBASE){
       imm=top->CP_PC;
       //refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;

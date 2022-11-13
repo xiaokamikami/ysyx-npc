@@ -87,8 +87,6 @@ reg [2:0]id_func3;
 reg id_func7;
 reg [4:0]id_Ra,id_Rb,id_Rw;
 reg [6:0]id_opcode;
-reg [63:0]id_va;
-reg [63:0]id_vb;
 reg [63:0]id_rsA;
 reg [63:0]id_rsB;
 reg [31:0]id_imm;
@@ -129,32 +127,28 @@ reg [6:0]wb_opcode;
 
 
 always@(posedge clk)begin
-    if(if_en==1'b1)begin
-        if(ex_opcode == `ysyx_22041412_jal)begin
-            if_pc<= wb_dnpc;
-        end
-        else begin
-            if_pc<= if_pc+4;
-        end
+    if(if_en == 1'b1)begin
+        if_pc<= if_pc+4;
+    end
+    if(wb_opcode == `ysyx_22041412_jal && if_en==1'b0)begin
+        if_pc<= if_dnpc;
+        if_en<=1'b1;
+        id_en<=1'b1;
     end
 end
 always@(posedge clk)begin
     if(id_en==1'b1)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
-        id_va <= id_rsA;
-        id_vb <= id_rsB;
     end
-end
-always@(posedge clk)begin
-    if(ex_opcode == `ysyx_22041412_jal)begin
+    if(id_opcode == `ysyx_22041412_jal )begin
         if_en <=1'b0;
+        id_en <=1'b0;
+        id_pc <=`ysyx_22041412_zero_word;
         if_pc <=`ysyx_22041412_zero_word;
     end
-    if(id_Ra == id_Rw)begin
-        id_en <=1'b0;
-    end
 end
+
 always@(posedge clk)begin
     if(ex_en==1'b1)begin
         ex_rw <= id_Rw;
@@ -166,12 +160,14 @@ always@(posedge clk)begin
         ex_mul_en<=id_mul_en;
         if(id_imm_V1Type==1'b1)
             ex_v1 <= id_pc;
+        else if(id_Ra == ex_rw && id_Ra!=0)
+            ex_v1 <= ex_res;
         else 
-            ex_v1 <= id_va;  
+            ex_v1 <= id_rsA;  
         if(id_imm_V2Type==1'b1)
             ex_v2 <= id_imm_data;
         else 
-            ex_v2 <= id_vb; 
+            ex_v2 <= id_rsB; 
     end
 end
 always@(posedge clk)begin           
@@ -210,14 +206,19 @@ always@(posedge clk)begin
         wb_rgw_en<=!mem_ram_en;
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
-        if(wb_opcode == `ysyx_22041412_jal)begin
-            wb_data<= wb_pc+4;
-            wb_dnpc<= wb_pc+wb_imm_data;
-            if_en <= 1;
+        if(mem_opcode == 0)begin
+            wb_data<=`ysyx_22041412_zero_word;
+            wb_addr<=0;
+            wb_dnpc<=`ysyx_22041412_zero_word;
+        end
+        else if(mem_opcode == `ysyx_22041412_jal)begin
+            wb_data<= mem_pc+4;
+            wb_dnpc<= mem_pc;
+            if_dnpc<= mem_data;
         end
         else begin 
-            wb_data<=mem_data;
-            wb_dnpc<=wb_pc+4;
+            wb_data<= mem_data;
+            wb_dnpc<= mem_pc;
         end
     end
 end
