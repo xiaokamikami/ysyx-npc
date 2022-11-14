@@ -62,8 +62,9 @@ static inline paddr_t host_read(void *addr, int len)
        return *(uint64_t *)addr;
     default:
     {
-      printf("len:%d\n",len);
-      assert(0);
+      printf("read len:%d\n",len);
+      exit_now();
+      //assert(0);
       return 0;
     }
   }
@@ -82,8 +83,9 @@ static inline void host_write(void *addr, int len, uint64_t data)
   case 8:
     *(uint64_t *)addr = data; return;
   default:
-    printf("len:%d\n",len);
-    assert(0);
+    printf("write len:%d\n",len);
+    exit_now();
+    //assert(0);
   }
 }
 

@@ -47,11 +47,13 @@ bool is_exit = false;
 bool isebreak = false;
 static uint32_t imm;
 
-size_t get_bit(char data) {
-  int sum=0;
-	for (sum; data; sum++)
-		data &= (data - 1);
-  return sum;
+
+// 通过掩码计算输入的位数
+size_t get_bit(char wmask) {
+  if(wmask == 1)return 1;
+  else if(wmask == 3)return 2;
+  else if(wmask == 0xf)return 4;
+  else if(wmask == 0xff)return 8;
 }
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
@@ -172,13 +174,13 @@ static int cmd_c()
   pc = top->CP_PC;
   npc = top->CP_NPC;
   cpureg.pc = pc;
-  if((pc >= CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
-    if(imm != top->CP_PC && top->CP_PC > CONFIG_MBASE){
+  if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
+    if(imm != top->CP_PC){
       imm=top->CP_PC;
       //refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;
       npc = top->CP_NPC;
-      printf("%lx\n",pc);
+      printf("pc:%lx\n",pc);
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
@@ -188,8 +190,8 @@ static int cmd_c()
       //printf("next pc=%lx\n",top->CP_NPC);
     }
   }
-  else{
-    //is_exit==1;
+  else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
+    is_exit=true;
   }
   return 0;
 }
@@ -229,10 +231,13 @@ int main(int argc,char **argv){
     #endif
     if(top->Ebreak==1){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      refresh_clk();  //刷新CLK与波形记录
       break;
     }
     else if(is_exit ==true){
+      isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      refresh_clk();  //刷新CLK与波形记录
       //关闭程序
       top->final();
       tfp->close();

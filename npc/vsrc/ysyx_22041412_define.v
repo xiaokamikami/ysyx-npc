@@ -4,9 +4,9 @@
 `define		ysyx_22041412_auipc			7'b0010111
 `define		ysyx_22041412_jal			7'b1101111
 `define		ysyx_22041412_jalr			7'b1100111
-`define		ysyx_22041412_B_type		7'b1100011
 `define		ysyx_22041412_load			7'b0000011
 `define		ysyx_22041412_store			7'b0100011
+`define		ysyx_22041412_B_type		7'b1100011
 `define		ysyx_22041412_I_type		7'b0010011
 `define		ysyx_22041412_R_type		7'b0110011
 `define		ysyx_22041412_ebreak        7'b1110011

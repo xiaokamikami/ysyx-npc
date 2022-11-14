@@ -87,6 +87,15 @@ always @(*) begin
   else if(opcode==`ysyx_22041412_RV64_R||opcode==`ysyx_22041412_RV64_I ) begin
     Alusu = {{32{Muxsu[31]}},Muxsu[31:0]};
   end
+  else if(opcode==`ysyx_22041412_B_type)begin
+    if((func3 == 3'b000 )&& (AU==BU))Alusu=1;
+    else if(func3 == 3'b001 && (AU!=BU))Alusu=1;    //bne
+    else if(func3 == 3'b100 && $signed(AU-BU)<0)Alusu=1;
+    else if(func3 == 3'b101 && $signed(AU-BU)>=0)Alusu=1; 
+    else if(func3 == 3'b110 && (AU < BU))Alusu=1;
+    else if(func3 == 3'b111 && (AU >= BU))Alusu=1;
+    else Alusu=0;     
+  end
   else
     Alusu = Muxsu;
 end
