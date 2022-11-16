@@ -40,6 +40,7 @@ ysyx_22041412_sram MEM_sram(        //SRAM
     .addr(mem_addr),
     .wdata(mem_wdata),
     .rdata(mem_rdata),
+    .stall(mem_stall),
     .wen(mem_rw_type)           //1 wt  0 read
 );
 ysyx_22041412_dff M_reg (        //32*64bitREG
@@ -53,32 +54,51 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusW(wb_data),
     .rst(wb_rst)
 );
+
+ysyx_22041412_stall Stall(
+    .stall(pip_stall),				
+	.rst(pip_rst),
+	.stall_from_id(id_stall),		
+	.stall_from_ex(ex_stall),		
+    .stall_from_mem(mem_stall)
+);
 initial begin        // STARTS
     if_pc = 64'h0000000080000000;
-    if_en = 1'b1;
-    id_en = 1'b1;
-    ex_en = 1'b1;
-    mem_en= 1'b1;
-    wb_en = 1'b1; 
 end
 //DIP-C
 
 //
+
+//STALL 
+reg [5:0]pip_stall;
+reg pip_rst;
+wire if_en;
+wire id_en;
+wire ex_en;
+wire mem_en;
+wire wb_en;
+wire id_stall;
+wire ex_stall;
+wire mem_stall;
+
+assign if_en  = !pip_stall[1];
+assign id_en  = !pip_stall[2];
+assign ex_en  = !pip_stall[3];
+assign mem_en = !pip_stall[4];
+assign wb_en  = !pip_stall[5];
+
 //DIFF-TEST
 assign pip_pc  = wb_pc;
 assign pip_dnpc= wb_dnpc;
 assign pip_imm = wb_imm;
 //
-// ALL
-reg pip_stop;
 //IF 
-reg if_en;
 wire [31:0]if_imm;
 reg [63:0]if_pc;
 reg [63:0]if_dnpc;
 reg [2:0]if_start;
+
 //ID
-reg id_en;
 wire id_imm_V1Type;
 wire id_imm_V2Type;
 reg [31:0]id_imm;
@@ -92,7 +112,6 @@ reg [6:0]id_opcode;
 reg [63:0]id_rsA;
 reg [63:0]id_rsB;
 //EXE
-reg ex_en;
 reg ex_mul_en;
 reg [31:0]ex_imm;
 reg [63:0]ex_imm_data;
@@ -105,9 +124,8 @@ reg ex_func7;
 reg [6:0]ex_opcode;
 reg [63:0]ex_res;
 reg [63:0]ex_pc;
+
 //MEM
-reg mem_en;
-reg mem_ram_en;
 reg [31:0]mem_imm;
 reg [4:0]mem_rw;
 reg [6:0]mem_opcode;
@@ -118,8 +136,10 @@ reg [63:0]mem_rdata;
 reg [63:0]mem_wdata;
 reg [63:0]mem_pc;
 reg [63:0]mem_imm_data;
+reg mem_stall;
+reg mem_ram_en;
+
 //WB
-reg wb_en;
 reg wb_rgw_en;
 wire wb_rst;
 assign wb_rst = 1'b0;
@@ -131,9 +151,8 @@ reg [63:0]wb_pc;
 reg [63:0]wb_dnpc;
 reg [6:0]wb_opcode;
 
-
 always@(posedge clk)begin
-    if(if_en == 1'b1)begin
+    if(if_en )begin
         if_pc<= if_pc+4;
     end
     if(wb_opcode == `ysyx_22041412_jal && if_en==1'b0)begin
@@ -145,11 +164,10 @@ always@(posedge clk)begin
         if_pc<= if_dnpc;
         if_en<=1'b1;
         id_en<=1'b1;
-        mem_en<=1'b1;
     end
 end
 always@(posedge clk)begin
-    if(id_en==1'b1)begin
+    if(id_en )begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
     end
@@ -168,7 +186,7 @@ always@(posedge clk)begin
 end
 
 always@(posedge clk)begin
-    if(ex_en==1'b1)begin
+    if(ex_en)begin
         ex_imm <=id_imm;
         ex_rw <= id_Rw;
         ex_opcode <= id_opcode;
@@ -204,42 +222,44 @@ always@(posedge clk)begin
     end
 end
 always@(posedge clk)begin           
-    if(mem_en==1'b1)begin
+    if(mem_en)begin
         mem_imm<=ex_imm;
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
         mem_func3<=ex_func3;
         mem_opcode<=ex_opcode;
         mem_imm_data<=ex_imm_data;
+        if(ex_opcode == `ysyx_22041412_store)begin //w mem
+            mem_rw_type<=1;
+            mem_ram_en <=1;
+            mem_addr   <=ex_res;
+            mem_wdata  <=ex_rs2;
+        end
+        else if(ex_opcode == `ysyx_22041412_load)begin  //r mem 
+            mem_rw_type<=0;
+            mem_ram_en <=0;
+            mem_addr   <=ex_res;
+        end
+        else begin
+            mem_rw_type<=0;
+            mem_ram_en <=0;
+            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_wdata  <=ex_res;
+        end
     end
-    if(ex_opcode == `ysyx_22041412_store)begin 
-        mem_rw_type<=0;
-        mem_ram_en<=1;
-        mem_addr <=ex_res;
-        mem_wdata <=ex_rs2;
-    end
-    else if(ex_opcode == `ysyx_22041412_load)begin  
-        mem_rw_type<=1;
-        mem_ram_en<=0;
-        mem_addr <=ex_res;
-    end
-    else begin
-        mem_rw_type<=0;
-        mem_ram_en<=0;
-        mem_addr <=`ysyx_22041412_zero_word;
-        mem_wdata <=ex_res;
-    end
+
 end
 
 
 always@(posedge clk)begin           
-    if(wb_en==1'b1)begin
+    if(wb_en)begin
         wb_imm<=mem_imm;
         wb_pc<=mem_pc;
         wb_addr<=mem_rw;
         wb_rgw_en<=!mem_ram_en;
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
+        wb_dnpc<= mem_pc;
         if(mem_opcode == 0)begin
             wb_data<=`ysyx_22041412_zero_word;
             wb_addr<=0;
@@ -247,19 +267,16 @@ always@(posedge clk)begin
         end
         else if(mem_opcode == `ysyx_22041412_jal)begin
             wb_data<= mem_pc+4;
-            wb_dnpc<= mem_pc;
             if_dnpc<= mem_wdata;
         end
         else if(mem_opcode == `ysyx_22041412_load)begin
-            wb_data<= mem_pc+4;
-            wb_dnpc<= mem_pc;
-            if_dnpc<= mem_rdata;
+            wb_data<= mem_rdata;
         end       
         else begin 
             wb_data<= mem_wdata;
-            wb_dnpc<= mem_pc;
         end
     end
+
 end
 
 

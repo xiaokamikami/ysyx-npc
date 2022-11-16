@@ -8,6 +8,7 @@ module ysyx_22041412_sram#(
     input [ ADDR_WIDTH-1:0] addr,
     input [ DATA_WIDTH-1:0] wdata,
     input wen,
+    output reg stall,
     output reg[DATA_WIDTH-1:0] rdata
 );
 import "DPI-C" function void mem_read(
@@ -27,6 +28,7 @@ always @(posedge clk) begin
     if(wen == 1'b1)begin      //写信号高有效
         mem_write(addr, wdata, wmask);   //写入   
         $display("%lx Write: addr:%16h %16h",addr[63:0],wdata[63:0]);     //调试接口
+        stall <=1'b1;
     end
     else begin    //读信号高有效
         mem_read(addr, sram_data_r);    //读出
@@ -38,7 +40,11 @@ always @(posedge clk) begin
                 (func3==3'b101)?{{48{1'b0}},sram_data_r[15:0]}:             //lhu
                 (func3==3'b110)?{{32{1'b0}},sram_data_r[31:0]}:             //lwu
                 0;
-        if(addr !=0 )$display("%lx Read: addr:%16h %16h",addr[63:0],rdata[63:0]);
+        if(addr !=0 )begin 
+            $display("%lx Read: addr:%16h %16h",addr[63:0],rdata[63:0]);
+            stall <=1'b1;
+        end
+        else stall <=1'b0;
     end
 end
 

@@ -49,7 +49,7 @@ static uint32_t imm;
 
 
 // 通过掩码计算输入的位数
-size_t get_bit(char wmask) {
+size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
   else if(wmask == 3)return 2;
   else if(wmask == 0xf)return 4;
@@ -70,6 +70,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     {
       *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
     }
+    //printf("get ram :%llx\n",*rdata);
   }
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
@@ -87,12 +88,11 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     printf("error mem read addr  %llx\n",raddr);
   }
 }
-extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
+extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 总是往地址为`waddr & ~0x7ull`的8字节按写掩码`wmask`写入`wdata`
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   size_t bits_set = get_bit(wmask);
-  //printf("write:%llx\n",waddr);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set,wdata);
@@ -235,7 +235,7 @@ int main(int argc,char **argv){
       break;
     }
     else if(is_exit ==true){
-      isa_reg_display();
+      //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       refresh_clk();  //刷新CLK与波形记录
       //关闭程序

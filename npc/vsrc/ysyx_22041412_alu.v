@@ -44,13 +44,13 @@ module ysyx_22041412_alu(
                                                 (func3=='b001)?`ysyx_22041412_sll:
                                                 (func3=='b101)?(func7 =='b0)?`ysyx_22041412_srliw:
                                                                (func7 =='b1)?`ysyx_22041412_sraiw:0:0:
-                (opcode==`ysyx_22041412_auipc)?`ysyx_22041412_aui:
+                (opcode==`ysyx_22041412_auipc)?`ysyx_22041412_UADD:
                 (opcode==`ysyx_22041412_lui)?`ysyx_22041412_li:
                 (opcode==`ysyx_22041412_load||opcode==`ysyx_22041412_store||opcode==`ysyx_22041412_jal)?`ysyx_22041412_UADD:
                 0;
 
   //选择计算方式
-  ysyx_22041412_MuxKeyWithDefault #(15, 5, 64)Mux_ALU (Muxsu,Mode,`ysyx_22041412_zero_word,{
+  ysyx_22041412_MuxKeyWithDefault #(14, 5, 64)Mux_ALU (Muxsu,Mode,`ysyx_22041412_zero_word,{
     `ysyx_22041412_UADD,(AU + BU),
     `ysyx_22041412_ADD,(AY + BY),
     `ysyx_22041412_SUB,$signed(AU - BU),
@@ -64,8 +64,7 @@ module ysyx_22041412_alu(
     `ysyx_22041412_srliw,{{32{1'b0}},(AU[31:0] >> BU[4:0])},
     `ysyx_22041412_sraiw,{{32{AU[31]}},$signed(AU[31:0] >> BU[4:0])},
     `ysyx_22041412_sraw,$signed(AU >> BU[4:0]),
-    `ysyx_22041412_aui,(AU + BU),
-    `ysyx_22041412_li, BU
+    `ysyx_22041412_li,BU
   });
 
 always @(*) begin

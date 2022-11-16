@@ -17,9 +17,11 @@ module ysyx_22041412_dff(
 import "DPI-C" function void set_gpr_ptr(input logic [63:0] a []);
 initial set_gpr_ptr(DataReg);  //read gpr
 always@(posedge clk)begin
-	if(!rst)begin
-		if(Wen & Rw!=5'd0)
-		DataReg[Rw] <= BusW;
+	if(rst==1'b0)begin
+		if(Wen & Rw!=5'd0)begin
+			DataReg[Rw] <= BusW;
+        	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     //µ÷ÊÔ½Ó¿Ú
+		end
   	end
 end
  assign BusA = (Ra==5'd0)?64'd0:DataReg[Ra];
