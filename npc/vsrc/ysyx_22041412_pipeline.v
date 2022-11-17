@@ -77,8 +77,8 @@ wire id_en;
 wire ex_en;
 wire mem_en;
 wire wb_en;
-wire id_stall;
-wire ex_stall;
+reg id_stall;
+reg ex_stall;
 wire mem_stall;
 
 assign if_en  = !pip_stall[1];
@@ -136,7 +136,7 @@ reg [63:0]mem_rdata;
 reg [63:0]mem_wdata;
 reg [63:0]mem_pc;
 reg [63:0]mem_imm_data;
-reg mem_stall;
+reg [63:0]mem_temp;
 reg mem_ram_en;
 
 //WB
@@ -152,35 +152,33 @@ reg [63:0]wb_dnpc;
 reg [6:0]wb_opcode;
 
 always@(posedge clk)begin
-    if(if_en )begin
+    if(if_en)begin
         if_pc<= if_pc+4;
     end
-    if(wb_opcode == `ysyx_22041412_jal && if_en==1'b0)begin
+    else if(wb_opcode == `ysyx_22041412_jal)begin
         if_pc<= if_dnpc;
-        if_en<=1'b1;
-        id_en<=1'b1;
+        id_stall<=0;
     end
     else if(ex_opcode == `ysyx_22041412_B_type)begin
         if_pc<= if_dnpc;
-        if_en<=1'b1;
-        id_en<=1'b1;
+        id_stall<=0;
     end
 end
 always@(posedge clk)begin
-    if(id_en )begin
+    if(id_en)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
     end
     if(id_opcode == `ysyx_22041412_jal)begin
-        if_en <=1'b0;
-        id_en <=1'b0;
-        id_imm<=0;
+		id_stall<=1;
+        id_imm<=32'b0;
         id_pc <=`ysyx_22041412_zero_word;
         if_pc <=`ysyx_22041412_zero_word;
     end
     else if(id_opcode == `ysyx_22041412_B_type)begin
-        if_en <=1'b0;
-        id_en <=1'b0;
+        id_stall<=1;
+        id_imm<=32'b0;
+        id_pc <=`ysyx_22041412_zero_word;
         if_pc <=`ysyx_22041412_zero_word;
     end
 end
@@ -247,6 +245,10 @@ always@(posedge clk)begin
             mem_wdata  <=ex_res;
         end
     end
+    if(ex_opcode == `ysyx_22041412_B_type)begin 
+        mem_ram_en <=1;
+    end
+
 
 end
 
@@ -272,6 +274,12 @@ always@(posedge clk)begin
         else if(mem_opcode == `ysyx_22041412_load)begin
             wb_data<= mem_rdata;
         end       
+        else if(mem_opcode == `ysyx_22041412_B_type)begin
+            if(mem_wdata==1) begin 
+                if_dnpc<= mem_pc+mem_imm_data;
+            end
+            else if_dnpc<= mem_pc+4;
+        end
         else begin 
             wb_data<= mem_wdata;
         end

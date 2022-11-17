@@ -43,11 +43,10 @@ module ysyx_22041412_decode(
 	
 	assign V1Type=J_type?`ysyx_22041412_v1pc:
 				  U_type?(instr[6:0]==`ysyx_22041412_auipc)?`ysyx_22041412_v1pc:`ysyx_22041412_v1rsa:
-				  B_type?`ysyx_22041412_v1pc:`ysyx_22041412_v1rsa;
+			    	`ysyx_22041412_v1rsa;	
 	assign V2Type= I_type?(instr[6:0]==`ysyx_22041412_jalr)?(func3=='b000)?`ysyx_22041412_v2rsb:`ysyx_22041412_v2imm:
 						(instr[6:0]==`ysyx_22041412_load)?`ysyx_22041412_v2imm:`ysyx_22041412_v2imm:
 				 U_type?`ysyx_22041412_v2imm :
-				 B_type?`ysyx_22041412_v2imm :
 				 S_type?`ysyx_22041412_v2imm :
 				 R_type?`ysyx_22041412_v2rsb :
 				 J_type?`ysyx_22041412_v2imm :

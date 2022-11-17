@@ -130,7 +130,7 @@ void refresh_clk()
     if(main_time>0){
       tfp->dump(main_time);
     }
-    if(main_time>9999){
+    if(main_time>4999){
       printf(RED "vcd break" NONE);
       assert(0);
     }
