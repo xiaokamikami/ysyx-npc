@@ -155,11 +155,11 @@ always@(posedge clk)begin
     if(if_en)begin
         if_pc<= if_pc+4;
     end
-    else if(wb_opcode == `ysyx_22041412_jal)begin
+    else if(wb_opcode == `ysyx_22041412_jal | wb_opcode == `ysyx_22041412_jalr)begin
         if_pc<= if_dnpc;
         id_stall<=0;
     end
-    else if(ex_opcode == `ysyx_22041412_B_type)begin
+    else if(mem_opcode == `ysyx_22041412_B_type)begin
         if_pc<= if_dnpc;
         id_stall<=0;
     end
@@ -169,18 +169,13 @@ always@(posedge clk)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
     end
-    if(id_opcode == `ysyx_22041412_jal)begin
+    if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr)begin
 		id_stall<=1;
         id_imm<=32'b0;
         id_pc <=`ysyx_22041412_zero_word;
         if_pc <=`ysyx_22041412_zero_word;
     end
-    else if(id_opcode == `ysyx_22041412_B_type)begin
-        id_stall<=1;
-        id_imm<=32'b0;
-        id_pc <=`ysyx_22041412_zero_word;
-        if_pc <=`ysyx_22041412_zero_word;
-    end
+
 end
 
 always@(posedge clk)begin
@@ -199,24 +194,30 @@ always@(posedge clk)begin
         else if(id_Ra == ex_rw && id_Ra!=0)
             ex_v1 <= ex_res;
         else if(id_Ra == mem_rw && id_Ra!=0)
-            ex_v1 <= mem_wdata;
+            ex_v1 <= mem_rdata;
+        else if(id_Ra == wb_addr  && id_Ra!=0)
+            ex_v1 <= wb_data;
         else 
             ex_v1 <= id_rsA;  
         if(id_imm_V2Type==1'b1)
             ex_v2 <= id_imm_data;
-        else if(id_Rb == ex_rw && id_Rb!=0)
+        else if(id_Rb == ex_rw  && id_Rb!=0)
             ex_v2 <= ex_res;
         else if(id_Rb == mem_rw && id_Rb!=0)
-            ex_v2 <= mem_wdata;
+            ex_v2 <= mem_rdata;
+        else if(id_Rb == wb_addr  && id_Rb!=0)
+            ex_v2 <= wb_data;
         else 
             ex_v2 <= id_rsB; 
     end
-    if(ex_opcode == `ysyx_22041412_B_type) begin
+    if(id_opcode == `ysyx_22041412_B_type) begin
         //mem_en <=1'b0;
         ex_opcode <= id_opcode;
+    end
+    else if(ex_opcode== `ysyx_22041412_B_type)begin
         if (ex_res ==1)
-            if_dnpc <=id_imm_data+id_pc;
-        else if_dnpc <=id_pc+4;
+            if_dnpc  <=ex_imm_data+ex_pc;
+        else if_dnpc <=ex_pc+4;
     end
 end
 always@(posedge clk)begin           
@@ -267,19 +268,18 @@ always@(posedge clk)begin
             wb_addr<=0;
             wb_dnpc<=`ysyx_22041412_zero_word;
         end
-        else if(mem_opcode == `ysyx_22041412_jal)begin
+        else if(mem_opcode == `ysyx_22041412_jal | mem_opcode == `ysyx_22041412_jalr)begin
             wb_data<= mem_pc+4;
             if_dnpc<= mem_wdata;
         end
         else if(mem_opcode == `ysyx_22041412_load)begin
             wb_data<= mem_rdata;
         end       
-        else if(mem_opcode == `ysyx_22041412_B_type)begin
-            if(mem_wdata==1) begin 
-                if_dnpc<= mem_pc+mem_imm_data;
-            end
-            else if_dnpc<= mem_pc+4;
-        end
+        // else if(mem_opcode == `ysyx_22041412_B_type)begin
+        //     if(mem_wdata==1)
+        //          if_dnpc <= mem_pc+mem_imm_data;
+        //     else if_dnpc <= mem_pc+4;
+        // end
         else begin 
             wb_data<= mem_wdata;
         end

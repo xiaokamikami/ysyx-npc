@@ -607,11 +607,13 @@ void Vysyx_22041412_cpu___024root___settle__TOP__3(Vysyx_22041412_cpu___024root*
                                               == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode))
                                               ? 0xeU
                                               : (((
-                                                   (3U 
-                                                    == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode)) 
-                                                   | (0x23U 
+                                                   ((3U 
+                                                     == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode)) 
+                                                    | (0x23U 
+                                                       == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode))) 
+                                                   | (0x6fU 
                                                       == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode))) 
-                                                  | (0x6fU 
+                                                  | (0x67U 
                                                      == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_opcode)))
                                                   ? 0x12U
                                                   : 0U))))))));

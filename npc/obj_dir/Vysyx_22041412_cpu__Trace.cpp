@@ -48,25 +48,12 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                      | ((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__U_type) 
                                         & (0x17U == 
                                            (0x7fU & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm))))));
-            tracep->chgBit(oldp+15,(((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__I_type)
-                                      ? (IData)((0x67U 
-                                                 != 
-                                                 (0x707fU 
-                                                  & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm)))
-                                      : ((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__U_type) 
-                                         | ((0x23U 
-                                             == (0x7fU 
-                                                 & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm)) 
-                                            | ((~ (
-                                                   (0x33U 
-                                                    == 
-                                                    (0x7fU 
-                                                     & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm)) 
-                                                   | (0x3bU 
-                                                      == 
-                                                      (0x7fU 
-                                                       & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm)))) 
-                                               & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__J_type)))))));
+            tracep->chgBit(oldp+15,(((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__I_type) 
+                                     | ((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__U_type) 
+                                        | ((0x23U == 
+                                            (0x7fU 
+                                             & vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm)) 
+                                           | (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__J_type))))));
             tracep->chgIData(oldp+16,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm),32);
             tracep->chgBit(oldp+17,((1U & (vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm 
                                            >> 0x19U))));
