@@ -29,11 +29,9 @@ class Vysyx_22041412_cpu VL_NOT_FINAL {
     // The application code writes and reads these signals to
     // propagate new values into/out from the Verilated model.
     VL_IN8(&clk,0,0);
-    VL_OUT(&CP_Imm,31,0);
     VL_OUT64(&CP_PC,63,0);
     VL_OUT64(&CP_NPC,63,0);
-    VL_OUT8(&CP_difftest,0,0);
-    VL_OUT8(&CP_Immen,0,0);
+    VL_OUT(&CP_IMM,31,0);
     VL_OUT8(&Ebreak,0,0);
 
     // CELLS

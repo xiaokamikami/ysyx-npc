@@ -26,7 +26,7 @@
 #define diff_en
 //#define vcd_en
 
-
+void exit_now();
 struct CPU_state
 {
   uint64_t gpr[32];
@@ -45,13 +45,15 @@ Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
 uint64_t *cpu_gpr = NULL;
 bool is_exit = false;
 bool isebreak = false;
+static uint32_t imm;
 
 
-size_t get_bit(char data) {
-  int sum=0;
-	for (sum; data; sum++)
-		data &= (data - 1);
-  return sum;
+// 通过掩码计算输入的位数
+size_t get_bit(uint8_t wmask) {
+  if(wmask == 1)return 1;
+  else if(wmask == 3)return 2;
+  else if(wmask == 0xf)return 4;
+  else if(wmask == 0xff)return 8;
 }
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
@@ -68,6 +70,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     {
       *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
     }
+    //printf("get ram :%llx\n",*rdata);
   }
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
@@ -81,16 +84,15 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     difftest_skip_ref();
   } 
-  else{
-    //printf("no mem read addr  %llx\n",raddr);
+  else if(raddr !=0){
+    printf("error mem read addr  %llx\n",raddr);
   }
 }
-extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
+extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 总是往地址为`waddr & ~0x7ull`的8字节按写掩码`wmask`写入`wdata`
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
-  size_t bits_set = get_bit(wmask);
-  //printf("write:%llx\n",waddr);
+  uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set,wdata);
@@ -99,8 +101,8 @@ extern "C" void mem_write(long long waddr, long long wdata, char wmask) {
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
-  else{
-    printf("no mem write addr  %llx\n",waddr);
+  else if(waddr !=0){
+    printf("error mem write addr  %llx\n",waddr);
   }
 }
 
@@ -111,6 +113,8 @@ void sim_init() {
   contextp->traceEverOn(true);
   top->trace(tfp,0);
   tfp->open("wave.vcd");
+  imm=top->CP_IMM;
+  printf("get:imm %lx \n",imm);
 }
 
 //end
@@ -126,9 +130,9 @@ void refresh_clk()
     if(main_time>0){
       tfp->dump(main_time);
     }
-    if(main_time>999999){
-      printf(RED "vcd break" NONE);
-      assert(0);
+    if(main_time>4999){
+      printf(RED "vcd break \n" NONE);
+      exit_now();
     }
     main_time++;  
   #endif 
@@ -162,21 +166,23 @@ void isa_reg_print(uint8_t num) {
 
 
 
-static uint32_t thim=0,nxim=0;
 static int cmd_c()
 { 
   static bool bubble;
   static paddr_t pc;
-  static paddr_t npc; 
+  static paddr_t npc;        
   pc = top->CP_PC;
   npc = top->CP_NPC;
   cpureg.pc = pc;
-  thim = top->CP_Imm;
-  if(pc >= CONFIG_MBASE && pc <= (CONFIG_MBASE + CONFIG_MSIZE)  && thim != nxim ) {
-    bubble = top->CP_difftest;
-    if(bubble == 1) {
-      nxim = thim;
-      for(int i = 0; i < 32; i++) {cpureg.gpr[i] = cpu_gpr[i];
+  if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
+    if(imm != top->CP_PC){
+      imm=top->CP_PC;
+      //refresh_clk();  //刷新CLK与波形记录
+      pc = top->CP_PC;
+      npc = top->CP_NPC;
+      //printf("pc:%lx\n",pc);
+      for(int i = 0; i < 32; i++) {
+        cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
       difftest_step(pc, npc);
@@ -184,8 +190,8 @@ static int cmd_c()
       //printf("next pc=%lx\n",top->CP_NPC);
     }
   }
-  else{
-    is_exit==1;
+  else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
+    is_exit=true;
   }
   return 0;
 }
@@ -225,10 +231,13 @@ int main(int argc,char **argv){
     #endif
     if(top->Ebreak==1){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      refresh_clk();  //刷新CLK与波形记录
       break;
     }
     else if(is_exit ==true){
+      //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      refresh_clk();  //刷新CLK与波形记录
       //关闭程序
       top->final();
       tfp->close();
