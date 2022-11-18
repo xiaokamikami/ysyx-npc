@@ -24,9 +24,9 @@
 
 //flags
 #define diff_en
-#define vcd_en
+//#define vcd_en
 
-
+void exit_now();
 struct CPU_state
 {
   uint64_t gpr[32];
@@ -92,7 +92,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 总是往地址为`waddr & ~0x7ull`的8字节按写掩码`wmask`写入`wdata`
   // `wmask`中每比特表示`wdata`中1个字节的掩码,
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
-  size_t bits_set = get_bit(wmask);
+  uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set,wdata);
@@ -131,8 +131,8 @@ void refresh_clk()
       tfp->dump(main_time);
     }
     if(main_time>4999){
-      printf(RED "vcd break" NONE);
-      assert(0);
+      printf(RED "vcd break \n" NONE);
+      exit_now();
     }
     main_time++;  
   #endif 
@@ -180,7 +180,7 @@ static int cmd_c()
       //refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;
       npc = top->CP_NPC;
-      printf("pc:%lx\n",pc);
+      //printf("pc:%lx\n",pc);
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;

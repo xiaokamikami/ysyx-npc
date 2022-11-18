@@ -49,13 +49,17 @@ module ysyx_22041412_decode(
 				 	S_type?`ysyx_22041412_v2imm :
 				 	J_type?`ysyx_22041412_v2imm :
 				 	`ysyx_22041412_v2rsb;
-	assign Mul_en= (instr[25]=='b1)?`ysyx_22041412_mulen:1'b0;
+	assign Mul_en= R_type?(instr[25]=='b1)?`ysyx_22041412_mulen:1'b0:1'b0;
 	
 	assign I_imme={{52{instr[31]}},instr[31:20]}; 
 	assign U_imme={{32{instr[31]}},instr[31:12],{12{1'b0}}};
 	assign J_imme={{44{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0};   
 	assign B_imme={{52{instr[31]}},instr[7],instr[30:25],instr[11:8],1'b0};
 	assign S_imme={{52{instr[31]}},instr[31:25],instr[11:7]}; 
+
+
+
+
 	assign imme= I_type?I_imme :
 				 U_type?U_imme :
 				 J_type?J_imme :

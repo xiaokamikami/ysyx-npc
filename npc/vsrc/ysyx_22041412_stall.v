@@ -10,14 +10,14 @@ module ysyx_22041412_stall (
 		if (rst == 1'b1) begin
 			stall	=	6'b000000;
 		end 
-		else if (stall_from_id) begin
-			stall	=	6'b000111;
+		else if (stall_from_mem) begin
+			stall	=	6'b111111;
 		end 
 		else if	(stall_from_ex) begin
 			stall	=	6'b001111;
         end 
-		else if (stall_from_mem) begin
-			stall	=	6'b111111;
+		else if (stall_from_id) begin
+			stall	=	6'b000111;
 		end 
 		else begin
 			stall	=	6'b000000;

@@ -7,9 +7,10 @@ module ysyx_22041412_sram#(
     input [2:0]func3,
     input [ ADDR_WIDTH-1:0] addr,
     input [ DATA_WIDTH-1:0] wdata,
+    input en,
     input wen,
     output wire stall,
-    output reg[DATA_WIDTH-1:0] rdata
+    output wire[DATA_WIDTH-1:0] rdata
 );
 import "DPI-C" function void mem_read(
   input longint raddr, output longint rdata);
@@ -18,6 +19,8 @@ import "DPI-C" function void mem_write(
 
 
 reg ready;
+assign rdata = r_data;
+reg [DATA_WIDTH-1:0]r_data;
 wire [63:0]sram_data_r;
 wire [7:0]wmask; 
 
@@ -30,14 +33,14 @@ assign wmask =  (func3==3'b000)?8'b00000001:    //sb
 assign stall = (!ready && addr!=0)?1:0;
 
 always @(posedge clk) begin
-    if(wen & !ready)begin      //写信号高有效
+    if(wen & !ready & en)begin      //写信号高有效
         mem_write(addr, wdata, wmask);   //写入   
         $display("%lx Write: addr:%8h %16h",addr[63:0],wdata[63:0]);     //调试接口
         ready<=1'b1;
     end
-    else if((addr!=0) && !ready)begin    //读信号高有效
+    else if((addr!=0) & !ready & en)begin    //读信号高有效
         mem_read(addr, sram_data_r);    //读出
-        rdata <= (func3==3'b000)?{{56{sram_data_r[7]}},sram_data_r[7:0]}:   //lb
+        r_data <= (func3==3'b000)?{{56{sram_data_r[7]}},sram_data_r[7:0]}:   //lb
                 (func3==3'b001)?{{48{sram_data_r[15]}},sram_data_r[15:0]}:  //lh
                 (func3==3'b010)?{{32{sram_data_r[31]}},sram_data_r[31:0]}:  //lw
                 (func3==3'b011)?{sram_data_r[63:0]}:                        //ld

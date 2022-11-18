@@ -1,21 +1,44 @@
 `include "vsrc/ysyx_22041412_define.v"
 module ysyx_22041412_alu(
+  input wire clk,
   input [63:0]scr1,
   input [63:0]scr2,
   input [6:0]opcode,
   input [2:0]func3,
   input func7,
+  input mul_en,
+  output reg stall,
   output [63:0]result
   );
   wire [4:0]Mode;
   wire [63:0]AU,BU,AY,BY;
-  wire [63:0]Muxsu;
+
+  wire rv64w_en;
+  wire mul_ready;
+  wire [63:0]mux_result;
+  wire [63:0]mul_result;
   reg  [63:0]Alusu;
   assign result =Alusu;
   assign AU = scr1;
   assign BU = scr2;
   assign AY = ({scr1[63],~{scr1[62:0]}})+1;
   assign BY = ({scr2[63],~{scr2[62:0]}})+1;
+ 
+  assign rv64w_en = (opcode==`ysyx_22041412_RV64_I | opcode==`ysyx_22041412_RV64_R)?1'b1:1'b0;
+
+  ysyx_22041412_mul mul (        //mul
+    .clk(clk),
+    .en(mul_en),
+    .w_en(rv64w_en),
+    .rsA(scr1),
+    .rsB(scr2),
+    .func3(func3),
+    .ready(mul_ready),
+    .result(mul_result)
+  );
+
+
+
   //ALU 模式选择   
   assign Mode = (opcode==`ysyx_22041412_R_type)?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:
                                                                (func7=='b1)?`ysyx_22041412_SUB:0:
@@ -50,7 +73,7 @@ module ysyx_22041412_alu(
                 0;
 
   //选择计算方式
-  ysyx_22041412_MuxKeyWithDefault #(14, 5, 64)Mux_ALU (Muxsu,Mode,`ysyx_22041412_zero_word,{
+  ysyx_22041412_MuxKeyWithDefault #(14, 5, 64)Mux_ALU (mux_result,Mode,`ysyx_22041412_zero_word,{
     `ysyx_22041412_UADD,(AU + BU),
     `ysyx_22041412_ADD,(AY + BY),
     `ysyx_22041412_SUB,$signed(AU - BU),
@@ -66,6 +89,12 @@ module ysyx_22041412_alu(
     `ysyx_22041412_sraw,$signed(AU >> BU[4:0]),
     `ysyx_22041412_li,BU
   });
+
+always @(posedge clk)begin
+  if(!mul_ready & mul_en) stall<=1;
+  else if(mul_en & mul_ready) stall<=0;
+end
+
 
 always @(*) begin
   if(Mode == `ysyx_22041412_slt)begin
@@ -83,11 +112,8 @@ always @(*) begin
     end
     else  Alusu=0;
   end
-  else if(opcode==`ysyx_22041412_RV64_R||opcode==`ysyx_22041412_RV64_I ) begin
-    Alusu = {{32{Muxsu[31]}},Muxsu[31:0]};
-  end
   else if(opcode==`ysyx_22041412_B_type)begin
-    if((func3 == 3'b000 )&& (AU==BU))             Alusu=1;
+    if     ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
     else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
     else if(func3 == 3'b100 && $signed(AU-BU)<0)  Alusu=1;
     else if(func3 == 3'b101 && $signed(AU-BU)>=0) Alusu=1; 
@@ -95,8 +121,17 @@ always @(*) begin
     else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
     else Alusu=0;     
   end
+  else if(rv64w_en & !mul_en) begin
+    Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+  end
+  else if(rv64w_en & mul_en)begin
+    Alusu = {{32{mul_result[31]}},mul_result[31:0]};
+  end
+  else if(!rv64w_en & mul_en)begin
+    Alusu = mul_result;
+  end
   else
-    Alusu = Muxsu;
+    Alusu = mux_result;
 end
 endmodule
 
