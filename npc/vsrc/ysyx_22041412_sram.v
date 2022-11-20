@@ -30,7 +30,7 @@ assign wmask =  (func3==3'b000)?8'b00000001:    //sb
                 (func3==3'b011)?8'b11111111:    //sd
                 0;  
 
-assign stall = (!ready && addr!=0)?1:0;
+assign stall = (!ready & en)?1:0;
 
 always @(posedge clk) begin
     if(wen & !ready & en)begin      //写信号高有效

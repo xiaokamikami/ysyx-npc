@@ -31,9 +31,9 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         CData/*5:0*/ ysyx_22041412_cpu__DOT__pip__DOT__pip_stall;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__pip_rst;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_stall;
-        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_stall;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_wait;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_stall;
         CData/*2:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_start;
-        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_mul_en;
         CData/*6:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_opcode;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_mul_en;
         CData/*4:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_rw;

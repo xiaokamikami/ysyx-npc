@@ -95,7 +95,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
-    pmem_write((waddr), bits_set,wdata);
+    pmem_write((waddr), bits_set, wdata);
   }
   else if(waddr == CONFIG_SERIAL_MMIO ){
     //printf("npc-usart\n");
@@ -180,7 +180,7 @@ static int cmd_c()
       //refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;
       npc = top->CP_NPC;
-      //printf("pc:%lx\n",pc);
+      printf("pc:%lx\n",pc);
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;

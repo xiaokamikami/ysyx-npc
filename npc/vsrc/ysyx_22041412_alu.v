@@ -7,7 +7,7 @@ module ysyx_22041412_alu(
   input [2:0]func3,
   input func7,
   input mul_en,
-  output reg stall,
+  output wire mul_stall,
   output [63:0]result
   );
   wire [4:0]Mode;
@@ -15,6 +15,7 @@ module ysyx_22041412_alu(
 
   wire rv64w_en;
   wire mul_ready;
+  assign mul_stall = (!mul_ready&mul_en)?1:0;
   wire [63:0]mux_result;
   wire [63:0]mul_result;
   reg  [63:0]Alusu;
@@ -90,10 +91,7 @@ module ysyx_22041412_alu(
     `ysyx_22041412_li,BU
   });
 
-always @(posedge clk)begin
-  if(!mul_ready & mul_en) stall<=1;
-  else if(mul_en & mul_ready) stall<=0;
-end
+
 
 
 always @(*) begin
@@ -113,7 +111,7 @@ always @(*) begin
     else  Alusu=0;
   end
   else if(opcode==`ysyx_22041412_B_type)begin
-    if     ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
+    if     ((func3 == 3'b000)&& (AU==BU))         Alusu=1;
     else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
     else if(func3 == 3'b100 && $signed(AU-BU)<0)  Alusu=1;
     else if(func3 == 3'b101 && $signed(AU-BU)>=0) Alusu=1; 
