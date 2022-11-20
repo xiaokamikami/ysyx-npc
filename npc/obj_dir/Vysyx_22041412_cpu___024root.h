@@ -31,9 +31,11 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         CData/*5:0*/ ysyx_22041412_cpu__DOT__pip__DOT__pip_stall;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__pip_rst;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_stall;
-        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_wait;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_wait;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_stall;
         CData/*2:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_start;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V1Type;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V2Type;
         CData/*6:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_opcode;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_mul_en;
         CData/*4:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_rw;
@@ -73,6 +75,7 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_v2;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_rs2;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_pc;
+        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_v1_in;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_addr;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_rdata;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_wdata;
@@ -89,11 +92,11 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ua;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ub;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__data;
+    };
+    struct {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__sram_data_r;
-    };
-    struct {
         VlUnpacked<IData/*31:0*/, 134217728> ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__ImmMemory;
         VlUnpacked<VlWide<3>/*68:0*/, 14> ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__pair_list;
         VlUnpacked<CData/*4:0*/, 14> ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__key_list;

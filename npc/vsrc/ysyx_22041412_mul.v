@@ -15,7 +15,7 @@ assign ub = (w_en=='b1)?{{32{1'b0}},rsB[31:0]}:rsB;
 reg[63:0]data;
 assign result =data;
 always@(posedge clk)begin 
-    if(en)begin
+    if(en & !ready)begin
         if (func3==3'b000)
             data <=  rsA*rsB;
         else if (func3==3'b100)

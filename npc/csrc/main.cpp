@@ -65,12 +65,13 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
     // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
     *rdata = pmem_read((raddr & ~0x7ull), 8);
+    uint8_t offset = raddr-(raddr & ~0x7ull);
     //mask
-    if (raddr-(raddr & ~0x7ull)>0)
+    if (offset>0)
     {
-      *rdata = (*rdata) >> ((raddr-(raddr & ~0x7ull))*8);
+      *rdata = (*rdata) >> (offset*8);
     }
-    //printf("get ram :%llx\n",*rdata);
+    printf("get ram :%llx\n",*rdata);
   }
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
@@ -94,6 +95,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
+    printf("write :%d addr %llx \n",bits_set,waddr);
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set, wdata);
   }
@@ -127,10 +129,10 @@ void refresh_clk()
   top->clk = !(top->clk);
   top->eval();
   #ifdef vcd_en
-    if(main_time>0){
+    if(main_time>1){
       tfp->dump(main_time);
     }
-    if(main_time>4999){
+    if(main_time>5999){
       printf(RED "vcd break \n" NONE);
       exit_now();
     }
