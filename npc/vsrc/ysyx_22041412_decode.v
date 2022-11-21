@@ -30,9 +30,11 @@ module ysyx_22041412_decode(
 	assign opcode=instr[6:0];
 	assign func3=instr[14:12];
 	assign func7=instr[30];
-	assign Rs1=instr[19:15];
-	assign Rs2=instr[24:20];
-	assign Rd =instr[11:7];
+	assign Rs1=U_type?5'b00000:instr[19:15];
+	assign Rs2=I_type?5'b00000:
+			   U_type?5'b00000:instr[24:20];
+	assign Rd =S_type?5'b00000:
+			   B_type?5'b00000:instr[11:7];
 	
 	assign I_type=(instr[6:0]==`ysyx_22041412_jalr) | (instr[6:0]==`ysyx_22041412_load) | (instr[6:0]==`ysyx_22041412_I_type)|(instr[6:0]==`ysyx_22041412_RV64_I);
 	assign U_type=(instr[6:0]==`ysyx_22041412_lui) | (instr[6:0]==`ysyx_22041412_auipc);
