@@ -30,8 +30,9 @@ module ysyx_22041412_decode(
 	assign opcode=instr[6:0];
 	assign func3=instr[14:12];
 	assign func7=instr[30];
-	assign Rs1=instr[19:15];
-	assign Rs2=instr[24:20];
+	assign Rs1=U_type?5'b00000:instr[19:15];
+	assign Rs2=I_type?5'b00000:
+			   U_type?5'b00000:instr[24:20];
 	assign Rd =S_type?5'b00000:
 			   B_type?5'b00000:instr[11:7];
 	

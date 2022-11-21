@@ -45,6 +45,8 @@ ysyx_22041412_sram MEM_sram(        //SRAM
     .wdata(mem_wdata),
     .rdata(mem_rdata),
     .stall(mem_busy),
+    .readyi(mem_readyi),
+    .readyo(mem_readyo),
     .wen(mem_rw_type)           //1 wt  0 read
 );
 ysyx_22041412_dff M_reg (        //32*64bitREG
@@ -84,9 +86,9 @@ wire wb_en;
 reg id_stall;
 wire ex_stall;
 wire mul_stall;
-wire ex_wait;
-assign ex_wait = (id_Ra == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load & mem_stall)?1'b1:1'b0;
-assign ex_stall = mul_stall | ex_wait;
+reg ex_wait;
+//assign ex_wait = (ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load & !mem_readyo) ?1'b1:1'b0;
+assign ex_stall = mul_stall | ex_wait ;
 reg mem_wait;
 wire mem_busy;
 wire mem_stall;
@@ -125,6 +127,8 @@ reg [63:0]id_rsA;
 reg [63:0]id_rsB;
 
 //EXE
+reg ex_imm_V1Type;
+reg ex_imm_V2Type;
 reg [31:0]ex_imm;
 reg [63:0]ex_imm_data;
 reg ex_mul_en;
@@ -141,20 +145,24 @@ reg [63:0]ex_pc;
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
+wire [63:0]ex_res_o;
 
 assign ex_v1_in = (id_imm_V1Type==1'b1)?id_pc:
-                      (!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)?ex_res:
+                      (!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      //(!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
                       (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
                       (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (!id_imm_V1Type & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsA;
 assign ex_v2_in = (id_imm_V2Type==1'b1)?id_imm_data:
-                      (!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)?ex_res:
+                      (!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      //(!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
                       (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
                       (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (!id_imm_V2Type & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsB;
-assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)?ex_res:
+assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      //(id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
                       (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
                       (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
@@ -175,7 +183,9 @@ reg [63:0]mem_pc;
 reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
-
+wire mem_readyi;
+assign mem_readyi = !ex_wait;
+wire mem_readyo;
 
 //WB
 reg wb_reg_en;
@@ -202,7 +212,7 @@ always@(posedge clk)begin
         id_stall<=0;
     end
 end
-always@(posedge clk)begin
+always@(posedge clk )begin
     if(id_en)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
@@ -213,7 +223,11 @@ always@(posedge clk)begin
             if_pc <=`ysyx_22041412_zero_word;
         end
     end
+ 
 end
+
+
+
 
 always@(posedge clk)begin
     if(ex_en)begin
@@ -228,77 +242,28 @@ always@(posedge clk)begin
         ex_v1<=ex_v1_in;
         ex_v2<=ex_v2_in;
         ex_rs2<=ex_rs2_in;
-        // if(id_imm_V1Type==1'b1)
-        //     ex_v1 <= id_pc;
-        // else if(id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)
-        //     ex_v1 <= ex_res;
-        // else if(id_Ra == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
-        //     mem_wait <=1;           
-        // else if(id_Ra == mem_rw & mem_rw!=0 & !mem_ram_en )
-        //     ex_v1 <= mem_res;
-        // else if(id_Ra == mem_rw & mem_rw!=0 & mem_ram_en)
-        //     ex_v1 <= mem_rdata;
-        // else if(id_Ra == wb_addr  & wb_addr!=0 & mem_reg_en)
-        //     ex_v1 <= wb_data;
-        // else 
-        //     ex_v1 <= id_rsA;  
-
-        // if(id_imm_V2Type==1'b1)begin
-        //     ex_v2 <= id_imm_data;
-        // end
-        // else if(id_Rb == ex_rw  & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)begin
-        //     ex_v2  <= ex_res;
-        // end
-        // else if(id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
-        //     mem_wait <=1;   
-        // else if(id_Rb == mem_rw & mem_rw!=0 & !mem_ram_en)begin
-        //     ex_v2 <= mem_res;           
-        // end
-        // else if(id_Rb == mem_rw & mem_rw!=0 & mem_ram_en)begin
-        //     ex_v2 <= mem_rdata;
-        // end
-        // else if(id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)begin
-        //     ex_v2 <= wb_data;
-        // end
-        // else    begin
-        //     ex_v2 <= id_rsB;
-        // end 
-            
-
-
-        // if(id_Rb == ex_rw  & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load)begin
-        //     ex_rs2 <= ex_res;
-        // end
-        // else if(id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
-        //     mem_wait <=1;   
-        // else if(id_Rb == mem_rw & mem_rw!=0 & !mem_ram_en)begin
-        //     ex_rs2 <= mem_res;            
-        // end
-        // else if(id_Rb == mem_rw & mem_rw!=0 & mem_ram_en)begin
-        //     ex_rs2 <= mem_rdata; 
-        // end
-        // else if(id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)begin
-        //     ex_rs2 <= wb_data;
-        // end
-        // else    begin
-        //     ex_rs2 <= id_rsB;
-        // end 
+        ex_Ra<=id_Ra;
+        ex_Rb<=id_Rb;
+        ex_imm_V1Type<= id_imm_V1Type;
+        ex_imm_V2Type<= id_imm_V2Type;
+        if(ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load ) begin
+             ex_wait<=1;
+        end
     end
-    // else begin
-    //     if(ex_Ra==mem_rw &  mem_ram_en & !mem_rw_type  & !mem_busy )begin
-    //         ex_v1 <=mem_rdata;
-    //         mem_wait <=0;
-    //     end
-    //     if(ex_Rb==mem_rw & mem_ram_en & !mem_rw_type  & !mem_busy)begin
-    //         ex_rs2 <=mem_rdata;
-    //         mem_wait <=0;
-    //     end
-    //     if(ex_Rb==mem_rw & mem_ram_en & !mem_rw_type  & !mem_busy )begin
-    //         ex_v2 <=mem_rdata;
-    //         mem_wait <=0; 
-    //     end
+     if( ex_wait & !ex_imm_V1Type & mem_readyo & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
+        ex_v1<=mem_rdata;
+        ex_wait<=0;
+     end
+     else if (ex_wait & !ex_imm_V2Type & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+        ex_v2<=mem_rdata;
+        ex_wait<=0;
+     end
+     if (ex_wait & ex_imm_V2Type & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+        ex_rs2<=mem_rdata;
+        ex_wait<=0;
+     end
 
-    // end
+
 end
 
 
@@ -308,10 +273,11 @@ always@(posedge clk)begin
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
         mem_func3<=ex_func3;
-        mem_opcode<=ex_opcode;
         mem_imm_data<=ex_imm_data;
-        mem_res<=ex_res;
-
+        if(!ex_wait)begin
+            mem_opcode<=ex_opcode;
+            mem_res<=ex_res;
+        end
         if(ex_opcode == `ysyx_22041412_store)begin //w mem
             mem_rw_type<=1;
             mem_ram_en <=1;
@@ -368,12 +334,12 @@ always@(posedge clk)begin
             wb_dnpc<=`ysyx_22041412_zero_word;
             wb_addr<= mem_rw;
         end
-        else if(mem_opcode==`ysyx_22041412_jalr & wb_opcode==`ysyx_22041412_load)begin
-            wb_data<= mem_pc+4;
-            if_dnpc<= mem_rdata;
-            wb_addr<= mem_rw;
-        end
-        else if(mem_opcode==`ysyx_22041412_jalr & wb_opcode!=`ysyx_22041412_load)begin
+        // else if(mem_opcode==`ysyx_22041412_jalr & wb_opcode==`ysyx_22041412_load)begin
+        //     wb_data<= mem_pc+4;
+        //     if_dnpc<= mem_rdata;
+        //     wb_addr<= mem_rw;
+        // end
+        else if(mem_opcode==`ysyx_22041412_jalr )begin
             wb_data<= mem_pc+4;
             if_dnpc<= mem_res;
             wb_addr<= mem_rw;
