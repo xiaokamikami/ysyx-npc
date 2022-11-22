@@ -23,7 +23,7 @@
 #define CONFIG_SERIAL_MMIO 0xb00003f8
 
 //flags
-#define diff_en
+//#define diff_en
 //#define vcd_en
 
 void exit_now();
@@ -71,7 +71,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     {
       *rdata = (*rdata) >> (offset*8);
     }
-    printf("get ram :%llx\n",*rdata);
+    //printf("get ram :%llx\n",*rdata);
   }
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
@@ -95,7 +95,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    printf("write :%d addr %llx \n",bits_set,waddr);
+    //printf("write :%d addr %llx \n",bits_set,waddr);
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set, wdata);
   }

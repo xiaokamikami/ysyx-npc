@@ -268,16 +268,14 @@ end
 
 
 always@(posedge clk)begin           
-    if(mem_en)begin
+    if(mem_en & !ex_wait)begin
         mem_imm<=ex_imm;
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
         mem_func3<=ex_func3;
         mem_imm_data<=ex_imm_data;
-        if(!ex_wait)begin
-            mem_opcode<=ex_opcode;
-            mem_res<=ex_res;
-        end
+        mem_opcode<=ex_opcode;
+        mem_res<=ex_res;
         if(ex_opcode == `ysyx_22041412_store)begin //w mem
             mem_rw_type<=1;
             mem_ram_en <=1;
@@ -332,19 +330,9 @@ always@(posedge clk)begin
         if(mem_opcode == 0)begin
             wb_data<=`ysyx_22041412_zero_word;
             wb_dnpc<=`ysyx_22041412_zero_word;
-            wb_addr<= mem_rw;
+            wb_addr<= 0;
         end
-        // else if(mem_opcode==`ysyx_22041412_jalr & wb_opcode==`ysyx_22041412_load)begin
-        //     wb_data<= mem_pc+4;
-        //     if_dnpc<= mem_rdata;
-        //     wb_addr<= mem_rw;
-        // end
-        else if(mem_opcode==`ysyx_22041412_jalr )begin
-            wb_data<= mem_pc+4;
-            if_dnpc<= mem_res;
-            wb_addr<= mem_rw;
-        end
-        else if(mem_opcode == `ysyx_22041412_jal)begin
+        else if(mem_opcode == `ysyx_22041412_jal | mem_opcode==`ysyx_22041412_jalr)begin
             wb_data<= mem_pc+4;
             if_dnpc<= mem_res;
             wb_addr<= mem_rw;

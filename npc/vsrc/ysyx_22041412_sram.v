@@ -36,7 +36,7 @@ assign stall = (!readyo & en)?1:0;
 always @(posedge clk) begin
     if(wen & !readyo & en)begin      //写信号高有效
         mem_write(addr, wdata, wmask);   //写入   
-        $display("%lx Write: addr:%8h %16h",addr[63:0],wdata[63:0]);     //调试接口
+        //$display("%lx Write: addr:%8h %16h",addr[63:0],wdata[63:0]);     //调试接口
         readyo<=1'b1;
     end
     else if((addr!=0) & !readyo & en)begin    //读信号高有效
@@ -49,7 +49,7 @@ always @(posedge clk) begin
                 (func3==3'b101)?{{48{1'b0}},sram_data_r[15:0]}:             //lhu
                 (func3==3'b110)?{{32{1'b0}},sram_data_r[31:0]}:             //lwu
                 `ysyx_22041412_zero_word;
-        $display("%lx Read: addr:%8h %16h",addr[63:0],r_data[63:0]);
+        //$display("%lx Read: addr:%8h %16h",addr[63:0],r_data[63:0]);
         readyo<=1'b1;
     end
     else if( readyi & readyo) readyo<=1'b0;
