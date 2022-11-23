@@ -10,8 +10,8 @@ void init_device();
 void init_sdb();
 void init_disasm(const char *triple);
 
-//×Ù¼£½Ó¿Ú
-bool ftrace_flag = 0;
+//trace 
+bool ftrace_flag = 1;
 char tests[50] = "dummy-riscv64-nemu.elf";
 
 static void welcome() {

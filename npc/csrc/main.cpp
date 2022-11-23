@@ -23,7 +23,7 @@
 #define CONFIG_SERIAL_MMIO 0xb00003f8
 
 //flags
-//#define diff_en
+#define diff_en
 //#define vcd_en
 
 void exit_now();
@@ -46,7 +46,7 @@ uint64_t *cpu_gpr = NULL;
 bool is_exit = false;
 bool isebreak = false;
 static uint32_t imm;
-
+void refresh_clk();
 
 // 通过掩码计算输入的位数
 size_t get_bit(uint8_t wmask) {
@@ -84,6 +84,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
       *rdata = (us >>32);
     }
     difftest_skip_ref();
+
   } 
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -179,7 +180,7 @@ static int cmd_c()
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(imm != top->CP_PC){
       imm=top->CP_PC;
-      //refresh_clk();  //刷新CLK与波形记录
+      refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;
       npc = top->CP_NPC;
       printf("pc:%lx\n",pc);

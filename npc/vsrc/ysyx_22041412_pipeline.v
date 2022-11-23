@@ -186,7 +186,7 @@ reg [63:0]mem_res;
 wire mem_readyi;
 assign mem_readyi = !ex_wait;
 wire mem_readyo;
-
+ 
 //WB
 reg wb_reg_en;
 wire wb_rst;

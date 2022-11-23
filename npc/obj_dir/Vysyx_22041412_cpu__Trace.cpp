@@ -427,12 +427,15 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
             tracep->chgQData(oldp+306,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__M_reg__DOT__DataReg[29]),64);
             tracep->chgQData(oldp+308,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__M_reg__DOT__DataReg[30]),64);
             tracep->chgQData(oldp+310,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__M_reg__DOT__DataReg[31]),64);
+            tracep->chgBit(oldp+312,((((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__wb_reg_en) 
+                                       & (0U != (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__wb_addr)))
+                                       ? 1U : 0U)));
         }
-        tracep->chgBit(oldp+312,(vlSelf->clk));
-        tracep->chgQData(oldp+313,(vlSelf->CP_PC),64);
-        tracep->chgQData(oldp+315,(vlSelf->CP_NPC),64);
-        tracep->chgIData(oldp+317,(vlSelf->CP_IMM),32);
-        tracep->chgBit(oldp+318,(vlSelf->Ebreak));
+        tracep->chgBit(oldp+313,(vlSelf->clk));
+        tracep->chgQData(oldp+314,(vlSelf->CP_PC),64);
+        tracep->chgQData(oldp+316,(vlSelf->CP_NPC),64);
+        tracep->chgIData(oldp+318,(vlSelf->CP_IMM),32);
+        tracep->chgBit(oldp+319,(vlSelf->Ebreak));
     }
 }
 
