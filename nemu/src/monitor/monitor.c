@@ -103,6 +103,9 @@ void init_monitor(int argc, char *argv[]) {
     riscv64_elf(tes);
     FILE *fun  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-function.txt","w");
     fclose(fun );
+    FILE *iqr  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-handle.txt","w");
+    fclose(iqr );
+
   }
   /* Set random seed. */
   init_rand();
