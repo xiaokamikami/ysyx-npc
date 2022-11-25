@@ -7,9 +7,7 @@
 
 #define Pcstar 0x80000000
 #define RR(i) gpr(i)
-#define mcause gpr(32)
-#define mstatus gpr(33)
-#define mepc gpr(34)
+
 
 #define Mr vaddr_read
 #define Mw vaddr_write
@@ -154,7 +152,7 @@ static int decode_exec(Decode *s) {
                                                                     //printf("pc:%08lx,jalr:%08lx\n",Pc,Nextpc) ;
                                                                     );
   //CSR
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ECALL     , I , SR_mepc=Pc+4;Nextpc=isa_raise_intr(mcause,Pc));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ECALL     , I , SR_mepc=Pc+4;Nextpc=isa_raise_intr(SR_mcause,Pc));
   INSTPAT("0011000 00010 00000 000 00000 11100 11", MRET      , I , Nextpc=SR_mepc);
   
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", CSRRW     , CSR , t=SRs[src2];SRs[src2]=src1;RR(dest)=t);
