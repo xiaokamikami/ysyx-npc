@@ -113,8 +113,7 @@ void *memmove(void *dst, const void *in, size_t len) {
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
-  if ((NULL==out) || (NULL==in))
-    assert(0);
+  if ((out==NULL) || (in==NULL)){assert(0);}
   char *d = (char *)out;
   char *s = (char *)in;
   //Check for overlapping buffers:
