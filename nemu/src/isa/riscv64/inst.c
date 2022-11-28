@@ -28,6 +28,20 @@ enum {
 #define destI(i) do { *dest = i; } while (0)
 uint32_t zimm;
 
+static uint64_t ecall(uint64_t a7){
+  //printf("mstatus %lx a7:%lx,a0:%lx,a1:%lx,a2:%lx \n",SR_mstatus,a7,RR(10),RR(11),RR(12));
+  // if(BITS(SR_mstatus,12,11)==1){      //iqr
+  //   return 9;
+  // }
+  // else if (BITS(SR_mstatus,12,11)==3)
+  // {
+  //   return a7;
+  // }
+if(0<a7&&a7<=19)return 1;
+else if(a7<0)return -1;
+else return a7;
+  
+}
 static word_t immzimm (uint32_t i) { return BITS(i, 19, 15); }
 static word_t immI (uint32_t i) { return SEXT(BITS(i, 31, 20), 12); }
 static word_t immII(uint32_t i) { return SEXT(BITS(i, 25, 20), 6);  }
@@ -152,13 +166,13 @@ static int decode_exec(Decode *s) {
                                                                     //printf("pc:%08lx,jalr:%08lx\n",Pc,Nextpc) ;
                                                                     );
   //CSR
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ECALL     , I , SR_mepc=Pc+4;Nextpc=isa_raise_intr(SR_mcause,Pc));
-  INSTPAT("0011000 00010 00000 000 00000 11100 11", MRET      , I , Nextpc=SR_mepc);
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ECALL     , I , SR_mepc=Pc+4;SR_mcause=ecall(RR(17));Nextpc=isa_raise_intr(SR_mcause,Pc));
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", MRET      , I , Nextpc=SR_mepc);//printf("break a0:%lx\n",RR(10));
   
   INSTPAT("??????? ????? ????? 001 ????? 11100 11", CSRRW     , CSR , t=SRs[src2];SRs[src2]=src1;RR(dest)=t);
-  INSTPAT("??????? ????? ????? 010 ????? 11100 11", CSRRS     , CSR , t=SRs[src2];SRs[src2]=(t|src1);RR(dest)=t);
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", CSRRS     , CSR , t=SRs[src2];SRs[src2]=(t|src1);RR(dest)=t;);
   INSTPAT("??????? ????? ????? 011 ????? 11100 11", CSRRC     , CSR , t=SRs[src2];SRs[src2]=t&(~src1);RR(dest)=t);
-  INSTPAT("??????? ????? ????? 011 ????? 11100 11", CSRRCI    , CSR , t=SRs[src2];SRs[src2]=(t|zimm);RR(dest)=t); 
+  INSTPAT("??????? ????? ????? 110 ????? 11100 11", CSRRCI    , CSR , t=SRs[src2];SRs[src2]=(t|zimm);RR(dest)=t); 
   INSTPAT("??????? ????? ????? 101 ????? 11100 11", CSRRWI    , CSR , t=SRs[src2];SRs[src2]=zimm);
   INSTPAT("??????? ????? ????? 111 ????? 11100 11", CSRRI     , CSR , t=SRs[src2];SRs[src2]=(t&(~zimm));RR(dest)=t);
   //end                    

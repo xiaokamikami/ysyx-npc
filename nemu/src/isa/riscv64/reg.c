@@ -16,10 +16,10 @@ void isa_reg_display() {
   int i;
   //printf("%s",reg_name(2,0));
   for(i=0;i<32;i+=4){
-    printf("%s  :0x%16lx,",regs[i],gpr(i));
-    printf("    %s  :0x%16lx,",regs[i+1],gpr(i+1));
-    printf("    %s  :0x%16lx,",regs[i+2],gpr(i+2));
-    printf("    %s  :0x%16lx;\n",regs[i+3],gpr(i+3));
+    printf("%d-%s  :0x%16lx,",i,regs[i],gpr(i));
+    printf("    %d-%s  :0x%16lx,",i+1,regs[i+1],gpr(i+1));
+    printf("    %d-%s  :0x%16lx,",i+2,regs[i+2],gpr(i+2));
+    printf("    %d-%s  :0x%16lx;\n",i+3,regs[i+3],gpr(i+3));
   }
   printf("%s  :0x%16lx;\n",CSRs[0],SR_mcause);
   printf("%s  :0x%16lx;\n",CSRs[1],SR_mstatus);

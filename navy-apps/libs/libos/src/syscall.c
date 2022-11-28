@@ -45,7 +45,7 @@ intptr_t _syscall_(intptr_t type, intptr_t a0, intptr_t a1, intptr_t a2) {
   register intptr_t _gpr2 asm (GPR2) = a0;
   register intptr_t _gpr3 asm (GPR3) = a1;
   register intptr_t _gpr4 asm (GPR4) = a2;
-  register intptr_t ret asm (GPRx);
+  register intptr_t ret asm (GPRx)=a0;
   asm volatile (SYSCALL : "=r" (ret) : "r"(_gpr1), "r"(_gpr2), "r"(_gpr3), "r"(_gpr4));
   return ret;
 }
@@ -55,14 +55,16 @@ void _exit(int status) {
   while (1);
 }
 
+
 int _open(const char *path, int flags, mode_t mode) {
   _exit(SYS_open);
   return 0;
 }
 
 int _write(int fd, void *buf, size_t count) {
-  _exit(SYS_write);
-  return 0;
+  _syscall_(SYS_write, fd, *(intptr_t *)buf, count);
+  register intptr_t ret asm (GPRx);
+  return ret;
 }
 
 void *_sbrk(intptr_t increment) {

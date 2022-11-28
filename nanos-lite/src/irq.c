@@ -1,13 +1,14 @@
 #include <common.h>
+#include "syscall.h"
 
 static Context* do_event(Event e, Context* c) {
   switch (e.event) {
-    case 0: panic("irq handle event ID = %d\n", e.event);break;
-    case 1: panic("irq handle event ID = %d\n", e.event);break;
-    case 2: panic("irq handle event ID = %d\n", e.event);break;
-    case 3: panic("irq handle event ID = %d\n", e.event);break;
-    case 4: panic("irq handle event ID = %d\n", e.event);break;
-    default: panic("Unhandled event ID = %d\n", e.event);break;
+    case 0: Log("irq handle event ID = EVENT_NULL\n");break;
+    case 1: Log("irq handle event ID = EVENT_YIELD \n");break;
+    case 2: do_syscall(c);break;
+    case 3: Log("irq handle event ID = EVENT_PAGEFAULT \n");break;
+    case 4: Log("irq handle event ID = EVENT_ERROR \n");break;
+    default: panic("Unhandled event ID = ERROR \n");break;
   }
 
   return c;
