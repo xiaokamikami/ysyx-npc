@@ -37,7 +37,7 @@ static uint64_t ecall(uint64_t a7){
   // {
   //   return a7;
   // }
-if(0<a7&&a7<=19)return 1;
+if(0<=a7&&a7<=19)return 1;
 else if(a7<0)return -1;
 else return a7;
   

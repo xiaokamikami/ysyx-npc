@@ -40,12 +40,13 @@
 #error _syscall_ is not implemented
 #endif
 
+
 intptr_t _syscall_(intptr_t type, intptr_t a0, intptr_t a1, intptr_t a2) {
   register intptr_t _gpr1 asm (GPR1) = type;
   register intptr_t _gpr2 asm (GPR2) = a0;
   register intptr_t _gpr3 asm (GPR3) = a1;
   register intptr_t _gpr4 asm (GPR4) = a2;
-  register intptr_t ret asm (GPRx)=a0;
+  register intptr_t ret asm (GPRx) = a0;
   asm volatile (SYSCALL : "=r" (ret) : "r"(_gpr1), "r"(_gpr2), "r"(_gpr3), "r"(_gpr4));
   return ret;
 }
@@ -62,13 +63,24 @@ int _open(const char *path, int flags, mode_t mode) {
 }
 
 int _write(int fd, void *buf, size_t count) {
-  _syscall_(SYS_write, fd, *(intptr_t *)buf, count);
-  register intptr_t ret asm (GPRx);
+  intptr_t ret=_syscall_(SYS_write, fd, (intptr_t)buf, count);
   return ret;
 }
-
+extern char _end;
+static void* old_brk=NULL;
 void *_sbrk(intptr_t increment) {
-  return (void *)-1;
+  if(old_brk == NULL){
+    old_brk = &_end;
+  }
+  void * brk = old_brk;
+  intptr_t end_brk = (intptr_t)old_brk+increment;
+  intptr_t ret = _syscall_(SYS_brk,end_brk,0,0);
+  if(ret == 0){
+    old_brk=(void *)end_brk;
+    return (void *)brk;
+  }
+  else assert(0);
+  //return (void *)-1;
 }
 
 int _read(int fd, void *buf, size_t count) {
