@@ -57,13 +57,18 @@ int fs_open(const char *pathname, int flags, int mode){
   return -1;
 }
 size_t fs_read(int fd, void *buf, size_t len){
+  if(file_table[fd].read_offset+len>=file_table[fd].size){
+    len = file_table[fd].size-file_table[fd].read_offset;
+    //return 0;
+  }
   ramdisk_read(buf,file_table[fd].disk_offset+file_table[fd].read_offset,len);
-  Log("sys_read fd offset=%ld,buf=%lx,count=%ld",file_table[fd].disk_offset+file_table[fd].read_offset,buf,len);
+  //Log("sys_read disk offset=%ld,read offset=%ld,count=%ld",file_table[fd].disk_offset,file_table[fd].read_offset,len);
   file_table[fd].read_offset +=len;
 
   return len;
 }
 size_t fs_write(int fd, const void *buf, size_t len){
+  //Log("sys_write fd=%ld,buf*=%lx,len=%lx",fd,buf,len);
   if(fd==FD_STDOUT||fd==FD_STDERR){        //stdout
     for (uint16_t i=0;i<len;++i)
     {
@@ -71,21 +76,24 @@ size_t fs_write(int fd, const void *buf, size_t len){
     }
     return len;
   }
-  // else if(fd==FD_STDERR){     //stderr
-  //   putch(buf);
-  //   i++;
-  //   return i;
-  //   if((a[3]-i)==0)i=0;
-  // }
+  else if (fd>2 )
+  {
+    ramdisk_write(((char *)buf),file_table[fd].read_offset+file_table[fd].disk_offset,len);
+    file_table[fd].read_offset+=len;
+    return len;
+  }
+
   else return 0;
 }
 size_t fs_lseek(int fd, size_t offset, int whence){
-  //size_t start = file_table[fd].disk_offset;
-  if(whence == SEEK_SET && offset>0) {file_table[fd].disk_offset += offset;}
-  //else if(whence == SEEK_SET && offset<=0){return -1;}
-  else if(whence == SEEK_CUR) {file_table[fd].disk_offset += offset;}
-  else if(whence == SEEK_END) {file_table[fd].size += offset;Log("return %ld",file_table[fd].size); return file_table[fd].size;}
+  
+  if(whence == SEEK_SET && offset>=0 && (offset <= file_table[fd].size)) {file_table[fd].read_offset = offset;Log("fs lseek  read offset %ld",file_table[fd].read_offset);}
+  else if(whence == SEEK_SET && offset<0){return -1;}
+  else if(whence == SEEK_CUR) {file_table[fd].read_offset += offset;}
+  else if(whence == SEEK_END) {file_table[fd].read_offset = offset+file_table[fd].size;Log("return %ld",file_table[fd].size);}
   else assert("fs_lseek error whench");
-  return offset;
+  return file_table[fd].read_offset;
 }
-int fs_close(int fd);
+int fs_close(int fd){
+  return 0;
+}
