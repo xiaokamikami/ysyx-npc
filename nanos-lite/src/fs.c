@@ -1,5 +1,6 @@
 #include <fs.h>
 #include "ramdisk.h"
+#include "device.h"
 typedef size_t (*ReadFn) (void *buf, size_t offset, size_t len);
 typedef size_t (*WriteFn) (const void *buf, size_t offset, size_t len);
 
@@ -13,7 +14,7 @@ typedef struct {
 } Finfo;
 
 enum {FD_STDIN, FD_STDOUT, FD_STDERR, FD_FB};
-
+int event_file =0;
 
 size_t invalid_read(void *buf, size_t offset, size_t len) {
   panic("should not reach here");
@@ -34,6 +35,8 @@ static Finfo file_table[] __attribute__((used)) = {
 };
 
 void init_fs() {
+  event_file=   fs_open("/dev/events",0,0);
+  fs_close(event_file);
   // TODO: initialize the size of /dev/fb
 }
 size_t fs_load(int fd,uintptr_t* offset,uintptr_t* len){
@@ -43,7 +46,7 @@ size_t fs_load(int fd,uintptr_t* offset,uintptr_t* len){
 }
 int fs_open(const char *pathname, int flags, int mode){
   size_t i;
-  for (i=1; i < 99; i++)
+  for (i=1; i < 999; i++)
   {
     if(strcmp(file_table[i].name,pathname)==0){
       Log("Find file %s in %ld",pathname ,i);
@@ -53,17 +56,23 @@ int fs_open(const char *pathname, int flags, int mode){
       assert("fs_open error  no file");
     }
   }
-  
   return -1;
 }
+
 size_t fs_read(int fd, void *buf, size_t len){
-  if(file_table[fd].read_offset+len>=file_table[fd].size){
+      //Log("read on %d",fd);
+  if(fd == event_file){
+    len = events_read(buf,0,len);
+    
+  }
+  else if(file_table[fd].read_offset+len>=file_table[fd].size){
     len = file_table[fd].size-file_table[fd].read_offset;
     //return 0;
+    ramdisk_read(buf,file_table[fd].disk_offset+file_table[fd].read_offset,len);
+    //Log("sys_read disk offset=%ld,read offset=%ld,count=%ld",file_table[fd].disk_offset,file_table[fd].read_offset,len);
+    file_table[fd].read_offset +=len;
   }
-  ramdisk_read(buf,file_table[fd].disk_offset+file_table[fd].read_offset,len);
-  //Log("sys_read disk offset=%ld,read offset=%ld,count=%ld",file_table[fd].disk_offset,file_table[fd].read_offset,len);
-  file_table[fd].read_offset +=len;
+
 
   return len;
 }

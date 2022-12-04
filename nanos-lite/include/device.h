@@ -1,6 +1,7 @@
 #ifndef __DEVICE_H__
 #define __DEVICE_H__
 
+
 struct timeval
 {
 #ifdef __USE_TIME_BITS64
@@ -25,6 +26,6 @@ struct timeval
 
 
 uint64_t rtc_read(void);
-
+size_t events_read(void *buf, size_t offset, size_t len);
 #endif
 

@@ -21,9 +21,12 @@ uint64_t NDL_GetTicks() {
   //printf("NDL time ms = %d \n",time_ms-boot_time);
   return time_ms-boot_time;
 }
-
+int Event_fp;
 int NDL_PollEvent(char *buf, int len) {
-  return 0;
+  int ret = read(Event_fp,buf,len);
+  //int ret= fread(buf,1,len,Event_fp);
+  //if(ret ==1)printf("NDL %s \n",buf);
+  return ret;
 }
 
 void NDL_OpenCanvas(int *w, int *h) {
@@ -70,6 +73,10 @@ int NDL_Init(uint32_t flags) {
   if(flags == 1){
     boot_time = NDL_GetTicks();
     printf("init time\n");
+  }
+  else if(flags == 2){
+    Event_fp = open("/dev/events", 0,0);
+    printf("init enent\n");
   }
 
   return 0;
