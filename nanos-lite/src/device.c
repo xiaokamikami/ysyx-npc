@@ -36,13 +36,24 @@ size_t events_read(void *buf, size_t offset, size_t len) {
 
   return 0;
 }
-
+static int d_w=0;
+static int d_h=0;
 size_t dispinfo_read(void *buf, size_t offset, size_t len) {
-  return 0;
+  int w = io_read(AM_GPU_CONFIG).width ;
+  int h = io_read(AM_GPU_CONFIG).height;
+  //Log("GET dispinfo %d %d ",w,h);
+  sprintf(buf,"WIDTH :%d\nHEIGHT:%d\n",w,h);
+  d_w = w;
+  d_h = h;
+  return len;
 }
 
 size_t fb_write(const void *buf, size_t offset, size_t len) {
-  return 0;
+  Log("fb offset %ld",offset);
+  int star_x= d_w/2-offset/2;
+  int star_y= d_h/2-offset/2;
+  io_write(AM_GPU_FBDRAW, star_x,star_y, (uint32_t *)buf,offset ,offset, true);
+  return len;
 }
 
 void init_device() {
