@@ -47,24 +47,13 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 
-static void exec_once(Decode *s, vaddr_t pc) {
-
-  s->pc = pc;
-  s->snpc = pc;
-  isa_exec_once(s);
-  cpu.pc = s->dnpc;
-  //printf("exec6\n");
 
 #ifdef CONFIG_ITRACE
-static uint16_t FUNC_count=0;
-static size_t rtl_flag[128]={0}; //跳转返回点记录
-  if (ftrace_flag ==1)
-  {   
-    ftrace(s->dnpc,s->pc);
-  }
-static void ftrace(size_t dnpc,size_t thpc){
+void ftrace(size_t dnpc,size_t thpc){
   FILE * out ;    //函数调用记录
   FILE * read;
+  uint16_t FUNC_count=0;
+  size_t rtl_flag[128]={0}; //跳转返回点记录
   char buf[128]={0};
   char *temp =  buf;
   char nextpc[32]={0};
@@ -128,7 +117,22 @@ static void ftrace(size_t dnpc,size_t thpc){
   fclose(out);
   fclose(read);
 }
-  
+#endif
+
+static void exec_once(Decode *s, vaddr_t pc) {
+
+  s->pc = pc;
+  s->snpc = pc;
+  isa_exec_once(s);
+  cpu.pc = s->dnpc;
+  //printf("exec6\n");
+
+#ifdef CONFIG_ITRACE
+
+  if (ftrace_flag ==1)
+  {   
+    ftrace(s->dnpc,s->pc);
+  }
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;

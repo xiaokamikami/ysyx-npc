@@ -36,7 +36,7 @@ assign stall = (!readyo & en)?1:0;
 always @(posedge clk) begin
     if(wen & !readyo & en)begin      //写信号高有效
         mem_write(addr, wdata, wmask);   //写入   
-        $display("%lx Write: addr:%8h %16h",addr[63:0],wdata[63:0]);     //调试接口
+        //$display("%lx Write: addr:%8h %16h",addr[63:0],wdata[63:0]);     //调试接口
         readyo<=1'b1;
     end
     else if((addr!=0) & !readyo & en)begin    //读信号高有效

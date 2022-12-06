@@ -46,7 +46,7 @@ uint64_t *cpu_gpr = NULL;
 bool is_exit = false;
 bool isebreak = false;
 static uint32_t imm;
-
+void refresh_clk();
 
 // 通过掩码计算输入的位数
 size_t get_bit(uint8_t wmask) {
@@ -71,7 +71,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     {
       *rdata = (*rdata) >> (offset*8);
     }
-    printf("get ram :%llx\n",*rdata);
+    //printf("get ram :%llx\n",*rdata);
   }
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
@@ -84,6 +84,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
       *rdata = (us >>32);
     }
     difftest_skip_ref();
+
   } 
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -95,7 +96,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    printf("write :%d addr %llx \n",bits_set,waddr);
+    //printf("write :%d addr %llx \n",bits_set,waddr);
     //pmem_write((waddr & ~0x7ull), bits_set,wdata);
     pmem_write((waddr), bits_set, wdata);
   }
@@ -179,7 +180,7 @@ static int cmd_c()
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(imm != top->CP_PC){
       imm=top->CP_PC;
-      //refresh_clk();  //刷新CLK与波形记录
+      refresh_clk();  //刷新CLK与波形记录
       pc = top->CP_PC;
       npc = top->CP_NPC;
       printf("pc:%lx\n",pc);

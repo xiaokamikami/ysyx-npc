@@ -16,15 +16,20 @@ module ysyx_22041412_dff(
  	  "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6" */
 import "DPI-C" function void set_gpr_ptr(input logic [63:0] a []);
 initial set_gpr_ptr(DataReg);  //read gpr
+
+wire write_en;
+assign write_en = (!rst & Wen & Rw!=5'b0)?1:0;
+
 always@(posedge clk)begin
-	if(rst==1'b0)begin
-		if(Wen & Rw!=5'd0)begin
+	//if(rst==1'b0)begin
+		//if(Wen & Rw!=5'b0)begin
+		if(write_en)begin
 			DataReg[Rw] <= BusW;
         	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     //µ÷ÊÔ½Ó¿Ú
-		end
+		
   	end
 end
- assign BusA = (Ra==5'd0)?64'd0:DataReg[Ra];
- assign BusB = (Rb==5'd0)?64'd0:DataReg[Rb];
+ assign BusA = (Ra==5'b0)?64'd0:DataReg[Ra];
+ assign BusB = (Rb==5'b0)?64'd0:DataReg[Rb];
  
 endmodule
