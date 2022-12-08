@@ -17,6 +17,11 @@ int SDL_PollEvent(SDL_Event *ev) {
 }
 
 int SDL_WaitEvent(SDL_Event *event) {
+  char buf[32];
+  int ret=0;
+  while(ret==0){
+    ret=NDL_PollEvent(buf, sizeof(buf));
+    }
   return 1;
 }
 

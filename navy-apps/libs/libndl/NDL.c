@@ -29,15 +29,19 @@ int NDL_PollEvent(char *buf, int len) {
   //if(ret ==1)printf("NDL %s \n",buf);
   return ret;
 }
-
-void NDL_OpenCanvas(int *x,int *y,int *w, int *h) {
+int Canvas_x=0,Canvas_y=0;
+void NDL_OpenCanvas(int *w, int *h) {
   FILE* disp = fopen("/proc/dispinfo","r+");
   char disps[63];
   fread(disps,1,sizeof(disps),disp);
   fclose(disp);
   //printf("disp buf \n%s\n",disps);
-  sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",x,y);
-  printf("disp x %d y %d w %d h %d\n",*x,*y,*w,*h);
+  sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",&Canvas_x,&Canvas_y);
+  if(*w==0 && *h==0){
+    *w=Canvas_x;
+    *h=Canvas_y;
+  }
+  printf("disp x %d y %d w %d h %d\n",Canvas_x,Canvas_y,*w,*h);
 
   if (getenv("NWM_APP")) {
     int fbctl = 4;
@@ -59,17 +63,24 @@ void NDL_OpenCanvas(int *x,int *y,int *w, int *h) {
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
-  //int i, j, k;
   //uint32_t color_buf[32 * 32];
   printf("Drawrect %d %d %d %d \n",x,y,w,h);
-  //for (i = 0; i < 32; i ++) {
-    //for (j = 0; j < h; j ++) {
-    //  printf("Line %d \n",j);
-      lseek(Fb_fp,(w+h)/2,SEEK_SET);
-      write(Fb_fp,pixels,0);
-    //}
+  //int star_x= x+((Canvas_x+w)/2);
+  //int star_y= y+((Canvas_y+h)/2);
+  //for (int i = 0; i < Canvas_x; i ++) {
+  //  for (int j = 0; j < Canvas_y; j ++) {
+  //    color_buf[i+j*4]
+  //  }
   //}
-
+  if(w==0 && h==0){
+    lseek(Fb_fp,0,SEEK_SET);
+    write(Fb_fp,pixels,1);
+  }
+  else{
+    lseek(Fb_fp,w,SEEK_SET);
+    write(Fb_fp,pixels,h);
+  }
+    
 }
 
 void NDL_OpenAudio(int freq, int channels, int samples) {
@@ -90,18 +101,18 @@ int NDL_Init(uint32_t flags) {
   if (getenv("NWM_APP")) {
     evtdev = 3;
   }
-  if(flags == 1){
+  //if(flags == 1){
     boot_time = NDL_GetTicks();
     printf("init time\n");
-  }
-  else if(flags == 2){
+  //}
+  //else if(flags == 2){
     Event_fp = open("/dev/events",0,0);
     printf("init enent\n");
-  }
-  else if(flags == 3){
+  //}
+  //else if(flags == 3){
     Fb_fp = open("/dev/fb",0,0);
     printf("init fd\n");
-  }
+  //}
 
   return 0;
 }

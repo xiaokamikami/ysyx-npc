@@ -11,7 +11,7 @@ Context* __am_irq_handle(Context *c) {
     switch (c->mcause) {
       case EVENT_NULL: ev.event = EVENT_NULL; break;
       case -1: ev.event = EVENT_YIELD; break;
-      case 1: ev.event = EVENT_SYSCALL; break;
+      case 11: ev.event = EVENT_SYSCALL; break;
       case EVENT_PAGEFAULT: ev.event = EVENT_PAGEFAULT; break;
       case EVENT_ERROR :ev.event = EVENT_ERROR; break;
       default: ev.event = EVENT_ERROR; break;

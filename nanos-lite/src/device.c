@@ -30,8 +30,8 @@ size_t events_read(void *buf, size_t offset, size_t len) {
   else {
     sprintf(buf,"Got  (kbd): %s (%d) %s\n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
     //memcpy(buf,keyname[ev.keycode],sizeof(keyname[ev.keycode]));
-    //Log("Got  (kbd): %s (%d) %s\n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
-    return 1;
+    Log("Got  (kbd): %s (%d) %s\n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
+    return ev.keycode;
   }
 
   return 0;
@@ -49,10 +49,14 @@ size_t dispinfo_read(void *buf, size_t offset, size_t len) {
 }
 
 size_t fb_write(const void *buf, size_t offset, size_t len) {
-  Log("fb offset %ld",offset);
-  int star_x= d_w/2-offset/2;
-  int star_y= d_h/2-offset/2;
-  io_write(AM_GPU_FBDRAW, star_x,star_y, (uint32_t *)buf,offset ,offset, true);
+  Log("fb write x %ld,y %ld",offset,len);
+  //int star_x= d_w/2-offset/2;
+  //int star_y= d_h/2-len/2;
+  if(offset ==0 )
+    io_write(AM_GPU_FBDRAW,0,0, (uint32_t *)buf, d_w , d_h, true);
+  else 
+    io_write(AM_GPU_FBDRAW,0,0, (uint32_t *)buf, offset , len, true);
+  Log("fb write end");
   return len;
 }
 

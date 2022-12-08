@@ -11,7 +11,8 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 128
-#define CONFIG_WATCHPOINT
+//#define CONFIG_WATCHPOINT 
+
 extern int is_exit_status_bad();
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
@@ -43,12 +44,12 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (ITRACE_COND) { log_write("     %s\n", _this->logbuf); }
 #endif 
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
-  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
+  //IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
 }
 
 
-
-#ifdef CONFIG_ITRACE
+void ftrace(size_t dnpc,size_t thpc);
+#ifdef CONFIG_FTRACE
 void ftrace(size_t dnpc,size_t thpc){
   FILE * out ;    //函数调用记录
   FILE * read;
@@ -127,12 +128,14 @@ static void exec_once(Decode *s, vaddr_t pc) {
   cpu.pc = s->dnpc;
   //printf("exec6\n");
 
+  #ifdef CONFIG_FTRACE  
+
+    ftrace(s->dnpc,s->pc);
+
+  #endif
+
 #ifdef CONFIG_ITRACE
 
-  if (ftrace_flag ==1)
-  {   
-    ftrace(s->dnpc,s->pc);
-  }
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;

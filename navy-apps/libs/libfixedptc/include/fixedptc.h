@@ -127,34 +127,56 @@ typedef	__uint128_t fixedptud;
 
 /* Multiplies a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_muli(fixedpt A, int B) {
-	return 0;
+	fixedpt a = fixedpt_fromint(A);
+	return fixedpt_rconst(a*B);
 }
 
 /* Divides a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_divi(fixedpt A, int B) {
-	return 0;
+	fixedpt a = fixedpt_fromint(A);
+	return fixedpt_rconst(a/B);
 }
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_mul(fixedpt A, fixedpt B) {
-	return 0;
+    fixedpt a = fixedpt_fromint(A);
+	fixedpt b = fixedpt_fromint(B);
+	return fixedpt_rconst(a*b);
 }
 
 
 /* Divides two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_div(fixedpt A, fixedpt B) {
-	return 0;
+	fixedpt a = fixedpt_fromint(A);
+	fixedpt b = fixedpt_fromint(B);
+	return fixedpt_rconst(a/b);
 }
 
 static inline fixedpt fixedpt_abs(fixedpt A) {
-	return 0;
+	fixedpt x= fixedpt_fromint(A);
+	if(x<0) return fixedpt_rconst(~(--x));
+	else return fixedpt_rconst(x);
 }
 
 static inline fixedpt fixedpt_floor(fixedpt A) {
-	return 0;
+	fixedpt x= fixedpt_fromint(A);
+	if(( (x+1) & 0x80000000)  != 0) //或者if(x<0)
+        return fixedpt_rconst(x-1);
+    else
+        return fixedpt_rconst(x);
 }
 
 static inline fixedpt fixedpt_ceil(fixedpt A) {
+	fixedpt x=fixedpt_fromint(A);
+    if(( (x+1) & 0x80000000) != 0)//或者if(x<0)
+		return fixedpt_rconst(x);
+	else                 //讨论非负的情况。
+	{
+        if(x == 0)
+        return fixedpt_rconst(x);
+        else
+        return fixedpt_rconst(x+1);
+    }
 	return 0;
 }
 

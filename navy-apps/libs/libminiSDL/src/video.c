@@ -3,16 +3,47 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <stdio.h>
 void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
+
   assert(dst && src);
   assert(dst->format->BitsPerPixel == src->format->BitsPerPixel);
+  SDL_Rect scr_rect,dst_rect;
+
+  if(srcrect !=NULL)scr_rect = *srcrect;
+  else scr_rect = (SDL_Rect){0,0,src->w,src->h};
+  if(dstrect !=NULL)dst_rect = *dstrect;
+  else dst_rect = (SDL_Rect){0,0,dst->w,dst->h};
+  //printf("BlitSurface  src: %d %d dst: %d  %d\n",srcrect->x,srcrect->y,dstrect->x,dstrect->y);
+  uint32_t start_s = dst_rect.x*4+dst_rect.y*4*dst->w;
+  //printf("Blitsurface\n");
+  for (int y = scr_rect.y; y < scr_rect.h; y++)
+  {
+    for (int x = scr_rect.x; x < scr_rect.w; x++)
+    {
+      *(uint32_t *)(dst->pixels+x*4+y*4*dst->w+start_s)=*(uint32_t *)(src->pixels+x*4+y*4*src->w);
+    }
+  }
+
 }
 
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
+  SDL_Rect dst_rect;
+  if(dstrect !=NULL) dst_rect = *dstrect;
+  else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
+  for (int y = dst_rect.y; y < dst_rect.h; y++)
+  {
+    for (int x = dst_rect.x; x < dst_rect.w; x++)
+    {
+      *(uint32_t * )(dst->pixels+x*4+y*dst_rect.w*4)=color;
+    }
+     //printf("start fill rect %d \n",y*dst_rect.w*4);
+  }
+  //printf("end fill rect %d \n",dst_rect.h);
 }
 
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
+  NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
 }
 
 // APIs below are already implemented.

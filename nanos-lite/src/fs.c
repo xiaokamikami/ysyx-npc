@@ -68,7 +68,7 @@ size_t fs_read(int fd, void *buf, size_t len){
     len = events_read(buf,0,len);
   }
   if(fd == dispinfo ){
-    len=dispinfo_read(buf,dispinfo,len);
+    len = dispinfo_read(buf,dispinfo,len);
   }
   else {
     if(file_table[fd].read_offset+len>=file_table[fd].size){len = file_table[fd].size-file_table[fd].read_offset;}
