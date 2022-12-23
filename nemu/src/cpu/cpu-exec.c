@@ -237,7 +237,7 @@ void cpu_exec(uint64_t n) {
       statistic();
       break;
     case NEMU_STOP:
-      //is_exit_status_bad();
+      is_exit_status_bad();
       break;
   }
 }

@@ -12,7 +12,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    */
   //printf("ECALL NO:%ld\n",NO);
   //if(NO<999){ 
-      irqtrace(NO,epc,SR_mtvec);
+      //irqtrace(NO,epc,SR_mtvec);
       return SR_mtvec;
   //}
   //return 0;

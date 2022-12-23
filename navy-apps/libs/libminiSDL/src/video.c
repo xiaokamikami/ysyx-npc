@@ -15,14 +15,23 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
   if(dstrect !=NULL)dst_rect = *dstrect;
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h};
   //printf("BlitSurface  src: %d %d dst: %d  %d\n",srcrect->x,srcrect->y,dstrect->x,dstrect->y);
-  uint32_t start_s = dst_rect.x*4+dst_rect.y*4*dst->w;
-  //printf("Blitsurface\n");
-  for (int y = scr_rect.y; y < scr_rect.h; y++)
-  {
-    for (int x = scr_rect.x; x < scr_rect.w; x++)
-    {
-      *(uint32_t *)(dst->pixels+x*4+y*4*dst->w+start_s)=*(uint32_t *)(src->pixels+x*4+y*4*src->w);
-    }
+  if (src->format->BitsPerPixel == 32) {
+    uint32_t* pixels_src = (uint32_t*)src->pixels;
+    uint32_t* pixels_dst = (uint32_t*)dst->pixels;
+    for (int i = 0; i < scr_rect.h; ++ i)
+      for (int j = 0; j < scr_rect.w; ++ j)
+        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w + scr_rect.x + j];
+  }
+  else if (src->format->BitsPerPixel == 8) {
+    uint8_t* pixels_src = (uint8_t*)src->pixels;
+    uint8_t* pixels_dst = (uint8_t*)dst->pixels;
+    for (int i = 0; i < scr_rect.h; ++ i)
+      for (int j = 0; j < scr_rect.w; ++ j)
+        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w + scr_rect.x + j];
+  }
+  else {
+    printf("[SDL_BlitSurface] Unimplemented format.\n");
+    assert(0);
   }
 
 }
@@ -31,19 +40,77 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   SDL_Rect dst_rect;
   if(dstrect !=NULL) dst_rect = *dstrect;
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
-  for (int y = dst_rect.y; y < dst_rect.h; y++)
-  {
-    for (int x = dst_rect.x; x < dst_rect.w; x++)
-    {
-      *(uint32_t * )(dst->pixels+x*4+y*dst_rect.w*4)=color;
-    }
-     //printf("start fill rect %d \n",y*dst_rect.w*4);
-  }
+  
+  uint32_t *pixels = (uint32_t *)dst->pixels;
+
+
+  if(dst->format->BitsPerPixel==32)
+	{
+		/*printf("fmt 32\n");*/
+		if(color&DEFAULT_AMASK!=DEFAULT_AMASK)color=color&DEFAULT_AMASK;
+		for(int i=0;i<dst_rect.h;i++)
+		{
+			for(int j=0;j<dst_rect.w;j++)
+			{
+				*((uint32_t *)dst->pixels+(dst_rect.y+i)*dst->w+dst_rect.x+j)=color;
+			}
+		}
+	}
+	else if(dst->format->BitsPerPixel==8)
+	{
+		/*printf("fmt 8\n");*/
+		for(int i=0;i<dst_rect.h;i++)
+		{
+			for(int j=0;j<dst_rect.w;j++)
+			{
+				*(dst->pixels+(dst_rect.y+i)*dst->w+dst_rect.x+j)=color;
+			}
+		}
+	}
   //printf("end fill rect %d \n",dst_rect.h);
 }
 
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
-  NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
+  //printf("SDL_updateRect x,y,w,h %d %d %d %d\n",x,y,w,h);
+  //NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
+  if (x == 0 && y == 0 && w == 0 && h == 0) {
+    w = s->w;
+    h = s->h;
+  }
+
+  // 初始化内存空间用于储存转换后的数据
+  uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
+  assert(pixels);
+
+  // ARGB各8比特
+  // Pixel formats above 8-bit are an entirely different experience.
+  // They are considered to be "TrueColor" formats and the color information is stored in the pixels themselves,
+  //   not in a palette.
+  if (s->format->BitsPerPixel == 32) {
+
+    NDL_DrawRect((uint32_t *)s->pixels, x, y, w, h);
+  }
+  
+  // ARGB各占2bit，且实际存储的是索引值，需要调用palette调色盘
+  // SDL_PixelFormat中有实际的解读代码样例
+  // All pixels are represented by a Uint8 which contains an index into palette->colors.
+  else if (s->format->BitsPerPixel == 8) {
+    uint8_t *index = (uint8_t *)s->pixels;
+    SDL_Color *color;
+    for (int i = 0;  i < h; ++ i) {
+      for (int j = 0; j < w; ++ j) {
+        color = &s->format->palette->colors[index[(y + i) * s->w + x + j]];
+        pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
+      }
+    }
+    NDL_DrawRect(pixels, x, y, w, h);
+  }
+  else {
+    printf("[SDL_UpdateRect] Unimplemented format.\n");
+    assert(0);
+  }
+
+  if (pixels) free(pixels);
 }
 
 // APIs below are already implemented.

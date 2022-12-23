@@ -94,6 +94,7 @@ typedef	__uint128_t fixedptud;
 
 #ifndef FIXEDPT_WBITS
 #define FIXEDPT_WBITS	24
+#define FIXEDPT_N 8
 #endif
 
 #if FIXEDPT_WBITS >= FIXEDPT_BITS
@@ -127,57 +128,43 @@ typedef	__uint128_t fixedptud;
 
 /* Multiplies a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_muli(fixedpt A, int B) {
-	fixedpt a = fixedpt_fromint(A);
-	return fixedpt_rconst(a*B);
+	return (fixedpt)(A * B);
 }
 
 /* Divides a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_divi(fixedpt A, int B) {
-	fixedpt a = fixedpt_fromint(A);
-	return fixedpt_rconst(a/B);
+	return (fixedpt)(A / B);
 }
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_mul(fixedpt A, fixedpt B) {
-    fixedpt a = fixedpt_fromint(A);
-	fixedpt b = fixedpt_fromint(B);
-	return fixedpt_rconst(a*b);
+	return  (fixedpt)((((fixedptd)A) * ((fixedptd)B)) >> FIXEDPT_FBITS);
 }
 
 
 /* Divides two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_div(fixedpt A, fixedpt B) {
-	fixedpt a = fixedpt_fromint(A);
-	fixedpt b = fixedpt_fromint(B);
-	return fixedpt_rconst(a/b);
+	return (fixedpt)((((fixedptd)A) / ((fixedptd)B)) << FIXEDPT_FBITS);
 }
 
 static inline fixedpt fixedpt_abs(fixedpt A) {
-	fixedpt x= fixedpt_fromint(A);
-	if(x<0) return fixedpt_rconst(~(--x));
-	else return fixedpt_rconst(x);
+	return (A >= 0) ? A : -A;
 }
 
 static inline fixedpt fixedpt_floor(fixedpt A) {
-	fixedpt x= fixedpt_fromint(A);
-	if(( (x+1) & 0x80000000)  != 0) //或者if(x<0)
-        return fixedpt_rconst(x-1);
-    else
-        return fixedpt_rconst(x);
+    return A & (~FIXEDPT_FMASK);
 }
 
 static inline fixedpt fixedpt_ceil(fixedpt A) {
-	fixedpt x=fixedpt_fromint(A);
-    if(( (x+1) & 0x80000000) != 0)//或者if(x<0)
-		return fixedpt_rconst(x);
-	else                 //讨论非负的情况。
-	{
-        if(x == 0)
-        return fixedpt_rconst(x);
-        else
-        return fixedpt_rconst(x+1);
+	// 如果x为负整数，直接返回x
+    if ((A & FIXEDPT_FMASK) == 0) {
+        return A;
     }
-	return 0;
+    // 否则，返回x向上取整后的结果
+    else {
+        // 把x向上取整，即为x向上取整后的结果
+        return ((A & (~FIXEDPT_FMASK)) + FIXEDPT_ONE);
+    }
 }
 
 /*

@@ -8,16 +8,16 @@
 static int evtdev = -1;
 static int fbdev = -1;
 static int screen_w = 0, screen_h = 0;
-static uint64_t boot_time = 0;
+static uint32_t boot_time = 0;
 int Event_fp;
 int Fb_fp;
-uint64_t NDL_GetTicks() {
+uint32_t NDL_GetTicks() {
   //return sys ms
   struct timeval time;
   gettimeofday(&time,NULL);
   //uint32_t time_s= time.tv_sec;
   //uint64_t time_us=time.tv_usec;
-  uint64_t time_ms=time.tv_usec/1000;
+  uint32_t time_ms=time.tv_usec/1000;
   //printf("NDL time ms = %d \n",time_ms-boot_time);
   return time_ms-boot_time;
 }
@@ -25,8 +25,6 @@ uint64_t NDL_GetTicks() {
 
 int NDL_PollEvent(char *buf, int len) {
   int ret = read(Event_fp,buf,len);
-  //int ret= fread(buf,1,len,Event_fp);
-  //if(ret ==1)printf("NDL %s \n",buf);
   return ret;
 }
 int Canvas_x=0,Canvas_y=0;
@@ -41,7 +39,7 @@ void NDL_OpenCanvas(int *w, int *h) {
     *w=Canvas_x;
     *h=Canvas_y;
   }
-  printf("disp x %d y %d w %d h %d\n",Canvas_x,Canvas_y,*w,*h);
+  printf("get disp x %d y %d w %d h %d\n",Canvas_x,Canvas_y,*w,*h);
 
   if (getenv("NWM_APP")) {
     int fbctl = 4;
@@ -63,24 +61,12 @@ void NDL_OpenCanvas(int *w, int *h) {
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
-  //uint32_t color_buf[32 * 32];
-  printf("Drawrect %d %d %d %d \n",x,y,w,h);
-  //int star_x= x+((Canvas_x+w)/2);
-  //int star_y= y+((Canvas_y+h)/2);
-  //for (int i = 0; i < Canvas_x; i ++) {
-  //  for (int j = 0; j < Canvas_y; j ++) {
-  //    color_buf[i+j*4]
-  //  }
-  //}
-  if(w==0 && h==0){
-    lseek(Fb_fp,0,SEEK_SET);
-    write(Fb_fp,pixels,1);
-  }
-  else{
-    lseek(Fb_fp,w,SEEK_SET);
-    write(Fb_fp,pixels,h);
-  }
-    
+
+
+    lseek(Fb_fp, w, SEEK_SET);
+
+    write(Fb_fp, pixels, h);
+
 }
 
 void NDL_OpenAudio(int freq, int channels, int samples) {
