@@ -1,13 +1,13 @@
 `include "vsrc/ysyx_22041412_define.v"
 module ysyx_22041412_alu(
-  input wire clk,
+  input clk,
   input [63:0]scr1,
   input [63:0]scr2,
   input [6:0]opcode,
   input [2:0]func3,
   input func7,
   input mul_en,
-  output wire mul_stall,
+  output mul_stall,
   output [63:0]result
   );
   wire [4:0]Mode;

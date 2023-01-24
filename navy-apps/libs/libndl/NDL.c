@@ -61,11 +61,11 @@ void NDL_OpenCanvas(int *w, int *h) {
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
+    //printf("NDL %d %d %d %d\n",x,y,w,h);
 
+    lseek(Fb_fp, w+x, SEEK_SET);
 
-    lseek(Fb_fp, w, SEEK_SET);
-
-    write(Fb_fp, pixels, h);
+    write(Fb_fp, pixels, h+ y);
 
 }
 

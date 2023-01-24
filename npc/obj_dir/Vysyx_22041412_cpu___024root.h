@@ -33,7 +33,6 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_stall;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_wait;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_wait;
-        CData/*2:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_start;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V1Type;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V2Type;
         CData/*4:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_Ra;
@@ -60,7 +59,6 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         CData/*6:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_opcode;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__I_type;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__U_type;
-        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ID_decode__DOT__J_type;
         CData/*4:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mode;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__rv64w_en;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul_ready;
@@ -79,7 +77,6 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_v2;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_rs2;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_pc;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_res_o;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_addr;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_wdata;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_pc;
@@ -92,11 +89,11 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_dnpc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mux_result;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Alusu;
-    };
-    struct {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ua;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ub;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__data;
+    };
+    struct {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__sram_data_r;

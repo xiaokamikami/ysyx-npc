@@ -44,7 +44,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (ITRACE_COND) { log_write("     %s\n", _this->logbuf); }
 #endif 
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
-  //IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
+  IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
 }
 
 
@@ -172,7 +172,7 @@ static void execute(uint64_t n) {
     }
     else if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
-      //trace_and_difftest(&s, cpu.pc);
+      trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
     }
     else{

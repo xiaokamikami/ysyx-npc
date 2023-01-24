@@ -76,7 +76,7 @@ end
 //
 
 //STALL 
-reg [5:0]pip_stall;
+wire [5:0]pip_stall;
 reg pip_rst;
 wire if_en;
 wire id_en;
@@ -110,21 +110,21 @@ assign pip_imm = wb_imm;
 wire [31:0]if_imm;
 reg [63:0]if_pc;
 reg [63:0]if_dnpc;
-reg [2:0]if_start;
 
 //ID
+reg [31:0]id_imm;
+reg [63:0]id_pc;
+
 wire id_imm_V1Type;
 wire id_imm_V2Type;
-reg [31:0]id_imm;
-reg id_mul_en;
-reg [63:0]id_pc;
-reg [63:0]id_imm_data;
-reg [2:0]id_func3;
-reg id_func7;
-reg [4:0]id_Ra,id_Rb,id_Rw;
-reg [6:0]id_opcode;
-reg [63:0]id_rsA;
-reg [63:0]id_rsB;
+wire id_mul_en;
+wire [63:0]id_imm_data;
+wire [2:0]id_func3;
+wire id_func7;
+wire [4:0]id_Ra,id_Rb,id_Rw;
+wire [6:0]id_opcode;
+wire [63:0]id_rsA;
+wire [63:0]id_rsB;
 
 //EXE
 reg ex_imm_V1Type;
@@ -140,12 +140,11 @@ reg [4:0]ex_Ra,ex_Rb;
 reg [2:0]ex_func3;
 reg ex_func7;
 reg [6:0]ex_opcode;
-reg [63:0]ex_res;
 reg [63:0]ex_pc;
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
-wire [63:0]ex_res_o;
+wire [63:0]ex_res;
 
 assign ex_v1_in = (id_imm_V1Type==1'b1)?id_pc:
                       (!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
@@ -177,12 +176,13 @@ reg mem_rw_type;
 reg mem_ram_en;
 reg mem_reg_en;
 reg [63:0]mem_addr;
-reg [63:0]mem_rdata;
 reg [63:0]mem_wdata;
 reg [63:0]mem_pc;
 reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
+
+wire [63:0]mem_rdata;
 wire mem_readyi;
 assign mem_readyi = !ex_wait;
 wire mem_readyo;

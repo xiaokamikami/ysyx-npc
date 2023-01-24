@@ -8,11 +8,11 @@ int H=300;
 uint32_t *fb= (uint32_t *)(uintptr_t)FB_ADDR;
 static uint32_t vga_width, vga_height;
 void __am_gpu_init() {
-  int i;
+  
   vga_width = io_read(AM_GPU_CONFIG).width  ;  // TODO: get the correct width
   vga_height = io_read(AM_GPU_CONFIG).height ;  // TODO: get the correct height
-   
-  for (i = 0; i < vga_width * vga_height; i ++)fb[i] = i;
+  //int i;
+  //for (i = 0; i < vga_width * vga_height; i ++)fb[i] = i;
   outl(SYNC_ADDR, 1);
 }
 

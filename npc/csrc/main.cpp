@@ -110,25 +110,30 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 }
 
 
+//初始化
+using namespace std;//命名空间 
+vluint64_t main_time = 0;
+uint64_t main_dir_value= 0;
+uint64_t main_clk_value= 0;
+uint8_t ff=0;
 
-void sim_init() {
+void sim_init() {                 //波形记录
   contextp = new VerilatedContext;
   contextp->traceEverOn(true);
   top->trace(tfp,0);
   tfp->open("wave.vcd");
-  imm=top->CP_IMM;
-  printf("get:imm %lx \n",imm);
+
 }
 
 //end
 
-using namespace std;//命名空间 
-vluint64_t main_time = 0;
-
-void refresh_clk()
+void refresh_clk()          //刷新时钟
 {
+
   top->clk = !(top->clk);
   top->eval();
+  if(ff==0) {ff=1;}
+  else {ff=0;main_clk_value++;}
   #ifdef vcd_en
     if(main_time>1){
       tfp->dump(main_time);
@@ -137,8 +142,9 @@ void refresh_clk()
       printf(RED "vcd break \n" NONE);
       exit_now();
     }
-    main_time++;  
+  main_time++;  
   #endif 
+
   
 }
 double sc_time_stamp()
@@ -168,8 +174,7 @@ void isa_reg_print(uint8_t num) {
 }
 
 
-
-static int cmd_c()
+static int cmd_c()                //对比数据
 { 
   static bool bubble;
   static paddr_t pc;
@@ -181,9 +186,10 @@ static int cmd_c()
     if(imm != top->CP_PC){
       imm=top->CP_PC;
       refresh_clk();  //刷新CLK与波形记录
+      main_dir_value++;
       pc = top->CP_PC;
       npc = top->CP_NPC;
-      printf("pc:%lx\n",pc);
+      //printf("pc:%lx\n",pc);
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
@@ -207,6 +213,7 @@ void npc_init(void){
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
+  double ipc;
   // for (int i = 0; i < argc; i++)
   // {
   //   printf("%s\t",argv[i]);
@@ -250,6 +257,13 @@ int main(int argc,char **argv){
     }
  
   }
+
+  #ifdef diff_en
+    //printf("main_dir_value :%ld \n",main_dir_value);
+    //printf("main_clk_value :%ld \n",main_clk_value);
+    ipc=((double)main_dir_value)/main_clk_value;
+    printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
+  #endif
   //关闭程序
   top->final();
   tfp->close();

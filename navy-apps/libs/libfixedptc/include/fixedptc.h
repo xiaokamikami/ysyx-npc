@@ -128,23 +128,23 @@ typedef	__uint128_t fixedptud;
 
 /* Multiplies a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_muli(fixedpt A, int B) {
-	return (fixedpt)(A * B);
+	return (fixedpt)((A>> FIXEDPT_FBITS) * B);
 }
 
 /* Divides a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_divi(fixedpt A, int B) {
-	return (fixedpt)(A / B);
+	return (fixedpt)((A>> FIXEDPT_FBITS) / B);
 }
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_mul(fixedpt A, fixedpt B) {
-	return  (fixedpt)((((fixedptd)A) * ((fixedptd)B)) >> FIXEDPT_FBITS);
+	return  (fixedpt)((A * B) >> FIXEDPT_FBITS);
 }
 
 
 /* Divides two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_div(fixedpt A, fixedpt B) {
-	return (fixedpt)((((fixedptd)A) / ((fixedptd)B)) << FIXEDPT_FBITS);
+	return (fixedpt)((A / B)>> FIXEDPT_FBITS);;
 }
 
 static inline fixedpt fixedpt_abs(fixedpt A) {
@@ -157,14 +157,8 @@ static inline fixedpt fixedpt_floor(fixedpt A) {
 
 static inline fixedpt fixedpt_ceil(fixedpt A) {
 	// 如果x为负整数，直接返回x
-    if ((A & FIXEDPT_FMASK) == 0) {
-        return A;
-    }
     // 否则，返回x向上取整后的结果
-    else {
-        // 把x向上取整，即为x向上取整后的结果
-        return ((A & (~FIXEDPT_FMASK)) + FIXEDPT_ONE);
-    }
+	return ((A & FIXEDPT_FMASK) == 0) ? A : ((A & (~FIXEDPT_FMASK)) + FIXEDPT_ONE);
 }
 
 /*
