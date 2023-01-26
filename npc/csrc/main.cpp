@@ -48,6 +48,17 @@ bool isebreak = false;
 static uint32_t imm;
 void refresh_clk();
 
+
+//初始化
+using namespace std;//命名空间 
+vluint64_t main_time = 0;
+uint64_t main_dir_value= 0;
+uint64_t main_clk_value= 0;
+uint8_t ff=0;
+
+
+
+
 // 通过掩码计算输入的位数
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
@@ -76,13 +87,16 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
   else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
   {
     //printf("npc-rtc\n");
-    uint64_t us =get_time();
-    if(raddr == CONFIG_RTC){
-      *rdata = (uint32_t)us;
-    }
-    else{
-      *rdata = (us >>32);
-    }
+   
+    uint64_t us =main_clk_value/100;
+    //printf("rtc %ld ",us);
+    //uint64_t us =get_time();
+     if(raddr == CONFIG_RTC){
+       *rdata = (uint32_t)us;
+     }
+     else{
+       *rdata = (us >>32);
+     }
     difftest_skip_ref();
 
   } 
@@ -110,12 +124,6 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 }
 
 
-//初始化
-using namespace std;//命名空间 
-vluint64_t main_time = 0;
-uint64_t main_dir_value= 0;
-uint64_t main_clk_value= 0;
-uint8_t ff=0;
 
 void sim_init() {                 //波形记录
   contextp = new VerilatedContext;

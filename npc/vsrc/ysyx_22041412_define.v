@@ -26,16 +26,19 @@
 `define 	ysyx_22041412_NOR   		5'b01010
 `define 	ysyx_22041412_AND  			5'b01011
 `define 	ysyx_22041412_li  			5'b01110
+`define 	ysyx_22041412_UADD  		5'b01111
 
 `define     ysyx_22041412_beq           5'b10001
-`define 	ysyx_22041412_UADD  		5'b10010
-`define 	ysyx_22041412_sra  			5'b10011
-`define     ysyx_22041412_sraw          5'b10100
-`define     ysyx_22041412_sraiw         5'b10101
+`define 	ysyx_22041412_sra  			5'b10010
+`define     ysyx_22041412_sraw          5'b10011
+`define     ysyx_22041412_sraiw         5'b10100
 
+`define     ysyx_22041412_v2csr         2'b10
+`define     ysyx_22041412_v2imm         2'b01
+`define     ysyx_22041412_v2rsb         2'b00
 
-`define     ysyx_22041412_v2imm         1'b1
-`define     ysyx_22041412_v2rsb         1'b0
-`define     ysyx_22041412_v1pc          1'b1
-`define     ysyx_22041412_v1rsa         1'b0
+`define     ysyx_22041412_v1zim         2'b10
+`define     ysyx_22041412_v1pc          2'b01
+`define     ysyx_22041412_v1rsa         2'b00
+
 `define     ysyx_22041412_mulen         1'b1

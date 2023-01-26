@@ -6,68 +6,8 @@ module ysyx_22041412_pipeline(
     output wire [63:0]pip_dnpc,
     output wire [31:0]pip_imm
 );
-ysyx_22041412_mem IF_ImmMem (      //Imm
-    .clk(clk),
-    .Addr(if_pc),
-	.Imm(if_imm)
-  );
-ysyx_22041412_decode ID_decode( //opcode
-	.instr(id_imm),
-	.opcode(id_opcode),
-	.func3(id_func3),
-	.func7(id_func7),
-	.Rs1(id_Ra),
-	.Rs2(id_Rb),
-	.Rd(id_Rw),
-	.imme(id_imm_data),
-    .V1Type(id_imm_V1Type),
-    .V2Type(id_imm_V2Type),
-    .Mul_en(id_mul_en)
-);
 
-ysyx_22041412_alu EXE_alu(          //ALU
-    .clk(clk),
-    .scr1(ex_v1),
-    .scr2(ex_v2),
-    .func3(ex_func3),
-    .func7(ex_func7),
-    .opcode(ex_opcode),
-    .mul_en(ex_mul_en),
-    .mul_stall(mul_stall),
-    .result(ex_res)
-);
 
-ysyx_22041412_sram MEM_sram(        //SRAM
-    .clk(clk),
-    .en(mem_ram_en),
-    .func3(mem_func3),
-    .addr(mem_addr),
-    .wdata(mem_wdata),
-    .rdata(mem_rdata),
-    .stall(mem_busy),
-    .readyi(mem_readyi),
-    .readyo(mem_readyo),
-    .wen(mem_rw_type)           //1 wt  0 read
-);
-ysyx_22041412_dff M_reg (        //32*64bitREG
-    .clk(clk),
-    .Ra(id_Ra),
-    .Rb(id_Rb),  
-    .Rw(wb_addr),
-    .Wen(wb_reg_en),
-    .BusA(id_rsA),
-    .BusB(id_rsB),
-    .BusW(wb_data),
-    .rst(wb_rst)
-);
-
-ysyx_22041412_stall Stall(
-    .stall(pip_stall),				
-	.rst(pip_rst),
-	.stall_from_id(id_stall),		
-	.stall_from_ex(ex_stall),		
-    .stall_from_mem(mem_stall)
-);
 initial begin        // STARTS
     if_pc = 64'h0000000080000000;
 end
@@ -88,7 +28,7 @@ wire ex_stall;
 wire mul_stall;
 reg ex_wait;
 //assign ex_wait = (ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load & !mem_readyo) ?1'b1:1'b0;
-assign ex_stall = mul_stall | ex_wait ;
+assign ex_stall = mul_stall | csr_stall | ex_wait ;
 reg mem_wait;
 wire mem_busy;
 wire mem_stall;
@@ -115,8 +55,8 @@ reg [63:0]if_dnpc;
 reg [31:0]id_imm;
 reg [63:0]id_pc;
 
-wire id_imm_V1Type;
-wire id_imm_V2Type;
+wire [1:0]id_imm_V1Type;
+wire [1:0]id_imm_V2Type;
 wire id_mul_en;
 wire [63:0]id_imm_data;
 wire [2:0]id_func3;
@@ -146,16 +86,35 @@ wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
 wire [63:0]ex_res;
 
-assign ex_v1_in = (id_imm_V1Type==1'b1)?id_pc:
+wire [11:0]csr;
+assign csr =csr_en?id_imm_data[11:0]:0;
+wire [2:0]CSRi;
+assign CSRi=(csr==12'h000)?0:   //ecall
+            (csr==12'h302)?1:   //mret
+            (csr==12'h300)?2:   //mstatus
+            (csr==12'h305)?3:   //mtvec
+            (csr==12'h341)?4:   //mepc
+            (csr==12'h342)?5:   //mcause
+            0; 
+wire [63:0]csr_data_o;
+wire [63:0]csr_data_i;
+wire csr_ready_o;
+wire csr_stall;
+assign csr_stall = (!csr_ready_o&csr_en)?1:0;
+assign csr_data_i = ex_v1_in;
+wire csr_en;
+assign csr_en =  (ex_opcode==`ysyx_22041412_Environment)?1:0;
+
+assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
+                  (id_imm_V1Type==`ysyx_22041412_v1zim)?id_Ra:
                       (!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      //(!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
                       (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
                       (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (!id_imm_V1Type & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsA;
-assign ex_v2_in = (id_imm_V2Type==1'b1)?id_imm_data:
+assign ex_v2_in = (id_imm_V2Type==`ysyx_22041412_v2imm)?id_imm_data:
+                  //(id_imm_V2Type==`ysyx_22041412_v2csr)?csr_data_o:
                       (!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      //(!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
                       (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
                       (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (!id_imm_V2Type & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
@@ -166,6 +125,7 @@ assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )
                       (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsB;
+
 
 //MEM
 reg [31:0]mem_imm;
@@ -186,7 +146,7 @@ wire [63:0]mem_rdata;
 wire mem_readyi;
 assign mem_readyi = !ex_wait;
 wire mem_readyo;
- 
+
 //WB
 reg wb_reg_en;
 wire wb_rst;
@@ -275,7 +235,13 @@ always@(posedge clk)begin
         mem_func3<=ex_func3;
         mem_imm_data<=ex_imm_data;
         mem_opcode<=ex_opcode;
-        mem_res<=ex_res;
+        
+        if(ex_opcode == `ysyx_22041412_Environment)begin
+            mem_res<=csr_data_o;
+        end
+        else begin 
+            mem_res<=ex_res;
+        end
         if(ex_opcode == `ysyx_22041412_store)begin //w mem
             mem_rw_type<=1;
             mem_ram_en <=1;
@@ -353,6 +319,81 @@ always@(posedge clk)begin
     end
 
 end
+
+
+ysyx_22041412_mem IF_ImmMem (      //imm
+    .clk(clk),
+    .Addr(if_pc),
+	.Imm(if_imm)
+  );
+ysyx_22041412_decode ID_decode( //opcode
+	.instr(id_imm),
+	.opcode(id_opcode),
+	.func3(id_func3),
+	.func7(id_func7),
+	.Rs1(id_Ra),
+	.Rs2(id_Rb),
+	.Rd(id_Rw),
+	.imme(id_imm_data),
+    .V1Type(id_imm_V1Type),
+    .V2Type(id_imm_V2Type),
+    .Mul_en(id_mul_en)
+);
+
+ysyx_22041412_alu EXE_alu(          //ALU
+    .clk(clk),
+    .scr1(ex_v1),
+    .scr2(ex_v2),
+    .imm(ex_imm_data),
+    .func3(ex_func3),
+    .func7(ex_func7),
+    .opcode(ex_opcode),
+    .mul_en(ex_mul_en),
+    .stall(mul_stall),
+    .result(ex_res)
+);
+
+ysyx_22041412_sram MEM_sram(        //SRAM
+    .clk(clk),
+    .en(mem_ram_en),
+    .func3(mem_func3),
+    .addr(mem_addr),
+    .wdata(mem_wdata),
+    .rdata(mem_rdata),
+    .stall(mem_busy),
+    .readyi(mem_readyi),
+    .readyo(mem_readyo),
+    .wen(mem_rw_type)           //1 wt  0 read
+);
+ysyx_22041412_dff M_reg (        //32*64bitREG
+    .clk(clk),
+    .Ra(id_Ra),
+    .Rb(id_Rb),  
+    .Rw(wb_addr),
+    .Wen(wb_reg_en),
+    .BusA(id_rsA),
+    .BusB(id_rsB),
+    .BusW(wb_data),
+    .rst(wb_rst)
+);
+
+ysyx_22041412_stall Stall(
+    .stall(pip_stall),				
+	.rst(pip_rst),
+	.stall_from_id(id_stall),		
+	.stall_from_ex(ex_stall),		
+    .stall_from_mem(mem_stall)
+);
+
+ysyx_22041412_mcsr csr_reg(
+     .clk(clk),
+     .en(csr_en),
+     .func3(ex_func3),
+     .csr_addr(CSRi),
+     .data_i(csr_data_i),
+     .data_o(csr_data_o),
+     .ready_o(csr_ready_o)
+ );
 
 
 endmodule
