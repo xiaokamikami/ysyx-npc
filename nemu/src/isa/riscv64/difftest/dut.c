@@ -24,12 +24,5 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
 }
 
 void isa_difftest_attach(CPU_state *ref_r) {
-  for (uint16_t i = 0; i < 32; i++)
-  {
-    if(ref_r->gpr[i] != cpu.gpr[i]){
-      printf("difftest:gpr error!\t");
-      printf(ANSI_FMT("dut_r[%d]: %08lx , cpu_r:%08lx\n",ANSI_FG_RED),i,ref_r->gpr[i], cpu.gpr[i]);
-      assert(-1);
-    }
-  }
+
 }

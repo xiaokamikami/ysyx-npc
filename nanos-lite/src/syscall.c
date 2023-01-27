@@ -14,7 +14,7 @@ void do_syscall(Context *c) {
   a[4] = c->GPRx;
   switch (a[0]) {
     case SYS_exit:Log("sys_exit");halt(0);break;
-    case SYS_yield:Log("sys_yield");yield();c->GPRx=0;break;
+    case SYS_yield:Log("sys_yield");yield();break;
     case SYS_open :c->GPRx=fs_open((char *)a[1],a[2],a[3]);
                   //Log("sys_open %s",(char *)a[1]);
                   break;

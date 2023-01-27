@@ -89,8 +89,8 @@ wire [63:0]ex_res;
 wire [11:0]csr;
 assign csr =csr_en?id_imm_data[11:0]:0;
 wire [2:0]CSRi;
-assign CSRi=(csr==12'h000)?0:   //ecall
-            (csr==12'h302)?1:   //mret
+assign CSRi=(csr==12'h000)?1:   //ecall
+            (csr==12'h302)?0:   //mret
             (csr==12'h300)?2:   //mstatus
             (csr==12'h305)?3:   //mtvec
             (csr==12'h341)?4:   //mepc
