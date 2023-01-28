@@ -67,8 +67,8 @@ wire [63:0]id_rsA;
 wire [63:0]id_rsB;
 
 //EXE
-reg ex_imm_V1Type;
-reg ex_imm_V2Type;
+reg [1:0]ex_imm_V1Type;
+reg [1:0]ex_imm_V2Type;
 reg [31:0]ex_imm;
 reg [63:0]ex_imm_data;
 reg ex_mul_en;
@@ -85,17 +85,19 @@ wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
 wire [63:0]ex_res;
-
+reg ex_csr_jar_en;
 wire [11:0]csr;
-assign csr =csr_en?id_imm_data[11:0]:0;
+assign csr =csr_en?ex_imm_data[11:0]:0;
 wire [2:0]CSRi;
-assign CSRi=(csr==12'h000)?1:   //ecall
-            (csr==12'h302)?0:   //mret
-            (csr==12'h300)?2:   //mstatus
-            (csr==12'h305)?3:   //mtvec
-            (csr==12'h341)?4:   //mepc
-            (csr==12'h342)?5:   //mcause
+assign CSRi=(csr==12'h000)?3'd1:   //ecall
+            (csr==12'h302)?3'd0:   //mret
+            (csr==12'h300)?3'd2:   //mstatus
+            (csr==12'h305)?3'd3:   //mtvec
+            (csr==12'h341)?3'd4:   //mepc
+            (csr==12'h342)?3'd5:   //mcause
             0; 
+wire csr_jar_en;
+assign csr_jar_en=(csr_en&(CSRi==0 | CSRi==1))?1:0;
 wire [63:0]csr_data_o;
 wire [63:0]csr_data_i;
 wire csr_ready_o;
@@ -104,20 +106,30 @@ assign csr_stall = (!csr_ready_o&csr_en)?1:0;
 assign csr_data_i = ex_v1_in;
 wire csr_en;
 assign csr_en =  (ex_opcode==`ysyx_22041412_Environment)?1:0;
+ysyx_22041412_mcsr csr_reg(
+     .clk(clk),
+     .en(csr_en),
+     .pc(ex_pc),
+     .func3(ex_func3),
+     .addr(CSRi),
+     .data_i(csr_data_i),
+     .data_o(csr_data_o),
+     .ready_o(csr_ready_o)
+ );
 
 assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
-                  (id_imm_V1Type==`ysyx_22041412_v1zim)?id_Ra:
-                      (!id_imm_V1Type & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
-                      (!id_imm_V1Type & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
-                      (!id_imm_V1Type & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
+                  (id_imm_V1Type==`ysyx_22041412_v1zim)?{{59{1'b0}},id_Ra}:
+                      (id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      (id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
+                      (id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
+                      (id_imm_V1Type==0 & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsA;
 assign ex_v2_in = (id_imm_V2Type==`ysyx_22041412_v2imm)?id_imm_data:
                   //(id_imm_V2Type==`ysyx_22041412_v2csr)?csr_data_o:
-                      (!id_imm_V2Type & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
-                      (!id_imm_V2Type & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
-                      (!id_imm_V2Type & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
+                      (id_imm_V2Type==0 & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & !mem_ram_en)?mem_res:
+                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
+                      (id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsB;
 assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
                       //(id_Rb == ex_rw & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )?mem_rdata:
@@ -141,7 +153,7 @@ reg [63:0]mem_pc;
 reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
-
+reg mem_csr_jar_en;
 wire [63:0]mem_rdata;
 wire mem_readyi;
 assign mem_readyi = !ex_wait;
@@ -158,6 +170,8 @@ reg [63:0]wb_data;
 reg [63:0]wb_pc;
 reg [63:0]wb_dnpc;
 reg [6:0]wb_opcode;
+reg wb_csr_jar_en;
+
 
 always@(posedge clk)begin
     if(if_en)begin
@@ -167,16 +181,22 @@ always@(posedge clk)begin
         if_pc<= if_dnpc;
         id_stall<=0;
     end
-    else if(wb_opcode == `ysyx_22041412_B_type )begin
+    else if(mem_opcode == `ysyx_22041412_B_type )begin
+        if_pc<= if_dnpc;
+        id_stall<=0;
+    end
+    else if(mem_csr_jar_en)begin
         if_pc<= if_dnpc;
         id_stall<=0;
     end
 end
+
+
 always@(posedge clk )begin
     if(id_en)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
-        if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr)begin
+        if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
             id_stall<=1;
             id_imm<=32'b0;
             id_pc <=`ysyx_22041412_zero_word;
@@ -206,19 +226,20 @@ always@(posedge clk)begin
         ex_Rb<=id_Rb;
         ex_imm_V1Type<= id_imm_V1Type;
         ex_imm_V2Type<= id_imm_V2Type;
-        if(ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load ) begin
+        ex_csr_jar_en<=csr_jar_en;
+        if(ex_rw!=0 & ((id_imm_V1Type==0 & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load ) begin
              ex_wait<=1;
         end
     end
-     if( ex_wait & !ex_imm_V1Type & mem_readyo & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
+     if( ex_wait & ex_imm_V1Type==0 & mem_readyo & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
         ex_v1<=mem_rdata;
         ex_wait<=0;
      end
-     else if (ex_wait & !ex_imm_V2Type & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+     else if (ex_wait & ex_imm_V2Type==0 & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
         ex_v2<=mem_rdata;
         ex_wait<=0;
      end
-     if (ex_wait & ex_imm_V2Type & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+     if (ex_wait & ex_imm_V2Type!=0 & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
         ex_rs2<=mem_rdata;
         ex_wait<=0;
      end
@@ -235,7 +256,7 @@ always@(posedge clk)begin
         mem_func3<=ex_func3;
         mem_imm_data<=ex_imm_data;
         mem_opcode<=ex_opcode;
-        
+        mem_csr_jar_en<=ex_csr_jar_en;
         if(ex_opcode == `ysyx_22041412_Environment)begin
             mem_res<=csr_data_o;
         end
@@ -264,13 +285,21 @@ always@(posedge clk)begin
             mem_addr   <=`ysyx_22041412_zero_word;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end       
-        else if (ex_opcode== `ysyx_22041412_B_type & ex_res[1]==0 )begin
+        else if (ex_opcode== `ysyx_22041412_B_type & ex_res[0]==0 )begin
             if_dnpc <=ex_pc+4;
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
             mem_addr   <=`ysyx_22041412_zero_word;
             mem_wdata  <=`ysyx_22041412_zero_word;
+        end
+        else if(ex_opcode == `ysyx_22041412_Environment & ex_csr_jar_en)begin
+            if_dnpc <=csr_data_o;
+            mem_reg_en <=0;
+            mem_rw_type<=0;
+            mem_ram_en <=0;
+            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_wdata  <=`ysyx_22041412_zero_word; 
         end
         else begin
             mem_rw_type<=0;
@@ -292,7 +321,7 @@ always@(posedge clk)begin
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
         wb_dnpc<= mem_pc;
-        
+        wb_csr_jar_en<=mem_csr_jar_en;
         if(mem_opcode == 0)begin
             wb_data<=`ysyx_22041412_zero_word;
             wb_dnpc<=`ysyx_22041412_zero_word;
@@ -385,15 +414,6 @@ ysyx_22041412_stall Stall(
     .stall_from_mem(mem_stall)
 );
 
-ysyx_22041412_mcsr csr_reg(
-     .clk(clk),
-     .en(csr_en),
-     .func3(ex_func3),
-     .csr_addr(CSRi),
-     .data_i(csr_data_i),
-     .data_o(csr_data_o),
-     .ready_o(csr_ready_o)
- );
 
 
 endmodule

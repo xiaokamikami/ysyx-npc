@@ -41,9 +41,10 @@ module ysyx_22041412_decode(
 	
 	assign V1Type=(instr[6:0]==`ysyx_22041412_jal)?`ysyx_22041412_v1pc:
 				  (U_type&(instr[6:0]==`ysyx_22041412_auipc))?`ysyx_22041412_v1pc:
-				  ((instr[6:0]==`ysyx_22041412_Environment)&((id_func3=='b101)|(id_func3=='b110)|(id_func3=='b111)))?`ysyx_22041412_v1zim:
+				  ((instr[6:0]==`ysyx_22041412_Environment)&((func3=='b101)|(func3=='b110)|(func3=='b111)))?`ysyx_22041412_v1zim:
 			    	`ysyx_22041412_v1rsa;	
-	assign V2Type=  B_type?`ysyx_22041412_v2rsb:
+	assign V2Type=  R_type?`ysyx_22041412_v2rsb:
+					B_type?`ysyx_22041412_v2rsb:
 				 	//(instr[6:0]==`ysyx_22041412_Environment)?`ysyx_22041412_v2csr:
 				 	`ysyx_22041412_v2imm;
 
@@ -54,7 +55,7 @@ module ysyx_22041412_decode(
 				 U_type?{{32{instr[31]}},instr[31:12],{12{1'b0}}} :
 				 J_type?{{44{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0} :
 				 B_type?{{52{instr[31]}},instr[7],instr[30:25],instr[11:8],1'b0} :
-				 S_type?{{52{instr[31]}},instr[31:25],instr[11:7]}
+				 S_type?{{52{instr[31]}},instr[31:25],instr[11:7]} :
 				 64'b0;
 
 

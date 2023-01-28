@@ -24,7 +24,7 @@
 
 //flags
 #define diff_en
-//#define vcd_en
+#define vcd_en
 
 void exit_now();
 struct CPU_state
@@ -143,10 +143,10 @@ void refresh_clk()          //刷新时钟
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(main_time>1){
+    if(main_time>588999){
       tfp->dump(main_time);
     }
-    if(main_time>9999){
+    if(main_time>599999){
       printf(RED "vcd break \n" NONE);
       exit_now();
     }
@@ -207,9 +207,9 @@ static int cmd_c()                //对比数据
       //printf("next pc=%lx\n",top->CP_NPC);
     }
   }
-  else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
-    is_exit=true;
-  }
+  //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
+  //  is_exit=true;
+  //}
   return 0;
 }
 
