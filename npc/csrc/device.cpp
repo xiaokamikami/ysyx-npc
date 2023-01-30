@@ -12,7 +12,7 @@ static uint64_t get_time_internal() {
   return us;
 }
 void rct_init(){
-  //boot_time = get_time_internal();
+  boot_time = get_time_internal();
 }
 uint64_t get_time() {
   uint64_t now = get_time_internal();

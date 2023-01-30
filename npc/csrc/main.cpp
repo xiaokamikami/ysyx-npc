@@ -24,7 +24,7 @@
 
 //flags
 #define diff_en
-#define vcd_en
+//#define vcd_en
 
 void exit_now();
 struct CPU_state
@@ -43,6 +43,7 @@ VerilatedContext *contextp = NULL;
 VerilatedVcdC* tfp = new VerilatedVcdC;
 Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
 uint64_t *cpu_gpr = NULL;
+uint64_t *csr_gpr = NULL;
 bool is_exit = false;
 bool isebreak = false;
 static uint32_t imm;
@@ -65,10 +66,14 @@ size_t get_bit(uint8_t wmask) {
   else if(wmask == 3)return 2;
   else if(wmask == 0xf)return 4;
   else if(wmask == 0xff)return 8;
+  else return 0;
 }
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
+}
+extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
+  csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   if(raddr<0x88000000 && raddr >= 0x80000000 ){
@@ -88,9 +93,9 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
   {
     //printf("npc-rtc\n");
    
-    uint64_t us =main_clk_value/100;
+    //uint64_t us =main_clk_value/100;
     //printf("rtc %ld ",us);
-    //uint64_t us =get_time();
+    uint64_t us =get_time();
      if(raddr == CONFIG_RTC){
        *rdata = (uint32_t)us;
      }
@@ -143,17 +148,15 @@ void refresh_clk()          //刷新时钟
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(main_time>588999){
+    if(main_time>293780){
       tfp->dump(main_time);
     }
-    if(main_time>599999){
+    if(main_time>295780){
       printf(RED "vcd break \n" NONE);
       exit_now();
     }
   main_time++;  
   #endif 
-
-  
 }
 double sc_time_stamp()
 {
@@ -175,6 +178,11 @@ void isa_reg_display() {
 		printf("%s\t0x%16lx\t", regs[i], cpu_gpr[i]);
 		printf("%s\t0x%16lx\n", regs[i+1], cpu_gpr[i+1]);
 	}
+  for (int i = 2; i < 5; i++)
+  {
+    printf("%s\t0x%16lx\n", csrs[i], csr_gpr[i]);
+  }
+  
 	printf("pc = \t0x%16lx\n", cpureg.pc);
 }
 void isa_reg_print(uint8_t num) {
@@ -254,7 +262,8 @@ int main(int argc,char **argv){
     }
     else if(is_exit ==true){
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->CP_PC,main_time);
+      
       refresh_clk();  //刷新CLK与波形记录
       //关闭程序
       top->final();

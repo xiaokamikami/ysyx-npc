@@ -9,7 +9,7 @@ LIBS = -L ./csrc/*.h
 LLVM_CXXFLAGS = $(shell llvm-config-11 --cxxflags)
 LLVM_LIBS = $(shell llvm-config-11 --libs)
 all:
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+#$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	python3 Immobj.py 
 	make build -s 
 	make compile -s

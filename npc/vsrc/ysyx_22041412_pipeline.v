@@ -28,11 +28,11 @@ wire ex_stall;
 wire mul_stall;
 reg ex_wait;
 //assign ex_wait = (ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load & !mem_readyo) ?1'b1:1'b0;
-assign ex_stall = mul_stall | csr_stall | ex_wait ;
+assign ex_stall = 'b0 ;
 reg mem_wait;
 wire mem_busy;
 wire mem_stall;
-assign mem_stall = mem_wait | mem_busy ;
+assign mem_stall = mem_wait | mem_busy | csr_stall  | mul_stall | ex_wait;
 
 
 assign if_en  = !pip_stall[1];
@@ -66,6 +66,21 @@ wire [6:0]id_opcode;
 wire [63:0]id_rsA;
 wire [63:0]id_rsB;
 
+wire csr_jar_en;
+wire [11:0]csr;
+wire [2:0]id_csr_id;
+wire id_csr_en;
+assign csr_jar_en=(id_csr_en&(id_csr_id==0 | id_csr_id==1))?1:0;
+assign csr =id_csr_en?id_imm_data[11:0]:0;
+assign id_csr_id=(csr==12'h000)?3'd1:   //ecall
+            (csr==12'h302)?3'd0:   //mret
+            (csr==12'h300)?3'd2:   //mstatus
+            (csr==12'h305)?3'd3:   //mtvec
+            (csr==12'h341)?3'd4:   //mepc
+            (csr==12'h342)?3'd5:   //mcause
+            0; 
+assign id_csr_en =  (id_opcode==`ysyx_22041412_Environment)?1:0;
+
 //EXE
 reg [1:0]ex_imm_V1Type;
 reg [1:0]ex_imm_V2Type;
@@ -85,33 +100,24 @@ wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
 wire [63:0]ex_res;
-reg ex_csr_jar_en;
-wire [11:0]csr;
-assign csr =csr_en?ex_imm_data[11:0]:0;
-wire [2:0]CSRi;
-assign CSRi=(csr==12'h000)?3'd1:   //ecall
-            (csr==12'h302)?3'd0:   //mret
-            (csr==12'h300)?3'd2:   //mstatus
-            (csr==12'h305)?3'd3:   //mtvec
-            (csr==12'h341)?3'd4:   //mepc
-            (csr==12'h342)?3'd5:   //mcause
-            0; 
-wire csr_jar_en;
-assign csr_jar_en=(csr_en&(CSRi==0 | CSRi==1))?1:0;
 wire [63:0]csr_data_o;
 wire [63:0]csr_data_i;
+reg ex_csr_jar_en;
+reg ex_csr_en;
+reg [2:0]ex_csr_id;
+
 wire csr_ready_o;
 wire csr_stall;
-assign csr_stall = (!csr_ready_o&csr_en)?1:0;
-assign csr_data_i = ex_v1_in;
-wire csr_en;
-assign csr_en =  (ex_opcode==`ysyx_22041412_Environment)?1:0;
+assign csr_stall = (!csr_ready_o&ex_csr_en)?1:0;
+assign csr_data_i = ex_v1;
+
+
 ysyx_22041412_mcsr csr_reg(
      .clk(clk),
-     .en(csr_en),
+     .en(ex_csr_en),
      .pc(ex_pc),
      .func3(ex_func3),
-     .addr(CSRi),
+     .addr(ex_csr_id),
      .data_i(csr_data_i),
      .data_o(csr_data_o),
      .ready_o(csr_ready_o)
@@ -227,6 +233,8 @@ always@(posedge clk)begin
         ex_imm_V1Type<= id_imm_V1Type;
         ex_imm_V2Type<= id_imm_V2Type;
         ex_csr_jar_en<=csr_jar_en;
+        ex_csr_id<=id_csr_id;
+        ex_csr_en<=id_csr_en;
         if(ex_rw!=0 & ((id_imm_V1Type==0 & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load ) begin
              ex_wait<=1;
         end

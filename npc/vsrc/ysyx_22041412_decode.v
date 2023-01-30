@@ -40,7 +40,7 @@ module ysyx_22041412_decode(
 	assign R_type=(instr[6:0]==`ysyx_22041412_R_type)|(instr[6:0]==`ysyx_22041412_RV64_R);
 	
 	assign V1Type=(instr[6:0]==`ysyx_22041412_jal)?`ysyx_22041412_v1pc:
-				  (U_type&(instr[6:0]==`ysyx_22041412_auipc))?`ysyx_22041412_v1pc:
+				  (instr[6:0]==`ysyx_22041412_auipc)?`ysyx_22041412_v1pc:
 				  ((instr[6:0]==`ysyx_22041412_Environment)&((func3=='b101)|(func3=='b110)|(func3=='b111)))?`ysyx_22041412_v1zim:
 			    	`ysyx_22041412_v1rsa;	
 	assign V2Type=  R_type?`ysyx_22041412_v2rsb:

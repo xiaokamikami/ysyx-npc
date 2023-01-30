@@ -101,19 +101,19 @@ module ysyx_22041412_alu(
 always @(*) begin
   if(Mode == `ysyx_22041412_slt)begin
     if(func3 ==3'b010)begin
-      if($signed(AU-BU)<0)
-        Alusu=1;
-      else
-        Alusu=0;    
+      if($signed(AU-BU)<0) Alusu=1;
+      else Alusu=0;    
     end
     else if(func3 ==3'b011) begin //sltu
-      if(AU<BU)
-        Alusu=1;
-      else
-        Alusu=0;
+      if(AU<BU)Alusu=1;
+      else Alusu=0;
     end
     else  Alusu=0;
   end
+  // else if(Mode == `ysyx_22041412_sraiw)begin
+  //   if(BU[5]==0) Alusu={{32{'b0}},$signed(AU[31:0] >> BU[4:0])};
+  //   else  Alusu=AU;
+  // end
   else if(opcode==`ysyx_22041412_Environment)begin
     Alusu=0; 
   end
@@ -127,7 +127,11 @@ always @(*) begin
     else Alusu=0;     
   end
   else if(rv64w_en & !mul_en) begin
-    Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+    if(Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw) begin
+      if(BU[5]==0) Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+      else Alusu = AU;
+    end
+    else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
   end
   else if(rv64w_en & mul_en)begin
     Alusu = {{32{mul_result[31]}},mul_result[31:0]};

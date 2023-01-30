@@ -15,9 +15,9 @@ module ysyx_22041412_mcsr(
 // reg [15:0]mip; //（Machine Interrupt Pending）它列出目前正准备处理的中断。
 // reg [63:0]mtval; //（Machine Trap Value）它保存了陷入（trap）的附加信息：地址例外中出错的地址、发生非法指令例外的指令本身，对于其他异常，它的值为 0。
 // reg [63:0]mscratch; //（Machine Scratch）它暂时存放一个字大小的数据。
-// reg [63:0]mstatus; //（Machine Status）它保存全局中断使能，以及许多其他的状态
-
-
+// reg [63:0]mstatus; //（Machine Status）它保存全局中断使能，以及许多其他的状态    
+            // 0:mert
+            // 1:ecall
             // 2:mstatus
             // 3:mtvec
             // 4:mepc
@@ -28,27 +28,45 @@ reg ready;
 initial begin
     mcsr_reg[2] = 64'ha00001800;
 end
-reg [63:0]data_r;
+
+import "DPI-C" function void set_csr_ptr(input logic [63:0] a []);
+initial set_csr_ptr(mcsr_reg);  //read gpr
+
+
+reg [63:0]data_r;           //保存寄存器值用于输出
+reg [63:0]data_w;              
+wire [63:0]data;            //本次时钟的CSR值
+assign data=mcsr_reg[addr];
 assign data_o=data_r;
+
 assign ready_o=ready;
 always @(posedge clk) begin
     if(en& !ready & func3!='b000)begin
         data_r<=mcsr_reg[addr];
-        if(func3=='b001 | func3=='b101) mcsr_reg[addr]<=data_i;
-        else if(func3=='b010 | func3=='b110) mcsr_reg[addr]<=data_r|data_i;
-        else if(func3=='b011 | func3=='b111) mcsr_reg[addr]<=data_r& (~data_i);
-        else mcsr_reg[0]<=0;
+        if(func3=='b001 | func3=='b101) data_w<=data_i;
+        else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
+        else if(func3=='b011 | func3=='b111) data_w<=data& (~data_i);
+        else data_w<=64'b0;
         ready<=1'b1;
+        //$display("PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d",pc,data_r,addr,data_i,func3);
     end
     else if(en& !ready & addr=='b001)begin
         mcsr_reg[4]<=pc;
         mcsr_reg[5]<='h000b;
         data_r<=mcsr_reg[3];
         ready<=1'b1;
+        $display("PC:%8h call %h",pc,mcsr_reg[3]);
     end
     else if(en& !ready & addr=='b000)begin
         data_r<=mcsr_reg[4];
         ready<=1'b1;
+        $display("PC:%8h mert %h",pc,mcsr_reg[4]);
+    end
+    else if(en & ready & func3!='b000) begin    //延迟一拍执行写入
+        mcsr_reg[addr]<=data_w;
+        ready<=1'b0;
+        data_w<=64'b0;
+        //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
     end
     else begin
         ready<=1'b0;
