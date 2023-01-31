@@ -121,14 +121,16 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t npc) {
   return eqreg;
 }
 
-
+vaddr_t last_pc;
 static void checkregs(CPU_state *ref, vaddr_t pc)
 {
   if (!isa_difftest_checkregs(ref, pc))
   {
     exit_now();
     isa_reg_display();
+    printf("last pc = 0x%lx \n",last_pc);
   }
+  last_pc = pc;
 }
 
 void difftest_step(vaddr_t pc, vaddr_t npc)
@@ -154,7 +156,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc)
     // to skip the checking of an instruction, just copy the reg state to reference design
     ref_difftest_regcpy(&cpureg, DIFFTEST_TO_REF);
     //ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
-    printf("skip dut:%08lx,ref:%08lx\n",npc,ref_r.pc);
+    //printf("skip dut:%08lx,ref:%08lx\n",npc,ref_r.pc);
     is_skip_ref = false;
     
     return;

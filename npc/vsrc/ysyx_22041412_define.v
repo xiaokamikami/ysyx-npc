@@ -13,25 +13,31 @@
 `define	    ysyx_22041412_RV64_I        7'b0011011
 `define	    ysyx_22041412_RV64_R        7'b0111011
 
+
 //////////////////////////////////////////////////////////
 `define 	ysyx_22041412_ADD  			5'b00001
-`define 	ysyx_22041412_SUB  			5'b00010
-`define 	ysyx_22041412_sll  			5'b00011
-`define 	ysyx_22041412_slt  			5'b00100
-`define 	ysyx_22041412_slli 			5'b00101
-`define 	ysyx_22041412_XOR  			5'b00110
-`define 	ysyx_22041412_srliw  		5'b00111
-`define 	ysyx_22041412_srli  		5'b01000
-`define 	ysyx_22041412_OR   			5'b01001
-`define 	ysyx_22041412_NOR   		5'b01010
-`define 	ysyx_22041412_AND  			5'b01011
-`define 	ysyx_22041412_li  			5'b01110
-`define 	ysyx_22041412_UADD  		5'b01111
+`define 	ysyx_22041412_UADD  		5'b00010
+`define 	ysyx_22041412_SUB  			5'b00011
+`define 	ysyx_22041412_li  			5'b00100
+`define 	ysyx_22041412_slt  			5'b00101
+`define     ysyx_22041412_beq           5'b10110
+`define 	ysyx_22041412_XOR  			5'b00111
+`define 	ysyx_22041412_OR   			5'b01000
+`define 	ysyx_22041412_NOR   		5'b01001
+`define 	ysyx_22041412_AND  			5'b01010
 
-`define     ysyx_22041412_beq           5'b10001
-`define 	ysyx_22041412_sra  			5'b10010
-`define     ysyx_22041412_sraw          5'b10011
-`define     ysyx_22041412_sraiw         5'b10100
+
+`define 	ysyx_22041412_sll  			5'b01011
+`define 	ysyx_22041412_sra  			5'b01100
+`define     ysyx_22041412_srl           5'b01101
+`define 	ysyx_22041412_sllw  		5'b01110
+`define     ysyx_22041412_sraw          5'b01111
+`define     ysyx_22041412_srlw          5'b10000
+`define     ysyx_22041412_sraiw         5'b10001
+`define 	ysyx_22041412_srliw  		5'b10010
+`define 	ysyx_22041412_slliw  		5'b10011
+`define     ysyx_22041412_jalrj         5'b11111
+
 
 `define     ysyx_22041412_v2csr         2'b10
 `define     ysyx_22041412_v2imm         2'b01

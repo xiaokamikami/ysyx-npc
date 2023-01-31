@@ -8,14 +8,14 @@ module ysyx_22041412_mcsr(
      output [63:0]data_o,
      output ready_o
  );
-// reg [63:0]mtvec; //£¨Machine Trap Vector£©Ëü±£´æ·¢ÉúÒì³£Ê±´¦ÀíÆ÷ĞèÒªÌø×ªµ½µÄµØÖ·¡£
-// reg [63:0]mepc; //£¨Machine Exception PC£©ËüÖ¸Ïò·¢ÉúÒì³£µÄÖ¸Áî¡£
-// reg [63:0]mcause; //£¨Machine Exception Cause£©ËüÖ¸Ê¾·¢ÉúÒì³£µÄÖÖÀà¡£
-// reg [15:0]mie; //£¨Machine Interrupt Enable£©ËüÖ¸³ö´¦ÀíÆ÷Ä¿Ç°ÄÜ´¦ÀíºÍ±ØĞëºöÂÔµÄÖĞ¶Ï¡£
-// reg [15:0]mip; //£¨Machine Interrupt Pending£©ËüÁĞ³öÄ¿Ç°Õı×¼±¸´¦ÀíµÄÖĞ¶Ï¡£
-// reg [63:0]mtval; //£¨Machine Trap Value£©Ëü±£´æÁËÏİÈë£¨trap£©µÄ¸½¼ÓĞÅÏ¢£ºµØÖ·ÀıÍâÖĞ³ö´íµÄµØÖ·¡¢·¢Éú·Ç·¨Ö¸ÁîÀıÍâµÄÖ¸Áî±¾Éí£¬¶ÔÓÚÆäËûÒì³££¬ËüµÄÖµÎª 0¡£
-// reg [63:0]mscratch; //£¨Machine Scratch£©ËüÔİÊ±´æ·ÅÒ»¸ö×Ö´óĞ¡µÄÊı¾İ¡£
-// reg [63:0]mstatus; //£¨Machine Status£©Ëü±£´æÈ«¾ÖÖĞ¶ÏÊ¹ÄÜ£¬ÒÔ¼°Ğí¶àÆäËûµÄ×´Ì¬    
+// reg [63:0]mtvec; //ï¿½ï¿½Machine Trap Vectorï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ·¢ï¿½ï¿½ï¿½ì³£Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½×ªï¿½ï¿½ï¿½Äµï¿½Ö·ï¿½ï¿½
+// reg [63:0]mepc; //ï¿½ï¿½Machine Exception PCï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½ï¿½Ö¸ï¿½î¡£
+// reg [63:0]mcause; //ï¿½ï¿½Machine Exception Causeï¿½ï¿½ï¿½ï¿½Ö¸Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½à¡£
+// reg [15:0]mie; //ï¿½ï¿½Machine Interrupt Enableï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ç°ï¿½Ü´ï¿½ï¿½ï¿½ï¿½Í±ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½ï¿½Ğ¶Ï¡ï¿½
+// reg [15:0]mip; //ï¿½ï¿½Machine Interrupt Pendingï¿½ï¿½ï¿½ï¿½ï¿½Ğ³ï¿½Ä¿Ç°ï¿½ï¿½×¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¶Ï¡ï¿½
+// reg [63:0]mtval; //ï¿½ï¿½Machine Trap Valueï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¨trapï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Ğ³ï¿½ï¿½ï¿½ï¿½Äµï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½î±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ì³£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÖµÎª 0ï¿½ï¿½
+// reg [63:0]mscratch; //ï¿½ï¿½Machine Scratchï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö´ï¿½Ğ¡ï¿½ï¿½ï¿½ï¿½ï¿½İ¡ï¿½
+// reg [63:0]mstatus; //ï¿½ï¿½Machine Statusï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½Ğ¶ï¿½Ê¹ï¿½Ü£ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬    
             // 0:mert
             // 1:ecall
             // 2:mstatus
@@ -33,9 +33,9 @@ import "DPI-C" function void set_csr_ptr(input logic [63:0] a []);
 initial set_csr_ptr(mcsr_reg);  //read gpr
 
 
-reg [63:0]data_r;           //±£´æ¼Ä´æÆ÷ÖµÓÃÓÚÊä³ö
-reg [63:0]data_w;              
-wire [63:0]data;            //±¾´ÎÊ±ÖÓµÄCSRÖµ
+reg [63:0]data_r;           
+reg [63:0]data_w;           //å¾…å†™å…¥
+wire [63:0]data;           
 assign data=mcsr_reg[addr];
 assign data_o=data_r;
 
@@ -62,7 +62,7 @@ always @(posedge clk) begin
         ready<=1'b1;
         $display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
-    else if(en & ready & func3!='b000) begin    //ÑÓ³ÙÒ»ÅÄÖ´ĞĞĞ´Èë
+    else if(en & ready & func3!='b000) begin    //ï¿½Ó³ï¿½Ò»ï¿½ï¿½Ö´ï¿½ï¿½Ğ´ï¿½ï¿½
         mcsr_reg[addr]<=data_w;
         ready<=1'b0;
         data_w<=64'b0;

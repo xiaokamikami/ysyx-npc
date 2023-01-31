@@ -45,10 +45,9 @@ module ysyx_22041412_decode(
 			    	`ysyx_22041412_v1rsa;	
 	assign V2Type=  R_type?`ysyx_22041412_v2rsb:
 					B_type?`ysyx_22041412_v2rsb:
-				 	//(instr[6:0]==`ysyx_22041412_Environment)?`ysyx_22041412_v2csr:
 				 	`ysyx_22041412_v2imm;
 
-	assign Mul_en= R_type?(instr[25]=='b1)?`ysyx_22041412_mulen:1'b0:1'b0;
+	assign Mul_en= R_type&(instr[25]=='b1)?`ysyx_22041412_mulen:1'b0;
 
 
 	assign imme= I_type?{{52{instr[31]}},instr[31:20]} :

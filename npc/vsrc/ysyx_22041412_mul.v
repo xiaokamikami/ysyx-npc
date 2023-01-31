@@ -21,11 +21,11 @@ always@(posedge clk)begin
         else if (func3==3'b100)
             data <=  rsA/rsB;
         else if (func3==3'b100)
-            data <= $signed(ua/ub);  
+            data <= ($signed(ua)/$signed(ub));  
         else if (func3==3'b101)
             data <= ua/ub; 
         else if (func3==3'b110)
-            data <= $signed(ua%ub); 
+            data <= ($signed(ua)%$signed(ub)); 
         else if (func3==3'b111)
             data <= ua%ub;
         else data<=64'h00000000;

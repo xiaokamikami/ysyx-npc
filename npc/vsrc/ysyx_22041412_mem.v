@@ -5,7 +5,7 @@ module ysyx_22041412_mem(
  );
  reg [31:0]ImmMemory[134217727:0];     // 512K
  initial begin
-    //$readmemh("resource/test.txt", ImmMemory);
+    //$readmemh("resource/imm.bin", ImmMemory);
     $readmemh("resource/Imm_init.hex", ImmMemory);
  end
  always @(*) begin

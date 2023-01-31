@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <iostream>//预处理
+#include <iostream>//?????
 //include END
 
 #define CONFIG_MBASE 0x80000000
@@ -24,7 +24,7 @@
 
 //flags
 #define diff_en
-//#define vcd_en
+
 
 void exit_now();
 struct CPU_state
@@ -50,8 +50,8 @@ static uint32_t imm;
 void refresh_clk();
 
 
-//初始化
-using namespace std;//命名空间 
+//?????
+using namespace std;//??????? 
 vluint64_t main_time = 0;
 uint64_t main_dir_value= 0;
 uint64_t main_clk_value= 0;
@@ -60,7 +60,7 @@ uint8_t ff=0;
 
 
 
-// 通过掩码计算输入的位数
+// ???????????????λ??
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
   else if(wmask == 3)return 2;
@@ -77,7 +77,7 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
 }
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   if(raddr<0x88000000 && raddr >= 0x80000000 ){
-    // 总是读取地址为`raddr & ~0x7ull`的8字节返回给`rdata`
+    // ??????????`raddr & ~0x7ull`??8???????`rdata`
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
     // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
     *rdata = pmem_read((raddr & ~0x7ull), 8);
@@ -110,9 +110,9 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
   }
 }
 extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
-  // 总是往地址为`waddr & ~0x7ull`的8字节按写掩码`wmask`写入`wdata`
-  // `wmask`中每比特表示`wdata`中1个字节的掩码,
-  // 如`wmask = 0x3`代表只写入最低2个字节, 内存中的其它字节保持不变
+  // ??????????`waddr & ~0x7ull`??8????д????`wmask`д??`wdata`
+  // `wmask`?????????`wdata`??1??????????,
+  // ??`wmask = 0x3`?????д?????2?????, ????е??????????????
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
     //printf("write :%d addr %llx \n",bits_set,waddr);
@@ -130,7 +130,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 
 
 
-void sim_init() {                 //波形记录
+void sim_init() {                 //初始化
   contextp = new VerilatedContext;
   contextp->traceEverOn(true);
   top->trace(tfp,0);
@@ -139,8 +139,8 @@ void sim_init() {                 //波形记录
 }
 
 //end
-
-void refresh_clk()          //刷新时钟
+#define vcd_en
+void refresh_clk()    
 {
 
   top->clk = !(top->clk);
@@ -148,12 +148,11 @@ void refresh_clk()          //刷新时钟
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(main_time>293780){
+    if(1626309< main_time & main_time<1628309){
       tfp->dump(main_time);
     }
-    if(main_time>295780){
-      printf(RED "vcd break \n" NONE);
-      exit_now();
+    else {
+      //
     }
   main_time++;  
   #endif 
@@ -190,7 +189,7 @@ void isa_reg_print(uint8_t num) {
 }
 
 
-static int cmd_c()                //对比数据
+static int cmd_c()                //DIFFTEST
 { 
   static bool bubble;
   static paddr_t pc;
@@ -201,18 +200,17 @@ static int cmd_c()                //对比数据
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(imm != top->CP_PC){
       imm=top->CP_PC;
-      refresh_clk();  //刷新CLK与波形记录
+      //refresh_clk();  //刷新CLK
       main_dir_value++;
       pc = top->CP_PC;
       npc = top->CP_NPC;
-      //printf("pc:%lx\n",pc);
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
       difftest_step(pc, npc);
       contextp->timeInc(1);
-      //printf("next pc=%lx\n",top->CP_NPC);
+      //printf("pc:%lx\n next pc=%lx\n",pc,top->CP_NPC);
     }
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
@@ -241,7 +239,7 @@ int main(int argc,char **argv){
   #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
-    refresh_clk();  //刷新CLK与波形记录
+    refresh_clk();  //???CLK???μ??
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
   #endif
@@ -250,22 +248,22 @@ int main(int argc,char **argv){
   printf(BLUE "Run verilog\n" NONE);
   while (1)
   {
-    refresh_clk();  //刷新CLK与波形记录
+    refresh_clk();  //???CLK???μ??
     //Imm=top->CP_Imm;
     #ifdef diff_en
       cmd_c();
     #endif
     if(top->Ebreak==1){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
-      refresh_clk();  //刷新CLK与波形记录
+      refresh_clk();  //???CLK???μ??
       break;
     }
     else if(is_exit ==true){
       //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->CP_PC,main_time);
       
-      refresh_clk();  //刷新CLK与波形记录
-      //关闭程序
+      refresh_clk();  //???CLK???μ??
+      //??????
       top->final();
       tfp->close();
       delete top;
@@ -281,7 +279,7 @@ int main(int argc,char **argv){
     ipc=((double)main_dir_value)/main_clk_value;
     printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
   #endif
-  //关闭程序
+  //??????
   top->final();
   tfp->close();
   delete top;
