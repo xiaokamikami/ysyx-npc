@@ -5,26 +5,16 @@
 #include "color.h"
 #include "difftests/difftest.h"
 #include "difftests/memory.h"
-#include "device.h"
-
+#include "device/device.h"
+#include "device/debug.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <iostream>//?????
+#include <iostream>
+
 //include END
-
-#define CONFIG_MBASE 0x80000000
-#define CONFIG_MSIZE 0x8000000
-#define CONFIG_RTC   0xb0000048
-#define CONFIG_KEY      0xb0000060
-#define CONFIG_VGA      0xb0000100
-#define CONFIG_SERIAL_MMIO 0xb00003f8
-
-//flags
-#define diff_en
-
 
 void exit_now();
 struct CPU_state
@@ -45,9 +35,10 @@ Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
 uint64_t *cpu_gpr = NULL;
 uint64_t *csr_gpr = NULL;
 bool is_exit = false;
+bool sdl_exit = false;
 bool isebreak = false;
 static uint32_t imm;
-void refresh_clk();
+void updata_clk();
 
 
 //?????
@@ -55,6 +46,7 @@ using namespace std;//???????
 vluint64_t main_time = 0;
 uint64_t main_dir_value= 0;
 uint64_t main_clk_value= 0;
+uint64_t main_time_us;
 uint8_t ff=0;
 
 
@@ -75,9 +67,16 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
 extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
-extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
+extern "C" void ramdisk_read(long long raddr, uint32_t *rdata) {
   if(raddr<0x88000000 && raddr >= 0x80000000 ){
-    // ??????????`raddr & ~0x7ull`??8???????`rdata`
+    *rdata = pmem_read(raddr, 4);
+  }
+}
+
+extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
+  //if(raddr!=0)printf("mem_read %llx \n",raddr);
+  if(raddr<0x88000000 && raddr >= 0x80000000 ){
+    // 8字节对齐
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
     // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
     *rdata = pmem_read((raddr & ~0x7ull), 8);
@@ -89,37 +88,33 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     //printf("get ram :%llx\n",*rdata);
   }
-  else if (raddr == CONFIG_RTC || raddr == (CONFIG_RTC+4))
+  else if (raddr == RTC_ADDR || raddr == (RTC_ADDR+4))
   {
-    //printf("npc-rtc\n");
-   
-    //uint64_t us =main_clk_value/100;
-    //printf("rtc %ld ",us);
-    uint64_t us =get_time();
-     if(raddr == CONFIG_RTC){
-       *rdata = (uint32_t)us;
+    //uint64_t us =main_clk_value/100;    //跑分用  100MHZ基准
+    
+     if(raddr == RTC_ADDR){
+       *rdata = (uint32_t)main_time_us;
      }
      else{
-       *rdata = (us >>32);
+       *rdata = (main_time_us >>32);
      }
     difftest_skip_ref();
-
-  } 
+  }
+  else if( raddr == KBD_ADDR ){
+    *rdata = serial_io_output();
+    difftest_skip_ref();
+  }
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
   }
 }
+
 extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
-  // ??????????`waddr & ~0x7ull`??8????д????`wmask`д??`wdata`
-  // `wmask`?????????`wdata`??1??????????,
-  // ??`wmask = 0x3`?????д?????2?????, ????е??????????????
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    //printf("write :%d addr %llx \n",bits_set,waddr);
-    //pmem_write((waddr & ~0x7ull), bits_set,wdata);
-    pmem_write((waddr), bits_set, wdata);
+    pmem_write((waddr), bits_set, wdata);     //写入不对齐
   }
-  else if(waddr == CONFIG_SERIAL_MMIO ){
+  else if(waddr == SERIAL_PORT ){
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
@@ -135,14 +130,12 @@ void sim_init() {                 //初始化
   contextp->traceEverOn(true);
   top->trace(tfp,0);
   tfp->open("wave.vcd");
-
 }
 
 //end
-#define vcd_en
-void refresh_clk()    
+uint64_t last_us;
+void updata_clk()    
 {
-
   top->clk = !(top->clk);
   top->eval();
   if(ff==0) {ff=1;}
@@ -154,8 +147,18 @@ void refresh_clk()
     else {
       //
     }
+   
   main_time++;  
   #endif 
+
+  //控制帧数
+  device_update();
+  main_time_us=get_time();
+  if(main_time_us-(FPS*1000)>last_us){
+    
+    last_us=main_time_us;
+  }
+  
 }
 double sc_time_stamp()
 {
@@ -200,7 +203,7 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(imm != top->CP_PC){
       imm=top->CP_PC;
-      //refresh_clk();  //刷新CLK
+      //updata_clk();  //刷新CLK
       main_dir_value++;
       pc = top->CP_PC;
       npc = top->CP_NPC;
@@ -222,7 +225,14 @@ static int cmd_c()                //DIFFTEST
 void npc_init(void){
   sim_init();
   rct_init();
-
+  #ifdef  CONFIG_HAS_KEYBOARD
+    init_keymap();
+    SDL_Init(SDL_INIT_EVENTS);
+  #endif
+  #ifdef  CONFIG_HAS_VGA
+  vga_init();
+  #endif
+  
 }
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
@@ -239,7 +249,7 @@ int main(int argc,char **argv){
   #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
-    refresh_clk();  //???CLK???μ??
+    updata_clk();  
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
   #endif
@@ -248,22 +258,22 @@ int main(int argc,char **argv){
   printf(BLUE "Run verilog\n" NONE);
   while (1)
   {
-    refresh_clk();  //???CLK???μ??
+    updata_clk();  
     //Imm=top->CP_Imm;
     #ifdef diff_en
       cmd_c();
     #endif
-    if(top->Ebreak==1){  //ebreak
+    if(top->Ebreak==true | sdl_exit==true ){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
-      refresh_clk();  //???CLK???μ??
+      updata_clk();  
       break;
     }
     else if(is_exit ==true){
       //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->CP_PC,main_time);
       
-      refresh_clk();  //???CLK???μ??
-      //??????
+      updata_clk();  
+
       top->final();
       tfp->close();
       delete top;
@@ -279,7 +289,7 @@ int main(int argc,char **argv){
     ipc=((double)main_dir_value)/main_clk_value;
     printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
   #endif
-  //??????
+
   top->final();
   tfp->close();
   delete top;

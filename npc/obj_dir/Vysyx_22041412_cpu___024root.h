@@ -76,6 +76,7 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_imm;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_imm;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_imm;
+        IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__imm_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_pc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_dnpc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_pc;
@@ -91,9 +92,9 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_pc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_imm_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_temp;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_res;
     };
     struct {
+        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_res;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_imm_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_pc;
@@ -120,6 +121,7 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
     // LOCAL VARIABLES
     CData/*0:0*/ __Vclklast__TOP__clk;
     VlWide<37>/*1172:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT____Vcellinp__Mux_ALU____pinNumber4;
+    IData/*31:0*/ __Vtask_ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__ramdisk_read__1__rdata;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__csr_reg__DOT____Vlvbound1;
     VlUnpacked<CData/*0:0*/, 2> __Vm_traceActivity;
 

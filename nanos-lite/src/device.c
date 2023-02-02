@@ -32,7 +32,7 @@ size_t events_read(void *buf, size_t offset, size_t len) {
   //if(ev.keydown) keydown=1;
   //else keydown=0;
   sprintf(buf," %d,%d \n",ev.keydown,ev.keycode);
-  //printf("Got  (kbd): %s (%d) %s  \n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
+  printf("Got  (kbd): %s (%d) %s  \n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
   
   
   return len;

@@ -142,6 +142,7 @@ void Vysyx_22041412_cpu___024root__traceInitSub0(Vysyx_22041412_cpu___024root* v
         tracep->declBit(c+357,"ysyx_22041412_cpu pip IF_ImmMem clk", false,-1);
         tracep->declQuad(c+14,"ysyx_22041412_cpu pip IF_ImmMem Addr", false,-1, 63,0);
         tracep->declBus(c+13,"ysyx_22041412_cpu pip IF_ImmMem Imm", false,-1, 31,0);
+        tracep->declBus(c+13,"ysyx_22041412_cpu pip IF_ImmMem imm_data", false,-1, 31,0);
         tracep->declBus(c+18,"ysyx_22041412_cpu pip ID_decode instr", false,-1, 31,0);
         tracep->declBus(c+31,"ysyx_22041412_cpu pip ID_decode opcode", false,-1, 6,0);
         tracep->declBus(c+26,"ysyx_22041412_cpu pip ID_decode func3", false,-1, 2,0);
@@ -317,8 +318,7 @@ void Vysyx_22041412_cpu___024root__traceFullSub0(Vysyx_22041412_cpu___024root* v
                                              & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_mul_en))
                                              ? 1U : 0U)) 
                                         | (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_wait)))));
-        tracep->fullIData(oldp+13,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__ImmMemory
-                                   [(0x7ffffffU & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__if_pc))]),32);
+        tracep->fullIData(oldp+13,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__imm_data),32);
         tracep->fullQData(oldp+14,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__if_pc),64);
         tracep->fullQData(oldp+16,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__if_dnpc),64);
         tracep->fullIData(oldp+18,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm),32);

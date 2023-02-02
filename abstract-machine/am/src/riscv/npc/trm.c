@@ -1,7 +1,7 @@
 #include <am.h>
 #include <klib-macros.h>
-#include "addr.h"
 #include "../riscv.h"
+#include "npc.h"
 extern char _heap_start;
 int main(const char *args);
 

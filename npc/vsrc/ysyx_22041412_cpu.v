@@ -1,4 +1,4 @@
-//CPU模块
+//CPU模锟斤拷
 /* verilator lint_off UNUSED */
 `include "vsrc/ysyx_22041412_define.v"
 
@@ -13,7 +13,6 @@ module ysyx_22041412_cpu (
   //END
   assign CP_IMM=Imm;
   assign Ebreak=(Imm=='b000100000000000001110011)?1:0;
-  //指令相关存储
 
   ysyx_22041412_pipeline pip(
     .clk(clk),

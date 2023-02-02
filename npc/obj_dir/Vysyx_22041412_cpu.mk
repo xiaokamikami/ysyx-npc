@@ -38,19 +38,13 @@ VM_USER_CFLAGS = \
 
 # User LDLIBS (from -LDFLAGS on Verilator command line)
 VM_USER_LDLIBS = \
-	-I/usr/lib/llvm-11/include \
-	-std=c++14 \
-	-fno-exceptions \
-	-D_GNU_SOURCE \
-	-D__STDC_CONSTANT_MACROS \
-	-D__STDC_FORMAT_MACROS \
-	-D__STDC_LIMIT_MACROS \
-	-lLLVM-11 \
-	-ldl \
+	-lSDL2 -lLLVM-11 -ldl \
 
 # User .cpp files (from .cpp's on Verilator command line)
 VM_USER_CLASSES = \
 	device \
+	keyboard \
+	vga \
 	difftest \
 	memory \
 	main \
@@ -58,6 +52,7 @@ VM_USER_CLASSES = \
 # User .cpp directories (from .cpp's on Verilator command line)
 VM_USER_DIR = \
 	/home/kami/ysyx-workbench/npc/csrc \
+	/home/kami/ysyx-workbench/npc/csrc/device \
 	/home/kami/ysyx-workbench/npc/csrc/difftests \
 
 
@@ -70,7 +65,11 @@ include $(VERILATOR_ROOT)/include/verilated.mk
 ### Executable rules... (from --exe)
 VPATH += $(VM_USER_DIR)
 
-device.o: /home/kami/ysyx-workbench/npc/csrc/device.cpp
+device.o: /home/kami/ysyx-workbench/npc/csrc/device/device.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+keyboard.o: /home/kami/ysyx-workbench/npc/csrc/device/keyboard.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+vga.o: /home/kami/ysyx-workbench/npc/csrc/device/vga.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 difftest.o: /home/kami/ysyx-workbench/npc/csrc/difftests/difftest.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<

@@ -55,12 +55,12 @@ always @(posedge clk) begin
         mcsr_reg[5]<='h000b;
         data_r<=mcsr_reg[3];
         ready<=1'b1;
-        $display("PC:%8h call %h",pc,mcsr_reg[3]);
+        //$display("PC:%8h call %h",pc,mcsr_reg[3]);
     end
     else if(en& !ready & addr=='b000)begin
         data_r<=mcsr_reg[4];
         ready<=1'b1;
-        $display("PC:%8h mert %h",pc,mcsr_reg[4]);
+        //$display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
     else if(en & ready & func3!='b000) begin    //�ӳ�һ��ִ��д��
         mcsr_reg[addr]<=data_w;

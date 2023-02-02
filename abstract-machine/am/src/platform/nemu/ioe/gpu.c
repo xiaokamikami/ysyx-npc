@@ -38,7 +38,7 @@ void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
     outl(SYNC_ADDR, 1);
     //ctl->sync=0;
   }
-    // 向x,y处绘制w*h的矩形图像
+    // ??x,y??????w*h????????
   uint32_t x = ctl->x, y = ctl->y, w = ctl->w, h = ctl->h;
   if (w == 0 || h == 0) return;
   uint32_t *fb = (uint32_t *)FB_ADDR;
