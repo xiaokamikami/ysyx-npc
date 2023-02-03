@@ -39,7 +39,7 @@ module ysyx_22041412_alu(
     .rsA(scr1),
     .rsB(scr2),
     .func3(func3),
-    .ready(mul_ready),
+    .ready_o(mul_ready),
     .result(mul_result)
   );
 

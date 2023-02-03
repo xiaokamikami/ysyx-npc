@@ -29,11 +29,11 @@ wire ex_stall;
 wire mul_stall;
 reg ex_wait;
 //assign ex_wait = (ex_rw!=0 & ((!id_imm_V1Type & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load & !mem_readyo) ?1'b1:1'b0;
-assign ex_stall =  1'b0;
+assign ex_stall = mul_stall | ex_wait;
 reg mem_wait;
 wire mem_busy;
 wire mem_stall;
-assign mem_stall = mem_wait | mem_busy | csr_stall | mul_stall | ex_wait  ;
+assign mem_stall = mem_wait | mem_busy | csr_stall ;
 
 
 assign if_en  = !pip_stall[1];
@@ -162,9 +162,9 @@ reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg mem_csr_jar_en;
 wire [63:0]mem_rdata;
-wire mem_readyi;
-assign mem_readyi = !ex_wait;
-wire mem_readyo;
+wire ex_ready_i;
+assign ex_ready_i = !ex_wait;
+wire mem_valid_o;
 
 //WB
 reg wb_reg_en;
@@ -235,15 +235,15 @@ always@(posedge clk)begin
              ex_wait<=1;
         end
     end
-     if( ex_wait & ex_imm_V1Type==0 & mem_readyo & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
+     if( ex_wait & ex_imm_V1Type==0 & mem_valid_o & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
         ex_v1<=mem_rdata;
         ex_wait<=0;
      end
-     else if (ex_wait & ex_imm_V2Type==0 & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+     if (ex_wait & ex_imm_V2Type==0 & mem_valid_o &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
         ex_v2<=mem_rdata;
         ex_wait<=0;
      end
-     if (ex_wait & ex_imm_V2Type!=0 & mem_readyo &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
+     if (ex_wait & ex_imm_V2Type!=0 & mem_valid_o &(ex_Rb == mem_rw  & mem_opcode==`ysyx_22041412_load ))begin
         ex_rs2<=mem_rdata;
         ex_wait<=0;
      end
@@ -405,21 +405,22 @@ ysyx_22041412_sram MEM_sram(        //SRAM
     .wdata(mem_wdata),
     .rdata(mem_rdata),
     .stall(mem_busy),
-    .readyi(mem_readyi),
-    .readyo(mem_readyo),
+    .ready_i(ex_ready_i),
+    .ready_o(mem_valid_o),
     .wen(mem_rw_type)           //1 wt  0 read
 );
 
 ysyx_22041412_dff M_reg (        //32*64bitREG
     .clk(clk),
+    .rst(wb_rst),
     .Ra(id_Ra),
     .Rb(id_Rb),  
     .Rw(wb_addr),
     .Wen(wb_reg_en),
     .BusA(id_rsA),
     .BusB(id_rsB),
-    .BusW(wb_data),
-    .rst(wb_rst)
+    .BusW(wb_data)
+
 );
 
 ysyx_22041412_stall Stall(

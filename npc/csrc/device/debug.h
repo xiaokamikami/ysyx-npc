@@ -4,6 +4,7 @@
 //debug
 #define diff_en         //difftest开关
 //#define vcd_en          //波形记录
+//#define DEVICE_ENABLE
 
 //device
 #define CONFIG_HAS_KEYBOARD

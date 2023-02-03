@@ -10,4 +10,5 @@
 !*.py
 !.gitignore
 !README.md
-!obj_dir/*
+!*.o
+!*.d

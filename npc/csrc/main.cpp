@@ -90,8 +90,6 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
   }
   else if (raddr == RTC_ADDR || raddr == (RTC_ADDR+4))
   {
-    //uint64_t us =main_clk_value/100;    //跑分用  100MHZ基准
-    
      if(raddr == RTC_ADDR){
        *rdata = (uint32_t)main_time_us;
      }
@@ -143,7 +141,7 @@ void updata_clk()
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(1626309< main_time & main_time<1628309){
+    if(954300< main_time & main_time<954400){
       tfp->dump(main_time);
     }
     else {
@@ -155,10 +153,14 @@ void updata_clk()
 
   //控制帧数
   main_time_us=get_time(); 
+  //main_time_us=main_clk_value/100;
+  #ifdef DEVICE_ENABLE
   //if(main_time_us-(FPS*1000)>last_us){
     device_update();
   //  last_us=main_time_us;
-  //}
+  //}  
+  #endif
+
   
 }
 double sc_time_stamp()
@@ -215,7 +217,7 @@ static int cmd_c()                //DIFFTEST
       }
       else difftest_step(pc, npc);
       contextp->timeInc(1);
-      //printf("pc:%lx\n next pc=%lx\n",pc,top->CP_NPC);
+      //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
     }
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
@@ -227,14 +229,15 @@ static int cmd_c()                //DIFFTEST
 void npc_init(void){
   sim_init();
   rct_init();
-  #ifdef  CONFIG_HAS_KEYBOARD
-    init_keymap();
-    SDL_Init(SDL_INIT_EVENTS);
+  #ifdef DEVICE_ENABLE
+    #ifdef  CONFIG_HAS_KEYBOARD
+      init_keymap();
+      SDL_Init(SDL_INIT_EVENTS);
+    #endif
+    #ifdef  CONFIG_HAS_VGA
+      vga_init();
+    #endif
   #endif
-  #ifdef  CONFIG_HAS_VGA
-  vga_init();
-  #endif
-  
 }
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);

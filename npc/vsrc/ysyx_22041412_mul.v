@@ -5,15 +5,20 @@ module ysyx_22041412_mul(
     input [63:0]rsB,
     input [2:0]func3,
     input w_en,
-    output reg ready,
+    output ready_o,
     output wire [63:0]result
  );
 wire [63:0]ua;
 wire [63:0]ub;
 assign ua = (w_en=='b1)?{{32{1'b0}},rsA[31:0]}:rsA;
 assign ub = (w_en=='b1)?{{32{1'b0}},rsB[31:0]}:rsB;
+
+reg ready;
+assign ready_o = ready;
+
 reg[63:0]data;
 assign result =data;
+
 always@(posedge clk)begin 
     if(en & !ready)begin
         if (func3==3'b000)
