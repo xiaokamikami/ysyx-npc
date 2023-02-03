@@ -15,7 +15,7 @@ reg[31:0]imm_data;
 assign Imm = imm_data;
 
  always @(*) begin
-   if(!(Addr< 64'h83000000)) ramdisk_read(Addr,imm_data);
-   else imm_data = ImmMemory[Addr[26:0]];
+  if(!(Addr< 64'h83000000)) ramdisk_read(Addr,imm_data);
+  else imm_data = ImmMemory[Addr[26:0]];
  end
 endmodule

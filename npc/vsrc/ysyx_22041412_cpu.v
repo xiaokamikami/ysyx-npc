@@ -6,6 +6,7 @@ module ysyx_22041412_cpu (
   input clk,
   output [63:0]CP_PC,
   output [63:0]CP_NPC,
+  output [63:0]MEM_PC,
   output [31:0]CP_IMM,
   output Ebreak
 );
@@ -18,8 +19,10 @@ module ysyx_22041412_cpu (
     .clk(clk),
     .pip_pc(CP_PC),
     .pip_dnpc(CP_NPC),
+    .pip_mem_pc(MEM_PC),
     .pip_imm(Imm)
 );
 
 
 endmodule
+

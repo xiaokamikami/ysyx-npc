@@ -4,10 +4,11 @@ module ysyx_22041412_pipeline(
     //EXE
     output wire [63:0]pip_pc,
     output wire [63:0]pip_dnpc,
+    output wire [63:0]pip_mem_pc,
     output wire [31:0]pip_imm
 );
 
-
+assign pip_mem_pc = mem_pc;
 initial begin        // STARTS
     if_pc = 64'h0000000080000000;
 end

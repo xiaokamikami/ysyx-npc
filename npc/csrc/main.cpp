@@ -37,12 +37,12 @@ uint64_t *csr_gpr = NULL;
 bool is_exit = false;
 bool sdl_exit = false;
 bool isebreak = false;
-static uint32_t imm;
-void updata_clk();
+static uint32_t last_pc;
+static uint32_t skip_pc;
+static void updata_clk();
 
 
-//?????
-using namespace std;//??????? 
+using namespace std;
 vluint64_t main_time = 0;
 uint64_t main_dir_value= 0;
 uint64_t main_clk_value= 0;
@@ -50,9 +50,7 @@ uint64_t main_time_us;
 uint8_t ff=0;
 
 
-
-
-// ???????????????λ??
+//sram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
   else if(wmask == 3)return 2;
@@ -60,6 +58,7 @@ size_t get_bit(uint8_t wmask) {
   else if(wmask == 0xff)return 8;
   else return 0;
 }
+
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
   cpu_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
@@ -68,14 +67,15 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 extern "C" void ramdisk_read(long long raddr, uint32_t *rdata) {
-  if(raddr<0x88000000 && raddr >= 0x80000000 ){
+  if(raddr >= 0x80000000 & raddr<0x88000000 ){
     *rdata = pmem_read(raddr, 4);
+
   }
 }
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   //if(raddr!=0)printf("mem_read %llx \n",raddr);
-  if(raddr<0x88000000 && raddr >= 0x80000000 ){
+  if(raddr >= 0x80000000 & raddr<0x88000000 ){
     // 8字节对齐
     // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
     // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
@@ -98,11 +98,13 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
      else{
        *rdata = (main_time_us >>32);
      }
-    difftest_skip_ref();
+     skip_pc = top->MEM_PC;
+
   }
   else if( raddr == KBD_ADDR ){
     *rdata = serial_io_output();
-    difftest_skip_ref();
+    skip_pc = top->MEM_PC;
+
   }
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -133,7 +135,7 @@ void sim_init() {                 //初始化
 }
 
 //end
-uint64_t last_us;
+uint64_t last_us=0;
 void updata_clk()    
 {
   top->clk = !(top->clk);
@@ -152,12 +154,11 @@ void updata_clk()
   #endif 
 
   //控制帧数
-  device_update();
-  main_time_us=get_time();
-  if(main_time_us-(FPS*1000)>last_us){
-    
-    last_us=main_time_us;
-  }
+  main_time_us=get_time(); 
+  //if(main_time_us-(FPS*1000)>last_us){
+    device_update();
+  //  last_us=main_time_us;
+  //}
   
 }
 double sc_time_stamp()
@@ -201,17 +202,18 @@ static int cmd_c()                //DIFFTEST
   npc = top->CP_NPC;
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
-    if(imm != top->CP_PC){
-      imm=top->CP_PC;
-      //updata_clk();  //刷新CLK
+    if(last_pc != top->CP_PC){
+      last_pc=top->CP_PC;
       main_dir_value++;
-      pc = top->CP_PC;
-      npc = top->CP_NPC;
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
-      difftest_step(pc, npc);
+      if(skip_pc ==pc & skip_pc!=0 )  {
+        difftest_skip_ref();
+        skip_pc =0;
+      }
+      else difftest_step(pc, npc);
       contextp->timeInc(1);
       //printf("pc:%lx\n next pc=%lx\n",pc,top->CP_NPC);
     }
@@ -238,10 +240,10 @@ int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
   double ipc;
-  // for (int i = 0; i < argc; i++)
-  // {
-  //   printf("%s\t",argv[i]);
-  // }
+  for (int i = 0; i < argc; i++)
+  {
+    printf("arg : %s\n",argv[i]);
+  }
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
     static char nemu_bin[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
