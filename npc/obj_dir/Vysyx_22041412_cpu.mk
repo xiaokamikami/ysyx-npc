@@ -43,6 +43,9 @@ VM_USER_LDLIBS = \
 # User .cpp files (from .cpp's on Verilator command line)
 VM_USER_CLASSES = \
 	device \
+	map \
+	mmio \
+	port-io \
 	keyboard \
 	vga \
 	difftest \
@@ -53,6 +56,7 @@ VM_USER_CLASSES = \
 VM_USER_DIR = \
 	/home/kami/ysyx-workbench/npc/csrc \
 	/home/kami/ysyx-workbench/npc/csrc/device \
+	/home/kami/ysyx-workbench/npc/csrc/device/io \
 	/home/kami/ysyx-workbench/npc/csrc/difftests \
 
 
@@ -66,6 +70,12 @@ include $(VERILATOR_ROOT)/include/verilated.mk
 VPATH += $(VM_USER_DIR)
 
 device.o: /home/kami/ysyx-workbench/npc/csrc/device/device.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+map.o: /home/kami/ysyx-workbench/npc/csrc/device/io/map.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+mmio.o: /home/kami/ysyx-workbench/npc/csrc/device/io/mmio.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+port-io.o: /home/kami/ysyx-workbench/npc/csrc/device/io/port-io.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 keyboard.o: /home/kami/ysyx-workbench/npc/csrc/device/keyboard.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<

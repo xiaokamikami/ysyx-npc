@@ -1,6 +1,6 @@
 #ifndef NPC_H
 #define NPC_H
-
+#include "../riscv.h"
 #define MMIO_BASE 0xb0000000
 #define DEVICE_BASE 0xb0000000
 #define SERIAL_PORT     (DEVICE_BASE + 0x00003f8)

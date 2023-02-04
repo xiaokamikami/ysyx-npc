@@ -16,6 +16,7 @@ VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.*v
 CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp" -or -name "*.cc")
 CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "*.v")
+
 #rules for verilator
 VERILATOR_FLAGS += -MMD --build -cc --exe --trace \
 	-O3 --x-assign fast --x-initial fast --noassert \

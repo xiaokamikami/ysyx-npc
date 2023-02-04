@@ -7,6 +7,7 @@
 #include "difftests/memory.h"
 #include "device/device.h"
 #include "device/debug.h"
+#include "device/io/map.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -102,7 +103,11 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
   else if( raddr == KBD_ADDR ){
     *rdata = serial_io_output();
     skip_pc = top->MEM_PC;
-
+  }
+  else if( raddr == VGACTL_ADDR ){//¶ÁVGAÉèÖÃ 
+    *rdata = mmio_read(raddr,4);
+    printf("npc: vga config w %d , h %d \n",*rdata>>16,*rdata&0x0000ffff);
+    skip_pc = top->MEM_PC;  
   }
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -117,6 +122,12 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   else if(waddr == SERIAL_PORT ){
     //printf("npc-usart\n");
     serial_io_input(wdata);
+  }
+  else if(waddr == FB_ADDR){
+    printf("VGA start write \n");
+  }
+  else if( waddr == SYNC_ADDR ){
+    printf("sync addr \n");
   }
   else if(waddr !=0){
     printf("error mem write addr  %llx\n",waddr);
@@ -211,7 +222,7 @@ static int cmd_c()                //DIFFTEST
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
-      if(skip_pc ==pc & skip_pc!=0 )  {
+      if(skip_pc ==npc & skip_pc!=0 )  {
         difftest_skip_ref();
         skip_pc =0;
       }
@@ -230,13 +241,7 @@ void npc_init(void){
   sim_init();
   rct_init();
   #ifdef DEVICE_ENABLE
-    #ifdef  CONFIG_HAS_KEYBOARD
-      init_keymap();
-      SDL_Init(SDL_INIT_EVENTS);
-    #endif
-    #ifdef  CONFIG_HAS_VGA
-      vga_init();
-    #endif
+    init_device();
   #endif
 }
 int main(int argc,char **argv){

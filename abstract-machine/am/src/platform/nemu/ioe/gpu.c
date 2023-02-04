@@ -33,11 +33,8 @@ void _draw_rect(const uint32_t *pixels, int x, int y, int w, int h) {
 }
 
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
-  _draw_rect(ctl->pixels,ctl->x,ctl->y,ctl->w,ctl->h);
-  if (ctl->sync) {
-    outl(SYNC_ADDR, 1);
-    //ctl->sync=0;
-  }
+  //_draw_rect(ctl->pixels,ctl->x,ctl->y,ctl->w,ctl->h);
+
     // ??x,y??????w*h????????
   uint32_t x = ctl->x, y = ctl->y, w = ctl->w, h = ctl->h;
   if (w == 0 || h == 0) return;
@@ -47,6 +44,10 @@ void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
     for (uint32_t i = 0; i < w; ++i) {
       fb[(y + j) * vga_width + (x + i)] = pixels[j * w + i];
     }
+  if (ctl->sync) {
+    outl(SYNC_ADDR, 1);
+    //ctl->sync=0;
+  }  
 }
 
 void __am_gpu_status(AM_GPU_STATUS_T *status) {
