@@ -161,11 +161,11 @@ void difftest_step(vaddr_t pc, vaddr_t npc)
     
     return;
   }
-  else{
+
     ref_difftest_exec(1);
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     //printf("cheek dut:%08lx,ref:%08lx\n",npc,ref_r.pc);
     checkregs(&ref_r, npc);
-  }  
+
 
 }

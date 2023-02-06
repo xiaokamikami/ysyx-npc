@@ -5,15 +5,17 @@
 #include <stdbool.h>
 #include <cassert>
 #include "macro.h"
+
 #include "keyboard.h"
 #include "vga.h"
+
 #include "../difftests/memory.h"
 #include "debug.h"
 
 #define CONFIG_ISA64 1
 
-extern uint32_t serial_io_output();
-extern void serial_io_input(long long wdata);
+uint32_t serial_io_output();
+void serial_io_input(long long wdata);
 void init_device();
 
 #define MMIO_BASE 0xb0000000
@@ -33,10 +35,10 @@ void init_device();
 
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;
 typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
-#define FMT_WORD MUXDEF(CONFIG_ISA64, "0x%016" PRIx64, "0x%08" PRIx32)
+#define FMT_WORD MUXDEF(CONFIG_ISA64, " 0x%016" PRIx64, " 0x%08" PRIx32)
 
 typedef word_t vaddr_t;
-#define FMT_PADDR MUXDEF(PMEM64, "0x%016"PRIx64, "0x%08"PRIx32)
+#define FMT_PADDR MUXDEF(PMEM64, " 0x%016" PRIx64, " 0x%08" PRIx32)
 typedef uint16_t ioaddr_t;
 
 void rct_init();

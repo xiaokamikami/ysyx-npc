@@ -28,6 +28,12 @@ struct CPU_state
   uint64_t mcause;
   uint64_t mtvec;
 }cpureg;
+
+struct SPIK_state
+{
+  uint32_t pc[7];
+  uint32_t num;
+}spik;
 //export module example;
 
 VerilatedContext *contextp = NULL;
@@ -39,7 +45,7 @@ bool is_exit = false;
 bool sdl_exit = false;
 bool isebreak = false;
 static uint32_t last_pc;
-static uint32_t skip_pc;
+
 static void updata_clk();
 
 
@@ -89,25 +95,25 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     //printf("get ram :%llx\n",*rdata);
   }
-  else if (raddr == RTC_ADDR || raddr == (RTC_ADDR+4))
+  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )
   {
-     if(raddr == RTC_ADDR){
-       *rdata = (uint32_t)main_time_us;
-     }
-     else{
-       *rdata = (main_time_us >>32);
-     }
-     skip_pc = top->MEM_PC;
+    switch (raddr)
+    {
+    case RTC_ADDR   : *rdata = (uint32_t)main_time_us;
+      break;
+    case RTC_ADDR+4 : *rdata = main_time_us>>32;
+      break;
+    case KBD_ADDR   : *rdata = serial_io_output();
+      break;
+    case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
+      printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
+      break;
+    default: printf("Devices not yet implemented %llx\n",raddr);
+      break;
+    }
+    spik.num=spik.num+1;
+    spik.pc[spik.num]=top->MEM_PC;
 
-  }
-  else if( raddr == KBD_ADDR ){
-    *rdata = serial_io_output();
-    skip_pc = top->MEM_PC;
-  }
-  else if( raddr == VGACTL_ADDR ){//读VGA设置 
-    *rdata = mmio_read(raddr,4);
-    printf("npc: vga config w %d , h %d \n",*rdata>>16,*rdata&0x0000ffff);
-    skip_pc = top->MEM_PC;  
   }
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -123,11 +129,11 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
-  else if(waddr == FB_ADDR){
-    printf("VGA start write \n");
+  else if( FB_ADDR <=waddr & waddr <= FB_ADDR+0x1000000){
+    mmio_write(waddr,4,(uint32_t)wdata);
   }
   else if( waddr == SYNC_ADDR ){
-    printf("sync addr \n");
+    update_vga();
   }
   else if(waddr !=0){
     printf("error mem write addr  %llx\n",waddr);
@@ -145,23 +151,23 @@ void sim_init() {                 //初始化
 
 //end
 uint64_t last_us=0;
-void updata_clk()    
+uint64_t debuge_pc=162137;
+
+void updata_clk()    //刷新一次时钟与设备
 {
   top->clk = !(top->clk);
   top->eval();
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(954300< main_time & main_time<954400){
+    if(debuge_pc-100 < main_time & main_time< debuge_pc+100){
       tfp->dump(main_time);
     }
     else {
       //
     }
-   
-  main_time++;  
   #endif 
-
+  main_time++; 
   //控制帧数
   main_time_us=get_time(); 
   //main_time_us=main_clk_value/100;
@@ -174,6 +180,9 @@ void updata_clk()
 
   
 }
+
+
+
 double sc_time_stamp()
 {
   return main_time;
@@ -216,20 +225,21 @@ static int cmd_c()                //DIFFTEST
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != top->CP_PC){
-      last_pc=top->CP_PC;
-      main_dir_value++;
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
       }// sp regs are used for addtion
-      if(skip_pc ==npc & skip_pc!=0 )  {
+      if(spik.pc[spik.num] ==pc & spik.num>0 )  {
         difftest_skip_ref();
-        skip_pc =0;
+        spik.pc[spik.num]=0;
+        spik.num=spik.num-1;
       }
       else difftest_step(pc, npc);
       contextp->timeInc(1);
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
     }
+    last_pc=top->CP_PC;
+    main_dir_value++; 
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;

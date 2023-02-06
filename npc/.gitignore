@@ -1,5 +1,8 @@
-*.*
 *
+
+
+obj_dir/
+resource/
 !*/
 !Makefile
 !*.mk
@@ -10,5 +13,4 @@
 !*.py
 !.gitignore
 !README.md
-!*.o
-!*.d
+

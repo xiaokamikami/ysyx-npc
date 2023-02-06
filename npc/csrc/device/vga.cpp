@@ -4,6 +4,8 @@
 #include "io/map.h"
 
 extern void exit_now();
+#define VGA_W 400
+#define VGA_H 300
 
 SDL_Window *win = NULL;
 SDL_Renderer *rdr = NULL;
@@ -32,16 +34,15 @@ void inline update_vga() {
   SDL_RenderPresent(rdr);
 }
 
-void vga_init() {
+void init_vga() {
   // 写入屏幕信息，即width和height，各16比特位
   vgactl_port_base = (uint32_t *)new_space(8);
 	vgactl_port_base[0] = (screen_width() << 16) | screen_height();
   add_mmio_map("vgactl", VGACTL_ADDR, vgactl_port_base, 8, NULL);
-
+  //mmio_write(VGACTL_ADDR,4,(screen_width() << 16) | screen_height());
+  
 	vmem = new_space(screen_size());
 	add_mmio_map("vmem", FB_ADDR, vmem, screen_size(), NULL);
-  update_vga();
-
   // init SDL
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {                               //初始化SDL图像
     printf("SDL could not be initialized: %s\n", SDL_GetError());
@@ -65,7 +66,8 @@ void vga_init() {
     printf("Texture creation failed: %s\n", SDL_GetError());
     assert(0);
   }
-
+  update_vga();
+  printf("init_vga \n");
 }
 
 

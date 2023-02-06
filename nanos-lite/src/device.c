@@ -54,8 +54,8 @@ size_t fb_write(const void *buf, size_t offset, size_t len) {
   // if(offset ==0 )
   //   return len;
   // else 
-  io_write(AM_GPU_FBDRAW,star_x,star_y, (uint32_t *)buf, offset , len, false);
-  io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true); 
+  io_write(AM_GPU_FBDRAW,star_x,star_y, (uint32_t *)buf, offset , len, true);
+  //io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true); 
 
  
   //printf("fb write end\n");

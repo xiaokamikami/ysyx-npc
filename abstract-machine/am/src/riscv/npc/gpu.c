@@ -3,10 +3,10 @@
 #include <klib-macros.h>
 #define SYNC_ADDR (VGACTL_ADDR + 4)
 #define N 32
-// #define W 400
-// #define H 300
+static uint32_t vga_width =400;
+static uint32_t vga_height=300;
 //uint32_t *fb= (uint32_t *)(uintptr_t)FB_ADDR;
-static uint32_t vga_width, vga_height;
+
 void __am_gpu_init() {
   
   vga_width = inl(VGACTL_ADDR)>>16  ;  // TODO: get the correct width

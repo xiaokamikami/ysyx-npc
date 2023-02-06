@@ -3,8 +3,7 @@
 
 #include <SDL2/SDL.h>
 
-#define VGA_W 400
-#define VGA_H 300
+
 // for SDL texture
 typedef struct Pixel
 {
@@ -14,6 +13,6 @@ typedef struct Pixel
     uint8_t a;
 } Pixel;
 
-extern void vga_init();
-
+void init_vga();
+void inline update_vga();
 #endif

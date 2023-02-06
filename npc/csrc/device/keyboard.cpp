@@ -23,7 +23,8 @@ enum {
 static uint32_t keymap[256] = {};
 
 void init_keymap() {
-  MAP(_KEYS, SDL_KEYMAP)
+  MAP(_KEYS, SDL_KEYMAP);
+  printf("init key\n");
 }
 
 #define KEY_QUEUE_LEN 1024
