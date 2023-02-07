@@ -16,6 +16,8 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h};
 
   //printf("BlitSurface src: x:%d y:%d w:%d h:%d ,dst: x:%d y:%d w:%d h:%d\n",scr_rect.x,scr_rect.y,scr_rect.w,scr_rect.h,dst_rect.x,dst_rect.y,dst_rect.w,dst_rect.h);
+  
+  //根据颜色编码类型选择复制模式
   if (src->format->BitsPerPixel == 32) {
     uint32_t* pixels_src = (uint32_t*)src->pixels;
     uint32_t* pixels_dst = (uint32_t*)dst->pixels;
@@ -23,7 +25,6 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
       for (int j = 0; j < scr_rect.w; ++j)
         pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
   }
-  
   else if (src->format->BitsPerPixel == 8) {
     uint8_t* pixels_src = (uint8_t*)src->pixels;
     uint8_t* pixels_dst = (uint8_t*)dst->pixels;
@@ -32,7 +33,7 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
         pixels_dst[(dst_rect.y + i) *dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
   }
   else {
-    printf("[SDL_BlitSurface] Unimplemented format.\n");
+    printf("[SDL_BlitSurface]: BitsPerPixel error \n");
     assert(0);
   }
 
@@ -52,7 +53,7 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
 }
 
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
-  
+  assert(s != NULL);
   //NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
   if (w == 0 && h == 0) {
     w = s->w;

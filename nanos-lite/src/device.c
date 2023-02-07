@@ -46,7 +46,7 @@ size_t dispinfo_read(void *buf, size_t offset, size_t len) {
   return len;
 }
 
-size_t fb_write(const void *buf, size_t offset, size_t len) {
+size_t fb_write(const void *buf, size_t offset, size_t len) {   
   //Log("fb write x %d,y %d",offset,len);
 
   int star_x= d_w/2-offset/2;
@@ -56,7 +56,6 @@ size_t fb_write(const void *buf, size_t offset, size_t len) {
   // else 
   io_write(AM_GPU_FBDRAW,star_x,star_y, (uint32_t *)buf, offset , len, true);
   //io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true); 
-
  
   //printf("fb write end\n");
   return len;

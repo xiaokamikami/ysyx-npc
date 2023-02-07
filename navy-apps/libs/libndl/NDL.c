@@ -39,7 +39,7 @@ void NDL_OpenCanvas(int *w, int *h) {
     *w=Canvas_x;
     *h=Canvas_y;
   }
-  printf("get disp x %d y %d w %d h %d\n",Canvas_x,Canvas_y,*w,*h);
+  
 
   if (getenv("NWM_APP")) {
     int fbctl = 4;
@@ -58,10 +58,13 @@ void NDL_OpenCanvas(int *w, int *h) {
     }
     close(fbctl);
   }
+  printf("[NDL_OpenCanvas]Canvas_x %d Canvas_y %d screen_w %d screen_h %d\n",Canvas_x,Canvas_y,screen_w,screen_h);
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
-    //printf("NDL %d %d %d %d\n",x,y,w,h);
+    printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
+    //x += (screen_w - Canvas_x) / 2;
+    //y += (screen_h - Canvas_y) / 2;
 
     lseek(Fb_fp, w+x, SEEK_SET);
 

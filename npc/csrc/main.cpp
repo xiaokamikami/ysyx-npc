@@ -129,8 +129,9 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
-  else if( FB_ADDR <=waddr & waddr <= FB_ADDR+0x1000000){
+  else if( FB_ADDR <=waddr & waddr <= FB_ADDR+0xf00000){
     mmio_write(waddr,4,(uint32_t)wdata);
+    //printf("mmio addr %lx \n",waddr);
   }
   else if( waddr == SYNC_ADDR ){
     update_vga();
