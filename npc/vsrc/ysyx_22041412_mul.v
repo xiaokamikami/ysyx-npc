@@ -4,15 +4,15 @@ module ysyx_22041412_mul(
     input [63:0]rsA,
     input [63:0]rsB,
     input [2:0]func3,
-    input w_en,
+    input rv64_en,
+    input ready_i,
     output ready_o,
-    output wire [63:0]result
+    output [63:0]result
  );
-wire [63:0]ua;
-wire [63:0]ub;
-assign ua = (w_en=='b1)?{{32{1'b0}},rsA[31:0]}:rsA;
-assign ub = (w_en=='b1)?{{32{1'b0}},rsB[31:0]}:rsB;
-
+wire [31:0]rsAW;
+wire [31:0]rsBW;
+assign rsAW = rsA[31:0];
+assign rsBW = rsB[31:0];
 reg ready;
 assign ready_o = ready;
 
@@ -20,19 +20,32 @@ reg[63:0]data;
 assign result =data;
 
 always@(posedge clk)begin 
-    if(en & !ready)begin
+    if(en & !ready & !rv64_en)begin
         if (func3==3'b000)
             data <=  rsA*rsB;
         else if (func3==3'b100)
-            data <=  rsA/rsB;
-        else if (func3==3'b100)
-            data <= ($signed(ua)/$signed(ub));  
+            data <= ($signed(rsA)/$signed(rsB));  
         else if (func3==3'b101)
-            data <= ua/ub; 
+            data <= rsA/rsB; 
         else if (func3==3'b110)
-            data <= ($signed(ua)%$signed(ub)); 
+            data <= ($signed(rsA)%$signed(rsB)); 
         else if (func3==3'b111)
-            data <= ua%ub;
+            data <= rsA%rsB;
+        else data<=64'h00000000;
+
+        ready   <=1'b1;
+    end
+    else if(en & !ready  & rv64_en)begin
+        if (func3==3'b000)
+            data <=  rsA*rsB;
+        else if (func3==3'b100)
+            data <= {{32{1'b0}},($signed(rsAW)/$signed(rsBW))};  
+        else if (func3==3'b101)
+            data <= {{32{1'b0}},rsAW/rsBW}; 
+        else if (func3==3'b110)
+            data <= {{32{1'b0}},($signed(rsAW)%$signed(rsBW))}; 
+        else if (func3==3'b111)
+            data <= {{32{1'b0}},rsAW%rsBW};
         else data<=64'h00000000;
 
         ready   <=1'b1;

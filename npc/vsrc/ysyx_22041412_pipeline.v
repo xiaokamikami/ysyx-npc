@@ -393,6 +393,7 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .func7(ex_func7),
     .opcode(ex_opcode),
     .mul_en(ex_mul_en),
+    .ready_i(ex_ready_i),
     .stall(mul_stall),
     .result(ex_res)
 );

@@ -106,8 +106,6 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__csr_reg__DOT__data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mux_result;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Alusu;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ua;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ub;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data;

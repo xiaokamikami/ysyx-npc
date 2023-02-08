@@ -1,7 +1,7 @@
 STUID = ysyx_22041412
 STUNAME = ???
 INC_PATH ?=
-
+export MAKEFLAGS += -j$(nproc)
 # Include all filelist.mk to merge file lists
 FILELIST_MK = $(shell find ./csrc -name "filelist.mk")
 include $(FILELIST_MK)
@@ -21,6 +21,8 @@ VSRCS_INC = $(shell find $(abspath ./vsrc) -name "*.v")
 VERILATOR_FLAGS += -MMD --build -cc --exe --trace \
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
+
+ 
 # rules for verilator
 
 LDFLAGS += "-lSDL2 -lLLVM-11 -ldl"

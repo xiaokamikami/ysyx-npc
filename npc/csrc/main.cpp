@@ -47,7 +47,7 @@ bool isebreak = false;
 static uint32_t last_pc;
 
 static void updata_clk();
-
+static int cmd_c();
 
 using namespace std;
 vluint64_t main_time = 0;
@@ -111,9 +111,10 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     default: printf("Devices not yet implemented %llx\n",raddr);
       break;
     }
-    spik.num=spik.num+1;
-    spik.pc[spik.num]=top->MEM_PC;
-
+    #ifdef diff_en
+      spik.num=spik.num+1;
+      spik.pc[spik.num]=top->MEM_PC;
+    #endif
   }
   else if(raddr !=0){
     printf("error mem read addr  %llx\n",raddr);
@@ -152,7 +153,7 @@ void sim_init() {                 //初始化
 
 //end
 uint64_t last_us=0;
-uint64_t debuge_pc=162137;
+uint64_t debuge_pc=1678625;
 
 void updata_clk()    //刷新一次时钟与设备
 {
@@ -161,7 +162,7 @@ void updata_clk()    //刷新一次时钟与设备
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(debuge_pc-100 < main_time & main_time< debuge_pc+100){
+    if(debuge_pc-500 < main_time & main_time< debuge_pc+500){
       tfp->dump(main_time);
     }
     else {
@@ -179,6 +180,7 @@ void updata_clk()    //刷新一次时钟与设备
   //}  
   #endif
 
+  cmd_c();
   
 }
 
@@ -226,6 +228,7 @@ static int cmd_c()                //DIFFTEST
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != top->CP_PC){
+      #ifdef diff_en
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
         cpureg.pc=npc;
@@ -237,10 +240,12 @@ static int cmd_c()                //DIFFTEST
       }
       else difftest_step(pc, npc);
       contextp->timeInc(1);
+      #endif
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
-    }
     last_pc=top->CP_PC;
     main_dir_value++; 
+    }
+
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;
@@ -281,9 +286,7 @@ int main(int argc,char **argv){
   {
     updata_clk();  
     //Imm=top->CP_Imm;
-    #ifdef diff_en
-      cmd_c();
-    #endif
+    
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
       updata_clk();  
@@ -304,12 +307,12 @@ int main(int argc,char **argv){
  
   }
 
-  #ifdef diff_en
-    //printf("main_dir_value :%ld \n",main_dir_value);
-    //printf("main_clk_value :%ld \n",main_clk_value);
-    ipc=((double)main_dir_value)/main_clk_value;
-    printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
-  #endif
+
+  //printf("main_dir_value :%ld \n",main_dir_value);
+  //printf("main_clk_value :%ld \n",main_clk_value);
+  ipc=((double)main_dir_value)/main_clk_value;
+  printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
+
 
   top->final();
   tfp->close();

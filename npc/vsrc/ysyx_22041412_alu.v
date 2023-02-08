@@ -8,6 +8,7 @@ module ysyx_22041412_alu(
   input [2:0]func3,
   input func7,
   input mul_en,
+  input ready_i,
   output stall,
   output [63:0]result
   );
@@ -32,13 +33,20 @@ module ysyx_22041412_alu(
   assign rv64r_en = (opcode==`ysyx_22041412_RV64_R)?1'b1:1'b0;
   assign rv64i_en = (opcode==`ysyx_22041412_RV64_I)?1'b1:1'b0;
  
+
+  wire [63:0]mul_rsa;
+  wire [63:0]mul_rsb;
+  assign mul_rsa = scr1;
+  assign mul_rsb = scr2; 
+
   ysyx_22041412_mul mul (        //mul
     .clk(clk),
     .en(mul_en),
-    .w_en(rv64r_en),
-    .rsA(scr1),
-    .rsB(scr2),
+    .rsA(mul_rsa),
+    .rsB(mul_rsb),
     .func3(func3),
+    .rv64_en(rv64r_en),
+    .ready_i(ready_i),
     .ready_o(mul_ready),
     .result(mul_result)
   );
@@ -125,7 +133,7 @@ always @(*) begin
     Alusu = mux_result&(~64'h00000001);
     //$display("jarl =%h",Alusu);
   end
-  else if(rv64i_en) begin
+  else if(rv64i_en & !mul_en) begin
     if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
     else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
     //$display("bu5=%d , result=%h",BU[5],Alusu);
@@ -134,10 +142,10 @@ always @(*) begin
     Alusu = {{32{mux_result[31]}},mux_result[31:0]};
     //$display("shift=%d  zext=%d, result=%h",BU[4:0],mux_result[31],mux_result);
   end
-  else if(rv64r_en & mul_en)begin
+  else if(rv64r_en & mul_en & mul_ready)begin
     Alusu = {{32{mul_result[31]}},mul_result[31:0]};
   end
-  else if(!rv64r_en & !rv64i_en & mul_en)begin
+  else if(!rv64r_en & mul_en & mul_ready)begin
     Alusu = mul_result;
   end
   else if(opcode==`ysyx_22041412_Environment)begin
