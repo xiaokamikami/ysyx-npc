@@ -45,7 +45,7 @@ bool is_exit = false;
 bool sdl_exit = false;
 bool isebreak = false;
 static uint32_t last_pc;
-
+static uint32_t same_pc;
 static void updata_clk();
 static int cmd_c();
 
@@ -243,8 +243,18 @@ static int cmd_c()                //DIFFTEST
       #endif
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
     last_pc=top->CP_PC;
-    main_dir_value++; 
+    main_dir_value++;
+    same_pc = 0; 
     }
+    else {
+      ++same_pc;
+      if(same_pc > 10) {
+        printf("The pc No update many times \n");
+        assert(0);
+      }
+      
+    }
+
 
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){

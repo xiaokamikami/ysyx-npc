@@ -76,6 +76,7 @@ size_t fs_read(int fd, void *buf, size_t len){
     ramdisk_read(buf,file_table[fd].disk_offset+file_table[fd].read_offset,len);
     //if(fd==dispinfo)Log("sys_read disk read offset=%ld,count=%ld bufs=%s",file_table[fd].read_offset,len,(char *)buf);
     file_table[fd].read_offset +=len;
+    //printf("fread id = %d  len %d\n",fd, len);
   }
 
 

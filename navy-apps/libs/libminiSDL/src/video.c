@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+//复制一个图像到另一个图像中
 void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
 
   assert(dst && src);
@@ -12,6 +13,7 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
 
   if(srcrect !=NULL)scr_rect = *srcrect;
   else scr_rect = (SDL_Rect){0,0,src->w,src->h};
+
   if(dstrect !=NULL)dst_rect = *dstrect;
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h};
 
@@ -30,7 +32,7 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
     uint8_t* pixels_dst = (uint8_t*)dst->pixels;
     for (int i = 0; i < scr_rect.h; ++i)
       for (int j = 0; j < scr_rect.w; ++j)
-        pixels_dst[(dst_rect.y + i) *dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
+        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
   }
   else {
     printf("[SDL_BlitSurface]: BitsPerPixel error \n");
@@ -39,6 +41,8 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
 
 }
 
+
+//填充颜色
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   SDL_Rect dst_rect;
   if(dstrect !=NULL) dst_rect = *dstrect;
@@ -55,7 +59,7 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   assert(s != NULL);
   //NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
-  if (w == 0 && h == 0) {
+  if (x == 0 && y == 0 && w == 0 && h == 0) {
     w = s->w;
     h = s->h;
   }
@@ -64,10 +68,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
   assert(pixels);
 
-  // ARGB各8比特
-  // Pixel formats above 8-bit are an entirely different experience.
-  // They are considered to be "TrueColor" formats and the color information is stored in the pixels themselves,
-  //   not in a palette.
+  // ARGB各8比特 不用调色
   if (s->format->BitsPerPixel == 32) {
     uint32_t *src = (uint32_t *)s->pixels;
     for (int i = 0; i < h; ++ i)
@@ -77,14 +78,12 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   }
   
   // ARGB各占2bit，且实际存储的是索引值，需要调用palette调色盘
-  // SDL_PixelFormat中有实际的解读代码样例
-  // All pixels are represented by a Uint8 which contains an index into palette->colors.
   else if (s->format->BitsPerPixel == 8) {
     SDL_Color *color;
     for (int i = 0;  i < h; ++ i) {
       for (int j = 0; j < w; ++ j) {
         color = &s->format->palette->colors[s->pixels[(y + i) * s->w +x+ j]];
-        pixels[(y + i) * s->w +x+ j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
+        pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
       }
     }
     NDL_DrawRect(pixels, x, y, w, h);

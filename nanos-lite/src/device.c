@@ -37,27 +37,25 @@ size_t events_read(void *buf, size_t offset, size_t len) {
   return len;
 
 }
-static uint32_t d_w,d_h;
+static uint32_t Canvas_x,Canvas_y;
 size_t dispinfo_read(void *buf, size_t offset, size_t len) {
-  d_w = io_read(AM_GPU_CONFIG).width ;
-  d_h = io_read(AM_GPU_CONFIG).height;
+  Canvas_x = io_read(AM_GPU_CONFIG).width ;
+  Canvas_y = io_read(AM_GPU_CONFIG).height;
   //Log("GET dispinfo %d %d ",w,h);
-  sprintf(buf,"WIDTH :%d\nHEIGHT:%d\n",d_w ,d_h);
+  sprintf(buf,"WIDTH :%d\nHEIGHT:%d\n",Canvas_x,Canvas_y);
   return len;
 }
 
 size_t fb_write(const void *buf, size_t offset, size_t len) {   
-  //Log("fb write x %d,y %d",offset,len);
+  int x = offset%Canvas_x;
+  int y = len%Canvas_y;
+  int w = offset/Canvas_x;
+  int h = len/Canvas_y;
 
-  int star_x= d_w/2-offset/2;
-  int star_y= d_h/2-len/2;
-  // if(offset ==0 )
-  //   return len;
-  // else 
-  io_write(AM_GPU_FBDRAW,star_x,star_y, (uint32_t *)buf, offset , len, true);
-  //io_write(AM_GPU_FBDRAW, 0, 0, NULL, 0, 0, true); 
- 
-  //printf("fb write end\n");
+  //printf("[fb write]x:%d y:%d w %d,h %d \n",x,y,w,h);
+  io_write(AM_GPU_FBDRAW,x,y, (uint32_t *)buf, w , h, true);
+
+
   return len;
 }
 

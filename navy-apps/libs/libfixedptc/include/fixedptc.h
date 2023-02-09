@@ -94,7 +94,6 @@ typedef	__uint128_t fixedptud;
 
 #ifndef FIXEDPT_WBITS
 #define FIXEDPT_WBITS	24
-#define FIXEDPT_N 8
 #endif
 
 #if FIXEDPT_WBITS >= FIXEDPT_BITS
@@ -128,23 +127,22 @@ typedef	__uint128_t fixedptud;
 
 /* Multiplies a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_muli(fixedpt A, int B) {
-	return (fixedpt)((A>> FIXEDPT_FBITS) * B);
+	return (fixedpt)(A * B);
 }
 
 /* Divides a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_divi(fixedpt A, int B) {
-	return (fixedpt)((A>> FIXEDPT_FBITS) / B);
+	return (fixedpt)(A / B);
 }
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_mul(fixedpt A, fixedpt B) {
-	return  (fixedpt)((A * B) >> FIXEDPT_FBITS);
+	return (fixedpt)((((fixedptd)A) * ((fixedptd)B)) >> FIXEDPT_FBITS);
 }
-
 
 /* Divides two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_div(fixedpt A, fixedpt B) {
-	return (fixedpt)((A / B)>> FIXEDPT_FBITS);;
+	return (fixedpt)((((fixedptd)A) / ((fixedptd)B)) << FIXEDPT_FBITS);
 }
 
 static inline fixedpt fixedpt_abs(fixedpt A) {
