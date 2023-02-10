@@ -12,7 +12,7 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
    */
   SR_mepc=epc;
   SR_mcause=NO;
-  return 0;
+  return SR_mtvec;
 
 }
 

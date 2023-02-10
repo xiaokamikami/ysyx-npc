@@ -98,7 +98,7 @@ off_t _lseek(int fd, off_t offset, int whence) {
 }
 
 int _gettimeofday(struct timeval *tv, struct timezone *tz) {
-  tv->tv_usec = _syscall_(SYS_gettimeofday,0,0,0);
+  _syscall_(SYS_gettimeofday,0,(intptr_t)tv,0);
   
   return 0;
 }

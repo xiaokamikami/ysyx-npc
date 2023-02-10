@@ -8,6 +8,7 @@
 static int evtdev = -1;
 static int fbdev = -1;
 static int screen_w = 0, screen_h = 0;
+static int canvas_x = 0, canvas_y = 0;
 static uint32_t boot_time = 0;
 int Event_fp;
 int Fb_fp;
@@ -17,27 +18,23 @@ uint32_t NDL_GetTicks() {
   gettimeofday(&time,NULL);
   //uint32_t time_s= time.tv_sec;
   //uint64_t time_us=time.tv_usec;
-  uint32_t time_ms=time.tv_usec/1000;
+  //uint32_t time_ms=time.tv_usec/1000;
   //printf("NDL time ms = %d \n",time_ms-boot_time);
-  return time_ms-boot_time;
+  return ((time.tv_sec * 1000) + (time.tv_usec / 1000));;
 }
 
 
 int NDL_PollEvent(char *buf, int len) {
   int ret = read(Event_fp,buf,len);
+  //if(ret>0)printf("ret = %d \n",ret);
   return ret;
 }
-int Canvas_x=0,Canvas_y=0;
+
 void NDL_OpenCanvas(int *w, int *h) {
-  FILE* disp = fopen("/proc/dispinfo","r+");
-  char disps[63];
-  fread(disps,1,sizeof(disps),disp);
-  fclose(disp);
-  //printf("disp buf \n%s\n",disps);
-  sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",&Canvas_x,&Canvas_y);
-  if (*w == 0) *w = Canvas_x;
-  if (*h == 0) *h = Canvas_y;
-  screen_w = *w; screen_h = *h;
+
+  if (*w == 0) *w = screen_w;
+  if (*h == 0) *h = screen_h;
+  canvas_x = *w; canvas_y = *h;
 
   if (getenv("NWM_APP")) {
     int fbctl = 4;
@@ -57,16 +54,21 @@ void NDL_OpenCanvas(int *w, int *h) {
     close(fbctl);
   }
 
-  printf("[NDL_OpenCanvas]Canvas_x %d Canvas_y %d screen_w %d screen_h %d\n",Canvas_x,Canvas_y,screen_w,screen_h);
+  printf("[NDL_OpenCanvas]Canvas_x %d Canvas_y %d screen_w %d screen_h %d\n",canvas_x,canvas_y,screen_w,screen_h);
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
     //printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
-    x+=(Canvas_x - screen_w)/2;
-    y+=(Canvas_y - screen_h)/2;
-    lseek(Fb_fp, w*Canvas_x+ x, SEEK_SET);
-    write(Fb_fp, pixels, h*Canvas_y+ y);
+    x+=(screen_w -canvas_x )/2;
+    y+=(screen_h -canvas_y )/2;
+    //lseek(Fb_fp, w*screen_w+ x, SEEK_SET);
+    //write(Fb_fp, pixels, h*screen_h+ y);
+    for (int i = 0; i < h; ++ i) {
 
+    lseek(Fb_fp, ((y + i) * screen_w + x) * sizeof(uint32_t), SEEK_SET);
+
+    write(Fb_fp, pixels + i * w, w * sizeof(uint32_t));
+  }
 
 }
 
@@ -93,14 +95,18 @@ int NDL_Init(uint32_t flags) {
     printf("init time\n");
   //}
   //else if(flags == 2){
-    Event_fp = open("/dev/events",0,0);
+    Event_fp = open("/dev/events",0);
     printf("init enent\n");
   //}
   //else if(flags == 3){
-    Fb_fp = open("/dev/fb",0,0);
+    Fb_fp = open("/dev/fb",0);
     printf("init fd\n");
   //}
-
+    int disp = open("/proc/dispinfo",0);
+    char disps[64];
+    read(disp,disps,sizeof(disps));
+    close(disp);
+    sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",&screen_w,&screen_h);
   return 0;
 }
 

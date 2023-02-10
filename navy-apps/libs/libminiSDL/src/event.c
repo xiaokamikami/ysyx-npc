@@ -22,20 +22,26 @@ static uint8_t key_state[sizeof(keyname) / sizeof(keyname[0])] = {0};
 int SDL_PollEvent(SDL_Event *ev) {
   char buf[64];
   
-
-  if (NDL_PollEvent(buf, 1)) {
-    int pos = 0,key=0;
-    sscanf(buf," %d,%d",&pos,&key);
-
-    // 判断是按键按下还是抬起
+  if (NDL_PollEvent(buf, 64)) {
+    //printf("buf %s \n",buf);
+    char keys[10]={};
+    sscanf(buf+3,"%s",keys);
+    //printf("keys %s\n",keys);
     // ev->type 指明event类型
     // ev->key.type 指明键盘event的类型
-    key_state[key] = pos;
-    ev->key.type = key_state[key];
-    ev->type = ev->key.type;
+    for (int key = 0; key < kb_len; ++key) {      //遍历按键名字
+      if (strcmp(keys, keyname[key]) == 0) {
+        ev->key.keysym.sym = key;
+        // 判断是按键按下还是抬起
+        ev->key.type= (buf[1] == 'd') ? SDL_KEYDOWN : SDL_KEYUP;
+        ev->type = ev->key.type;
+        key_state[key] = ev->type;
+        //printf("event get:%d %d \n",key_state[key],ev->key.keysym.sym);
+        break;
+      }
 
-    ev->key.keysym.sym = key;
-
+    }
+    
     return 1;
   }
 
@@ -43,11 +49,13 @@ int SDL_PollEvent(SDL_Event *ev) {
 }
 
 int SDL_WaitEvent(SDL_Event *event) {
+  printf("[SDL_WaitEvent]:please push key \n");
   while (SDL_PollEvent(event) == 0);
   return 1;
 }
 
 int SDL_PeepEvents(SDL_Event *ev, int numevents, int action, uint32_t mask) {
+  printf("[SDL_PeepEvents]\n");
   return 0;
 }
 
@@ -56,4 +64,5 @@ uint8_t* SDL_GetKeyState(int *numkeys) {
   if (numkeys != NULL)
     *numkeys = sizeof(key_state) / sizeof(uint8_t);
   return key_state;
+
 }

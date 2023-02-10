@@ -172,6 +172,7 @@ static void execute(uint64_t n) {
     }
     else if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
+      //printf("pc:%lx \t",cpu.pc);
       trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
     }
@@ -196,6 +197,7 @@ static void statistic() {
 
 void assert_fail_msg() {
   isa_reg_display();
+  printf("pc :0x %lx\n",cpu.pc);
   statistic();
 }
 

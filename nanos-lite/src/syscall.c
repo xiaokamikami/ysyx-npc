@@ -27,7 +27,7 @@ void do_syscall(Context *c) {
                   c->GPRx=0;break;
     case SYS_lseek://Log("sys_lseek  fd=%ld,offset=%ld,whence=%ld",a[1],a[2],a[3]);
                   c->GPRx=fs_lseek(a[1],a[2],a[3]);break;
-    case SYS_gettimeofday:c->GPRx=rtc_read();break;
+    case SYS_gettimeofday:c->GPRx=rtc_read((void*) a[2]);break;
     default: panic("Unhandled syscall ID = %d", a[0]);
   }
 }

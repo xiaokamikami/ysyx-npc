@@ -17,7 +17,7 @@
 
 //#define MODE_800x600
 
-#define FPS 60
+#define FPS 30
 #ifdef MODE_800x600
 const int disp_w = 800, disp_h = 600;
 #else

@@ -44,6 +44,7 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
 
 //Ìî³äÑÕÉ«
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
+  assert(dst != NULL);
   SDL_Rect dst_rect;
   if(dstrect !=NULL) dst_rect = *dstrect;
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
@@ -274,10 +275,10 @@ uint32_t SDL_MapRGBA(SDL_PixelFormat *fmt, uint8_t r, uint8_t g, uint8_t b, uint
 }
 
 int SDL_LockSurface(SDL_Surface *s) {
-  assert(0);
+  assert("[SDL_LockSurface]");
   return 0;
 }
 
 void SDL_UnlockSurface(SDL_Surface *s) {
-  assert(0);
+  assert("[SDL_UnlockSurface]");
 }

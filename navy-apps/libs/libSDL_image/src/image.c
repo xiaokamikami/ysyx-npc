@@ -11,18 +11,18 @@ SDL_Surface* IMG_Load_RW(SDL_RWops *src, int freesrc) {
 }
 
 SDL_Surface* IMG_Load(const char *filename) {
+  printf("[IMG_Load] %s \n",filename);
   SDL_Surface *surface = NULL;
   FILE * fd = fopen(filename,"rb");
-  if (fd==NULL) {
-    return NULL;
-  }
+  assert(fd!=NULL);
   fseek(fd, 0, SEEK_END);
   int size= ftell(fd);
 
   // 返回文件开头
   fseek(fd, 0, SEEK_SET);
     // 申请内存区间存储图片像素数据
-  char* buf = malloc(size+1);
+  uint8_t* buf = malloc(size+1);
+  fseek(fd,0,SEEK_SET);
      // Read the file data into the buffer
   fread(buf, 1, size, fd);
   buf[size] = 0;
@@ -37,7 +37,7 @@ SDL_Surface* IMG_Load(const char *filename) {
   return surface;
 }
 int IMG_isPNG(SDL_RWops *src) {
-    assert(0);
+  //assert(0);
   return 0;
 }
 

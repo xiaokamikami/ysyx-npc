@@ -27,13 +27,14 @@ size_t serial_write(const void *buf, size_t offset, size_t len) {
 size_t events_read(void *buf, size_t offset, size_t len) {
   AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
   if (ev.keycode == AM_KEY_NONE) return 0;
-
+  sprintf((char *)buf, "k%c %s\0", ev.keydown ? 'd' : 'u', keyname[ev.keycode]);
+  len = strlen(buf);
   //int keydown;
   //if(ev.keydown) keydown=1;
   //else keydown=0;
-  sprintf(buf," %d,%d \n",ev.keydown,ev.keycode);
-  printf("Got  (kbd): %s (%d) %s  \n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
-  
+  //sprintf(buf," %d,%d \n",ev.keydown,ev.keycode);
+  //printf("Got  (kbd): %s (%d) %s  \n", keyname[ev.keycode], ev.keycode, ev.keydown ? "DOWN" : "UP");
+  //printf("[events_read] %s len %d \n",buf,len);
   return len;
 
 }
@@ -47,13 +48,14 @@ size_t dispinfo_read(void *buf, size_t offset, size_t len) {
 }
 
 size_t fb_write(const void *buf, size_t offset, size_t len) {   
-  int x = offset%Canvas_x;
-  int y = len%Canvas_y;
-  int w = offset/Canvas_x;
-  int h = len/Canvas_y;
+  offset /= sizeof(uint32_t);
+  len /= sizeof(uint32_t);
+  int x = offset % Canvas_x;
+  int y = offset / Canvas_x;
+
 
   //printf("[fb write]x:%d y:%d w %d,h %d \n",x,y,w,h);
-  io_write(AM_GPU_FBDRAW,x,y, (uint32_t *)buf, w , h, true);
+  io_write(AM_GPU_FBDRAW,x,y, (uint32_t *)buf, len , 1, true);
 
 
   return len;
@@ -65,12 +67,16 @@ void init_device() {
 }
 
 
-uint64_t rtc_read(void){
+uint64_t rtc_read(uintptr_t* addr){
+  struct timeval *timeer = (struct timeval *)addr;
+  size_t time = io_read(AM_TIMER_UPTIME).us;
+  timeer->tv_usec = (time % 1000000);
+  timeer->tv_sec  = (time / 1000000);
   // uint64_t lo = *(volatile uint32_t *)(RTC_ADDR );
   // uint64_t hi = *(volatile uint32_t *)(RTC_ADDR+4 );
   // uint64_t time  = (hi << 32) | lo;
   // //Log("get time %ld\n",time);
-  return io_read(AM_TIMER_UPTIME).us; 
+  return 0; 
 }
 
 #define KEYDOWN_MASK 0x8000
