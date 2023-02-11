@@ -48,11 +48,11 @@ size_t fs_load(int fd,uintptr_t* offset,uintptr_t* len){
   return 0;
 }
 int fs_open(const char *pathname, int flags, int mode){
-  size_t i;
-  for (i=1; i < 999; i++)
+  assert(pathname != NULL);
+  for (int i=1; i < 999; i++)
   {
     if(strcmp(file_table[i].name,pathname)==0){
-      Log("Find file %s in %ld",pathname ,i);
+      //Log("Find file %s in %ld",pathname ,i);
       return i;
     }
     else if(file_table[i].name ==NULL){
@@ -65,7 +65,7 @@ int fs_open(const char *pathname, int flags, int mode){
 }
 
 size_t fs_read(int fd, void *buf, size_t len){
-  //Log("read on %d",fd);
+  //Log("read on %d %lx",fd,buf);
   size_t ret_len=0;
   if(fd == FD_EVENTS){
     ret_len = events_read(buf,0,len);
@@ -74,15 +74,16 @@ size_t fs_read(int fd, void *buf, size_t len){
     ret_len = dispinfo_read(buf,0,len);
   }
   else {
-    //printf("fread id = %d  len %d\n",fd, len);
-    if(file_table[fd].read_offset+len>=file_table[fd].size){
+    if(file_table[fd].read_offset+len>file_table[fd].size){
       ret_len = file_table[fd].size-file_table[fd].read_offset;
     }
     else ret_len = len;
+    //printf("fread id = %d read_offset %d len %d\n",fd,file_table[fd].read_offset, ret_len);
     //return 0;
     ramdisk_read(buf,file_table[fd].disk_offset+file_table[fd].read_offset,ret_len);
     //if(fd==dispinfo)Log("sys_read disk read offset=%ld,count=%ld bufs=%s",file_table[fd].read_offset,len,(char *)buf);
     file_table[fd].read_offset+=ret_len;
+    //printf("read end\n");
   }
   
 

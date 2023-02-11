@@ -14,19 +14,20 @@ int main() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
 
   init_mm();
-
+  Log("init_mm");
   init_device();
-
+  Log("init_device");
   init_ramdisk();
-
+  Log("init_ramdisk");
 #ifdef HAS_CTE
   init_irq();
+  Log("init_irq");
 #endif
 
   init_fs();
-
+  Log("init_fs");
   init_proc();
-
+  Log("init_proc");
   Log("Finish initialization");
 
 #ifdef HAS_CTE

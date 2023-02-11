@@ -1,6 +1,5 @@
 #include <proc.h>
 #include <elf.h>
-#include <ramdisk.h>
 #include <common.h>
 #include <stdlib.h>
 #include "fs.h"
@@ -11,31 +10,47 @@
 # define Elf_Ehdr Elf32_Ehdr
 # define Elf_Phdr Elf32_Phdr
 #endif
-
-
+#if defined(__ISA_AM_NATIVE__)
+#define EXPECT_TYPE EM_X86_64
+#elif defined(__ISA_X86__)
+#define EXPECT_TYPE EM_386  // see /usr/include/elf.h to get the right type
+#elif defined(__ISA_MIPS32__)
+#define EXPECT_TYPE EM_MIPS_X
+#elif defined(__ISA_RISCV32__) || defined(__ISA_RISCV64__)
+#define EXPECT_TYPE EM_RISCV
+#else
+#error Unsupported ISA
+#endif
 static uintptr_t loader(PCB *pcb, const char *filename) {
-  Elf64_Ehdr ehdr={};
-  Elf64_Phdr phdr={};
+  Elf_Ehdr ehdr={};
+  Elf_Phdr phdr={};
+  printf("[loader]:filename : %s\n", filename);
   int fd=fs_open(filename,0,0);
 
-  uintptr_t file_offset,file_len;
-  fs_load(fd,&file_offset,&file_len);
-  Log("file offset %ld  len: %ld ",file_offset,file_len);
-  ramdisk_read(&ehdr,file_offset,file_len);
+  //uintptr_t file_offset,file_len;
+  //fs_load(fd,&file_offset,&file_len);   //读取在硬盘中的位置
+  //Log("file offset %ld  len: %ld ",file_offset,file_len);
+  fs_read(fd, &ehdr, sizeof(ehdr));
 
+  //检查elf
   assert(*(uint32_t *)ehdr.e_ident == 0x464c457f);
-  size_t i = 0;
+  assert(ehdr.e_machine == EXPECT_TYPE);
+  
+  assert(ehdr.e_entry);
   uintptr_t program_star=ehdr.e_entry;
-
-  for (i=0; i < ehdr.e_phnum; i++)
+  
+  for (int i=0; i < ehdr.e_phnum; i++)
   {
-    uint64_t offset= file_offset+ehdr.e_phoff+(ehdr.e_phentsize*i);
-    ramdisk_read(&phdr,offset,ehdr.e_phentsize);
-    if( phdr.p_type== PT_LOAD){
+    fs_lseek(fd, ehdr.e_phoff + i * ehdr.e_phentsize, SEEK_SET);
+    fs_read(fd, &phdr, sizeof(phdr));
+    
+    if( phdr.p_type== PT_LOAD){ //可加载类型
       Log("header type: PT_LOAD,mem start %lx end %lx",phdr.p_vaddr,phdr.p_vaddr+phdr.p_memsz);
-      ramdisk_read((void *)phdr.p_vaddr,file_offset+phdr.p_offset,phdr.p_filesz);
-      if(phdr.p_memsz-phdr.p_filesz > 0){
-        memset((void *)(phdr.p_vaddr+phdr.p_filesz),0,phdr.p_memsz-phdr.p_filesz);}
+      fs_lseek(fd, phdr.p_offset, SEEK_SET);
+      // 加载数据到内存中
+      fs_read(fd, (void *)phdr.p_vaddr, phdr.p_filesz);
+
+      memset((void *)(phdr.p_vaddr + phdr.p_filesz), 0, phdr.p_memsz - phdr.p_filesz);
     }
   }
   return program_star;

@@ -29,9 +29,8 @@ int NDL_PollEvent(char *buf, int len) {
   //if(ret>0)printf("ret = %d \n",ret);
   return ret;
 }
-
+//打开一个画布
 void NDL_OpenCanvas(int *w, int *h) {
-
   if (*w == 0) *w = screen_w;
   if (*h == 0) *h = screen_h;
   canvas_x = *w; canvas_y = *h;

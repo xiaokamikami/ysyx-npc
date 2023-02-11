@@ -57,6 +57,8 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   //printf("end fill rect %d \n",dst_rect.h);
 }
 
+
+//更新显存并刷新
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   assert(s != NULL);
   //NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
@@ -69,7 +71,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
   assert(pixels);
 
-  // ARGB各8比特 不用调色
+  // ARGB32
   if (s->format->BitsPerPixel == 32) {
     uint32_t *src = (uint32_t *)s->pixels;
     for (int i = 0; i < h; ++ i)
@@ -78,12 +80,13 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
     NDL_DrawRect(pixels, x, y, w, h);
   }
   
-  // ARGB各占2bit，且实际存储的是索引值，需要调用palette调色盘
+  // ARGB8 需要调用format->palette->colors调色盘
   else if (s->format->BitsPerPixel == 8) {
+    uint8_t *index = (uint8_t *)s->pixels;
     SDL_Color *color;
     for (int i = 0;  i < h; ++ i) {
       for (int j = 0; j < w; ++ j) {
-        color = &s->format->palette->colors[s->pixels[(y + i) * s->w +x+ j]];
+        color = &s->format->palette->colors[index[(y + i) * s->w + x + j]];
         pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
       }
     }

@@ -2,7 +2,7 @@
 #define _DEBUG_H_
 #include "../color.h"
 //debug
-//#define diff_en         //difftest开关
+#define diff_en         //difftest开关
 //#define vcd_en          //波形记录
 
 //device
