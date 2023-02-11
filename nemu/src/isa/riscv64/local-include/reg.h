@@ -11,11 +11,12 @@ static inline int check_reg_idx(int idx) {
 #define gpr(idx) (cpu.gpr[check_reg_idx(idx)])
 
 
-extern uint64_t SRs[4096];
-#define SR_mstatus SRs[0x300]
-#define SR_mepc SRs[0x341]
-#define SR_mcause SRs[0x342]
-#define SR_mtvec SRs[0x305]
+extern word_t csr_regs[4];
+#define SR_mstatus csr_regs[0]
+#define SR_mtvec csr_regs[1]
+#define SR_mepc csr_regs[2]
+#define SR_mcause csr_regs[3]
+
 
 
 static inline const char* reg_name(int idx, int width) {

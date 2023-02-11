@@ -10,12 +10,10 @@ word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * Then return the address of the interrupt/exception vector.
    */
-  //printf("ECALL NO:%ld\n",NO);
-  //if(NO<999){ 
-      irqtrace(NO,epc,SR_mtvec);
-      return SR_mtvec;
-  //}
-  //return 0;
+  SR_mepc=epc;
+  SR_mcause=NO;
+  return SR_mtvec;
+
 }
 
 word_t isa_query_intr() {

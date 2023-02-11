@@ -9,10 +9,10 @@ static volatile int count = 0;
 
 void __am_audio_init() {
   int fds[2];
-  int ret = pipe2(fds, O_NONBLOCK);
+  int ret = pipe2(fds, O_NONBLOCK); /* 进程通信 */
   assert(ret == 0);
-  rfd = fds[0];
-  wfd = fds[1];
+  rfd = fds[0]; /* 读端 */
+  wfd = fds[1]; /* 写端 */
 }
 
 static void audio_play(void *userdata, uint8_t *stream, int len) {
@@ -33,7 +33,7 @@ static void audio_play(void *userdata, uint8_t *stream, int len) {
 static void audio_write(uint8_t *buf, int len) {
   int nwrite = 0;
   while (nwrite < len) {
-    int n = write(wfd, buf, len);
+    int n = write(wfd, buf, len); /* 将buf中所指向的写入到写端中，长度为len */
     if (n == -1) n = 0;
     count += n;
     nwrite += n;
@@ -44,6 +44,7 @@ void __am_audio_ctrl(AM_AUDIO_CTRL_T *ctrl) {
   SDL_AudioSpec s = {};
   s.freq = ctrl->freq;
   s.format = AUDIO_S16SYS;
+  //s.format = AUDIO_F32LSB;
   s.channels = ctrl->channels;
   s.samples = ctrl->samples;
   s.callback = audio_play;

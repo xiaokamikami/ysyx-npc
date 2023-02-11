@@ -19,7 +19,7 @@ uint8_t pmem[CONFIG_MSIZE]= {};
 
 extern Vysyx_22041412_cpu *top;
 // pmem_read
-static inline paddr_t host_read(void *addr, int len);
+paddr_t host_read(void *addr, int len);
 uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 
 
@@ -48,7 +48,7 @@ long load_image(char *filename)
 
 
 
-static inline paddr_t host_read(void *addr, int len)
+paddr_t host_read(void *addr, int len)
 {
   switch (len)
   {
@@ -70,7 +70,7 @@ static inline paddr_t host_read(void *addr, int len)
   }
 }
 
-static inline void host_write(void *addr, int len, uint64_t data)
+void host_write(void *addr, int len, uint64_t data)
 {
   switch (len)
   {

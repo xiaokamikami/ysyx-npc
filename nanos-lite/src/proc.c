@@ -1,5 +1,5 @@
 #include <proc.h>
-
+#include "fs.h"
 #define MAX_NR_PROC 4
 extern void naive_uload(PCB *pcb, const char *filename);
 static PCB pcb[MAX_NR_PROC] __attribute__((used)) = {};
@@ -25,7 +25,7 @@ void init_proc() {
   Log("Initializing processes...");
 
   // load program here
-  naive_uload(NULL, "/bin/file-test");
+  naive_uload(NULL, "/bin/menu");
 }
 
 Context* schedule(Context *prev) {

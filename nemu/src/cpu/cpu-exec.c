@@ -11,7 +11,8 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 128
-#define CONFIG_WATCHPOINT
+//#define CONFIG_WATCHPOINT 
+
 extern int is_exit_status_bad();
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
@@ -47,13 +48,13 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 }
 
 
-
-#ifdef CONFIG_ITRACE
+void ftrace(size_t dnpc,size_t thpc);
+#ifdef CONFIG_FTRACE
 void ftrace(size_t dnpc,size_t thpc){
-  FILE * out ;    //º¯Êýµ÷ÓÃ¼ÇÂ¼
+  FILE * out ;    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¼ï¿½Â¼
   FILE * read;
   uint16_t FUNC_count=0;
-  size_t rtl_flag[128]={0}; //Ìø×ª·µ»Øµã¼ÇÂ¼
+  size_t rtl_flag[128]={0}; //ï¿½ï¿½×ªï¿½ï¿½ï¿½Øµï¿½ï¿½Â¼
   char buf[128]={0};
   char *temp =  buf;
   char nextpc[32]={0};
@@ -97,7 +98,7 @@ void ftrace(size_t dnpc,size_t thpc){
       if(((ret = strstr(param[1],nextpc))!=NULL) && ((ret = strstr(param[3],"FUNC"))!=NULL) ){
         fprintf(out,"0x%16.16lx",thpc);
         size_t val = thpc+4;
-        rtl_flag[FUNC_count] =  val;//¼ÇÂ¼·µ»Øµã
+        rtl_flag[FUNC_count] =  val;//ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Øµï¿½
         for (uint16_t j = 0; j < FUNC_count; j++)
         {
           fprintf(out,"%s","  ");
@@ -108,7 +109,7 @@ void ftrace(size_t dnpc,size_t thpc){
         //printf("Fcount:%d \n",FUNC_count);
         goto clear;  
       }
-      //if(FUNC_count >512){printf("µÝ¹éÌ«¶à±¬Õ»");exit(-1);}
+      //if(FUNC_count >512){printf("ï¿½Ý¹ï¿½Ì«ï¿½à±¬Õ»");exit(-1);}
       count++;
     } 
   }
@@ -127,12 +128,14 @@ static void exec_once(Decode *s, vaddr_t pc) {
   cpu.pc = s->dnpc;
   //printf("exec6\n");
 
+  #ifdef CONFIG_FTRACE  
+
+    ftrace(s->dnpc,s->pc);
+
+  #endif
+
 #ifdef CONFIG_ITRACE
 
-  if (ftrace_flag ==1)
-  {   
-    ftrace(s->dnpc,s->pc);
-  }
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
   int ilen = s->snpc - s->pc;
@@ -169,7 +172,8 @@ static void execute(uint64_t n) {
     }
     else if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
-      //trace_and_difftest(&s, cpu.pc);
+      //printf("pc:%lx \t",cpu.pc);
+      trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
     }
     else{
@@ -193,6 +197,7 @@ static void statistic() {
 
 void assert_fail_msg() {
   isa_reg_display();
+  printf("pc :0x %lx\n",cpu.pc);
   statistic();
 }
 
@@ -224,7 +229,6 @@ void cpu_exec(uint64_t n) {
           nemu_state.halt_pc);
       if (nemu_state.state == NEMU_ABORT){ 
         END_flag = 1;
-        //execute(1);
         exit(-1);
         break;
       }
@@ -234,7 +238,7 @@ void cpu_exec(uint64_t n) {
       statistic();
       break;
     case NEMU_STOP:
-      //is_exit_status_bad();
+      is_exit_status_bad();
       break;
   }
 }

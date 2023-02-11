@@ -3,16 +3,101 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <stdio.h>
+//复制一个图像到另一个图像中
 void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
+
   assert(dst && src);
-  assert(dst->format->BitsPerPixel == src->format->BitsPerPixel);
+  //assert(dst->format->BitsPerPixel == src->format->BitsPerPixel);
+  SDL_Rect scr_rect,dst_rect;
+
+  if(srcrect !=NULL)scr_rect = *srcrect;
+  else scr_rect = (SDL_Rect){0,0,src->w,src->h};
+
+  if(dstrect !=NULL)dst_rect = *dstrect;
+  else dst_rect = (SDL_Rect){0,0,dst->w,dst->h};
+
+  //printf("BlitSurface src: x:%d y:%d w:%d h:%d ,dst: x:%d y:%d w:%d h:%d\n",scr_rect.x,scr_rect.y,scr_rect.w,scr_rect.h,dst_rect.x,dst_rect.y,dst_rect.w,dst_rect.h);
+  
+  //根据颜色编码类型选择复制模式
+  if (src->format->BitsPerPixel == 32) {
+    uint32_t* pixels_src = (uint32_t*)src->pixels;
+    uint32_t* pixels_dst = (uint32_t*)dst->pixels;
+    for (int i = 0; i < scr_rect.h; ++i)
+      for (int j = 0; j < scr_rect.w; ++j)
+        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
+  }
+  else if (src->format->BitsPerPixel == 8) {
+    uint8_t* pixels_src = (uint8_t*)src->pixels;
+    uint8_t* pixels_dst = (uint8_t*)dst->pixels;
+    for (int i = 0; i < scr_rect.h; ++i)
+      for (int j = 0; j < scr_rect.w; ++j)
+        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
+  }
+  else {
+    printf("[SDL_BlitSurface]: BitsPerPixel error \n");
+    assert(0);
+  }
+
 }
 
+
+//填充颜色
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
+  assert(dst != NULL);
+  SDL_Rect dst_rect;
+  if(dstrect !=NULL) dst_rect = *dstrect;
+  else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
+  
+  uint32_t *pixels = (uint32_t *)dst->pixels;
+
+  for (int i = 0; i < dst_rect.h; ++ i)
+    for (int j = 0; j < dst_rect.w; ++ j)
+      pixels[(dst_rect.y + i) * dst->w + (dst_rect.x + j)] = color;
+  //printf("end fill rect %d \n",dst_rect.h);
 }
 
+
+//更新显存并刷新
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
+  assert(s != NULL);
+  //NDL_DrawRect((uint32_t *)s->pixels,x,y,s->w,s->h);
+  if (x == 0 && y == 0 && w == 0 && h == 0) {
+    w = s->w;
+    h = s->h;
+  }
+  //printf("SDL_updateRect x,y,w,h %d %d %d %d\n",x,y,w,h);
+  // 初始化内存空间用于储存转换后的数据
+  uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
+  assert(pixels);
+
+  // ARGB32
+  if (s->format->BitsPerPixel == 32) {
+    uint32_t *src = (uint32_t *)s->pixels;
+    for (int i = 0; i < h; ++ i)
+      for (int j = 0; j < w; ++ j)
+        pixels[i * w + j] = src[i * s->w + j];
+    NDL_DrawRect(pixels, x, y, w, h);
+  }
+  
+  // ARGB8 需要调用format->palette->colors调色盘
+  else if (s->format->BitsPerPixel == 8) {
+    uint8_t *index = (uint8_t *)s->pixels;
+    SDL_Color *color;
+    for (int i = 0;  i < h; ++ i) {
+      for (int j = 0; j < w; ++ j) {
+        color = &s->format->palette->colors[index[(y + i) * s->w + x + j]];
+        pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
+      }
+    }
+    NDL_DrawRect(pixels, x, y, w, h);
+  }
+  else {
+    printf("[SDL_UpdateRect] Unimplemented format.\n");
+    assert(0);
+  }
+
+  if (pixels) free(pixels);
 }
 
 // APIs below are already implemented.
@@ -193,8 +278,10 @@ uint32_t SDL_MapRGBA(SDL_PixelFormat *fmt, uint8_t r, uint8_t g, uint8_t b, uint
 }
 
 int SDL_LockSurface(SDL_Surface *s) {
+  assert("[SDL_LockSurface]");
   return 0;
 }
 
 void SDL_UnlockSurface(SDL_Surface *s) {
+  assert("[SDL_UnlockSurface]");
 }

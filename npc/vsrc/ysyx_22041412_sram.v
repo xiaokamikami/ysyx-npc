@@ -9,10 +9,10 @@ module ysyx_22041412_sram#(
     input [ DATA_WIDTH-1:0] wdata,
     input en,
     input wen,
-    input readyi,
-    output wire stall,
-    output reg readyo,
-    output wire[DATA_WIDTH-1:0] rdata
+    input ready_i,
+    output stall,
+    output ready_o,
+    output [DATA_WIDTH-1:0] rdata
 );
 import "DPI-C" function void mem_read(
   input longint raddr, output longint rdata);
@@ -24,14 +24,15 @@ assign rdata = r_data;
 reg [DATA_WIDTH-1:0]r_data;
 wire [63:0]sram_data_r;
 wire [7:0]wmask; 
-
+reg readyo;
+assign ready_o =readyo;
 assign wmask =  (func3==3'b000)?8'b00000001:    //sb
                 (func3==3'b001)?8'b00000011:    //sh
                 (func3==3'b010)?8'b00001111:    //sw
                 (func3==3'b011)?8'b11111111:    //sd
                 0;  
 
-assign stall = (!readyo & en)?1:0;
+assign stall = (!ready_o & en)?1:0;
 
 always @(posedge clk) begin
     if(wen & !readyo & en)begin      //写信号高有效
@@ -49,10 +50,10 @@ always @(posedge clk) begin
                 (func3==3'b101)?{{48{1'b0}},sram_data_r[15:0]}:             //lhu
                 (func3==3'b110)?{{32{1'b0}},sram_data_r[31:0]}:             //lwu
                 `ysyx_22041412_zero_word;
-        $display("%lx Read: addr:%8h %16h",addr[63:0],r_data[63:0]);
+        //$display("%lx Read: addr:%8h %16h",addr[63:0],r_data[63:0]);
         readyo<=1'b1;
     end
-    else if( readyi & readyo) readyo<=1'b0;
+    else if( ready_i & ready_o) readyo<=1'b0;
 end
 
 endmodule
