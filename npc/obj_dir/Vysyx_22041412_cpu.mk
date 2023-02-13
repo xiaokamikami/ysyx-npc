@@ -42,6 +42,7 @@ VM_USER_LDLIBS = \
 
 # User .cpp files (from .cpp's on Verilator command line)
 VM_USER_CLASSES = \
+	axi4 \
 	device \
 	map \
 	mmio \
@@ -69,6 +70,8 @@ include $(VERILATOR_ROOT)/include/verilated.mk
 ### Executable rules... (from --exe)
 VPATH += $(VM_USER_DIR)
 
+axi4.o: /home/kami/ysyx-workbench/npc/csrc/axi4.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 device.o: /home/kami/ysyx-workbench/npc/csrc/device/device.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 map.o: /home/kami/ysyx-workbench/npc/csrc/device/io/map.cpp

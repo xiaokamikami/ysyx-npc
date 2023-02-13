@@ -33,7 +33,6 @@ module ysyx_22041412_alu(
   assign rv64r_en = (opcode==`ysyx_22041412_RV64_R)?1'b1:1'b0;
   assign rv64i_en = (opcode==`ysyx_22041412_RV64_I)?1'b1:1'b0;
  
-
   wire [63:0]mul_rsa;
   wire [63:0]mul_rsb;
   assign mul_rsa = scr1;

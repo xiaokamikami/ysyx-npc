@@ -72,13 +72,13 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         CData/*4:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mode;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__ready;
         CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__hit;
-        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__readyo;
+        CData/*0:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__readyo;
         SData/*11:0*/ ysyx_22041412_cpu__DOT__pip__DOT__csr;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_imm;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__ex_imm;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__mem_imm;
         IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__wb_imm;
-        IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__imm_data;
+        IData/*31:0*/ ysyx_22041412_cpu__DOT__pip__DOT__IF_sram__DOT__imm_data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_pc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__if_dnpc;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__id_pc;
@@ -108,10 +108,9 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Alusu;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__mul__DOT__data;
         QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data;
-        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__sram_data_r;
+        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__r_data;
+        QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__sram_data_r;
         VlUnpacked<QData/*63:0*/, 6> ysyx_22041412_cpu__DOT__pip__DOT__csr_reg__DOT__mcsr_reg;
-        VlUnpacked<IData/*31:0*/, 134217728> ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__ImmMemory;
         VlUnpacked<VlWide<3>/*68:0*/, 17> ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__pair_list;
         VlUnpacked<CData/*4:0*/, 17> ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__key_list;
         VlUnpacked<QData/*63:0*/, 17> ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__data_list;
@@ -121,7 +120,6 @@ VL_MODULE(Vysyx_22041412_cpu___024root) {
     // LOCAL VARIABLES
     CData/*0:0*/ __Vclklast__TOP__clk;
     VlWide<37>/*1172:0*/ ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT____Vcellinp__Mux_ALU____pinNumber4;
-    IData/*31:0*/ __Vtask_ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__ramdisk_read__1__rdata;
     QData/*63:0*/ ysyx_22041412_cpu__DOT__pip__DOT__csr_reg__DOT____Vlvbound1;
     VlUnpacked<CData/*0:0*/, 2> __Vm_traceActivity;
 

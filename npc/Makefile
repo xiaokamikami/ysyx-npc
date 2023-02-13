@@ -43,9 +43,9 @@ clean:
 	rm obj_dir/*.*
 
 all:
-	python3 Immobj.py
+#python3 Immobj.py
 #make clean 
 	make build -s
 	make compile -s
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	make run
+	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!

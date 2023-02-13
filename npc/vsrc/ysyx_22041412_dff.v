@@ -25,7 +25,7 @@ always@(posedge clk)begin
 		//if(Wen & Rw!=5'b0)begin
 		if(write_en)begin
 			DataReg[Rw] <= BusW;
-        	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     //µ÷ÊÔ½Ó¿Ú
+        	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     
 		
   	end
 end
