@@ -4,6 +4,8 @@ typedef uint64_t vaddr_t;
 uint8_t *guest_to_host(paddr_t paddr);
 uint64_t pmem_read(paddr_t addr, size_t len);
 void pmem_write(paddr_t addr, size_t len, uint64_t data);
+paddr_t host_read(void *addr, int len);
+void host_write(void *addr, int len, uint64_t data);
 
 extern uint8_t pmem[];
 long load_image(char *filename);

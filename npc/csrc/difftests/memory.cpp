@@ -5,10 +5,10 @@
 #include <assert.h>
 #include "ref.h"
 #include "memory.h"
+
 #include "Vysyx_22041412_cpu.h"
 typedef uint64_t paddr_t;
-#define CONFIG_MSIZE 0x8000000
-#define CONFIG_MBASE 0x80000000
+
 #define PG_ALIGN __attribute((aligned(4096)))
 #if defined(CONFIG_PMEM_MALLOC)
 uint8_t *pmem = NULL;
@@ -19,11 +19,11 @@ uint8_t pmem[CONFIG_MSIZE]= {};
 
 extern Vysyx_22041412_cpu *top;
 // pmem_read
-static inline paddr_t host_read(void *addr, int len);
+paddr_t host_read(void *addr, int len);
 uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 
 
-// read.bin
+// read  .bin
 long load_image(char *filename)
 {
   if (filename == NULL)
@@ -37,7 +37,7 @@ long load_image(char *filename)
   long size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   int ret = fread(pmem, size, 1, fp);
-  printf("imm:%x\n",*pmem);
+  printf("load_img:%s\n",filename);
   //assert(ret == 1);
   fclose(fp);
   //uint64_t addr = CONFIG_MBASE;
@@ -48,7 +48,7 @@ long load_image(char *filename)
 
 
 
-static inline paddr_t host_read(void *addr, int len)
+paddr_t host_read(void *addr, int len)
 {
   switch (len)
   {
@@ -70,7 +70,7 @@ static inline paddr_t host_read(void *addr, int len)
   }
 }
 
-static inline void host_write(void *addr, int len, uint64_t data)
+void host_write(void *addr, int len, uint64_t data)
 {
   switch (len)
   {

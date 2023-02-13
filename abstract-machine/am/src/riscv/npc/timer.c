@@ -1,7 +1,7 @@
 #include <am.h>
-#include "addr.h"
-#include <stdio.h>
 #include <sys/time.h>
+#include "npc.h"
+
 static uint64_t boot_time = 0;
 static uint64_t read_time() {
   uint64_t lo = *(volatile uint32_t *)(RTC_ADDR );
@@ -11,7 +11,6 @@ static uint64_t read_time() {
 }
 void __am_timer_init() {
   boot_time = read_time();
-  printf("init time\n");
 }
 
 void __am_timer_uptime(AM_TIMER_UPTIME_T *uptime) {

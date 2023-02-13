@@ -95,6 +95,9 @@ const char *regs[] = {
   "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
+const char *csrs[] = {
+  " "," ","mstatus","mtvec","mepc","mcause"
+};
 
 const char* reg_name(int idx) {
   return regs[idx];
@@ -118,14 +121,16 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t npc) {
   return eqreg;
 }
 
-
+vaddr_t last_pc;
 static void checkregs(CPU_state *ref, vaddr_t pc)
 {
   if (!isa_difftest_checkregs(ref, pc))
   {
     exit_now();
     isa_reg_display();
+    printf("last pc = 0x%lx \n",last_pc);
   }
+  last_pc = pc;
 }
 
 void difftest_step(vaddr_t pc, vaddr_t npc)
@@ -156,9 +161,11 @@ void difftest_step(vaddr_t pc, vaddr_t npc)
     
     return;
   }
+
     ref_difftest_exec(1);
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     //printf("cheek dut:%08lx,ref:%08lx\n",npc,ref_r.pc);
     checkregs(&ref_r, npc);
+
 
 }

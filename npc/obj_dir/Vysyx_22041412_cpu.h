@@ -31,6 +31,7 @@ class Vysyx_22041412_cpu VL_NOT_FINAL {
     VL_IN8(&clk,0,0);
     VL_OUT64(&CP_PC,63,0);
     VL_OUT64(&CP_NPC,63,0);
+    VL_OUT64(&MEM_PC,63,0);
     VL_OUT(&CP_IMM,31,0);
     VL_OUT8(&Ebreak,0,0);
 

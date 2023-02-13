@@ -1,6 +1,6 @@
 #include <isa.h>
 #include <memory/paddr.h>
-
+#include "local-include/reg.h"
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
 static const uint32_t img [] = {
@@ -23,7 +23,7 @@ static void restart() {
 void init_isa() {
   /* Load built-in image. */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
-  
+  SR_mstatus = 0xa00001800;
   /* Initialize this virtual computer system. */
   restart();
 }
