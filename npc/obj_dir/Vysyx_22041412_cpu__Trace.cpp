@@ -45,11 +45,11 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                      & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_mul_en))
                                      ? 1U : 0U)));
             tracep->chgBit(oldp+10,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_wait));
-            tracep->chgBit(oldp+11,((((~ (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__readyo)) 
+            tracep->chgBit(oldp+11,((((~ (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__readyo)) 
                                       & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_ram_en))
                                       ? 1U : 0U)));
             tracep->chgBit(oldp+12,((1U & (((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_wait) 
-                                            | (((~ (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__readyo)) 
+                                            | (((~ (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__readyo)) 
                                                 & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_ram_en))
                                                 ? 1U
                                                 : 0U)) 
@@ -57,7 +57,7 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                                & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_csr_en))
                                                ? 1U
                                                : 0U)))));
-            tracep->chgIData(oldp+13,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__IF_ImmMem__DOT__imm_data),32);
+            tracep->chgIData(oldp+13,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__IF_sram__DOT__imm_data),32);
             tracep->chgQData(oldp+14,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__if_pc),64);
             tracep->chgQData(oldp+16,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__if_dnpc),64);
             tracep->chgIData(oldp+18,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm),32);
@@ -145,7 +145,7 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                                       & (0U 
                                                          != (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_rw))) 
                                                      & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_ram_en))
-                                                     ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data
+                                                     ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__r_data
                                                      : 
                                                     (((((((0U 
                                                            == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V1Type)) 
@@ -196,7 +196,7 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                                      & (0U 
                                                         != (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_rw))) 
                                                     & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_ram_en))
-                                                    ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data
+                                                    ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__r_data
                                                     : 
                                                    (((((((0U 
                                                           == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_imm_V2Type)) 
@@ -231,7 +231,7 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
                                                  & (0U 
                                                     != (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_rw))) 
                                                 & (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_ram_en))
-                                                ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data
+                                                ? vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__r_data
                                                 : (
                                                    ((((((IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__id_Rb) 
                                                         != (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_rw)) 
@@ -266,9 +266,9 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
             tracep->chgQData(oldp+88,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_imm_data),64);
             tracep->chgQData(oldp+90,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_res),64);
             tracep->chgBit(oldp+92,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_csr_jar_en));
-            tracep->chgQData(oldp+93,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__r_data),64);
+            tracep->chgQData(oldp+93,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__r_data),64);
             tracep->chgBit(oldp+95,((1U & (~ (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__ex_wait)))));
-            tracep->chgBit(oldp+96,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__readyo));
+            tracep->chgBit(oldp+96,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__readyo));
             tracep->chgBit(oldp+97,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__wb_reg_en));
             tracep->chgCData(oldp+98,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__wb_addr),5);
             tracep->chgQData(oldp+99,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__wb_imm_data),64);
@@ -372,7 +372,7 @@ void Vysyx_22041412_cpu___024root__traceChgSub0(Vysyx_22041412_cpu___024root* vl
             tracep->chgQData(oldp+282,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__data_list[16]),64);
             tracep->chgQData(oldp+284,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__lut_out),64);
             tracep->chgBit(oldp+286,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__hit));
-            tracep->chgQData(oldp+287,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_sram__DOT__sram_data_r),64);
+            tracep->chgQData(oldp+287,(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__MEM_dram__DOT__sram_data_r),64);
             tracep->chgCData(oldp+289,(((0U == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_func3))
                                          ? 1U : ((1U 
                                                   == (IData)(vlSelf->ysyx_22041412_cpu__DOT__pip__DOT__mem_func3))

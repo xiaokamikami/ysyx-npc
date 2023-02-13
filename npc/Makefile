@@ -43,7 +43,7 @@ clean:
 	rm obj_dir/*.*
 
 all:
-	python3 Immobj.py
+#python3 Immobj.py
 #make clean 
 	make build -s
 	make compile -s

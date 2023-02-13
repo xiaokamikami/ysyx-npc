@@ -84,15 +84,13 @@ extern "C" void ram_read(long long raddr, uint32_t *rdata) {
   else if(raddr >= 0x83000000 & raddr<0x88000000 ){
     *rdata = pmem_read(raddr, 4);
   }
-  
+  else assert(raddr<0x88000000);
 }
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   //if(raddr!=0)printf("mem_read %llx \n",raddr);
   if(raddr >= 0x80000000 & raddr<0x88000000 ){
     // 8字节对齐
-    // pmem_read(      *(uint64_t *)(raddr & ~0x7ull) ;
-    // *rdata = pmem_read((raddr & ~0x7ull), 8) >> ((raddr & 0x7ull) * 8);
     *rdata = pmem_read((raddr & ~0x7ull), 8);
     uint8_t offset = raddr-(raddr & ~0x7ull);
     //mask
@@ -102,7 +100,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     //printf("get ram :%llx\n",*rdata);
   }
-  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )
+  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //外设段
   {
     switch (raddr)
     {
@@ -169,7 +167,7 @@ void updata_clk()    //刷新一次时钟与设备
   if(ff==0) {ff=1;}
   else {ff=0;main_clk_value++;}
   #ifdef vcd_en
-    if(debuge_pc-500 < main_time & main_time< debuge_pc+500){
+    if(debuge_pc < main_time & main_time< debuge_pc+500){
       tfp->dump(main_time);
     }
     else {
