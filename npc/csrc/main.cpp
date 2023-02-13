@@ -8,6 +8,7 @@
 #include "device/device.h"
 #include "device/debug.h"
 #include "device/io/map.h"
+#include "aix4.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -57,7 +58,7 @@ uint64_t main_time_us;
 uint8_t ff=0;
 
 
-//sram wmask
+//dram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
   else if(wmask == 3)return 2;
@@ -73,11 +74,17 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
 extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
-extern "C" void ramdisk_read(long long raddr, uint32_t *rdata) {
-  if(raddr >= 0x80000000 & raddr<0x88000000 ){
-    *rdata = pmem_read(raddr, 4);
 
+extern "C" void ram_read(long long raddr, uint32_t *rdata) {
+  if(raddr >= 0x80000000 & raddr<0x83000000 ){
+    raddr=(raddr-CONFIG_MBASE);
+    *rdata =  *(uint32_t *)(sram+raddr);
+    //printf("ram_read raddr %llx data %lx \n",raddr,*rdata);
   }
+  else if(raddr >= 0x83000000 & raddr<0x88000000 ){
+    *rdata = pmem_read(raddr, 4);
+  }
+  
 }
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
@@ -153,7 +160,7 @@ void sim_init() {                 //初始化
 
 //end
 uint64_t last_us=0;
-uint64_t debuge_pc=1678625;
+uint64_t debuge_pc=0;
 
 void updata_clk()    //刷新一次时钟与设备
 {
@@ -276,12 +283,13 @@ int main(int argc,char **argv){
   double ipc;
   for (int i = 0; i < argc; i++)
   {
-    printf("arg : %s\n",argv[i]);
+    printf("arg %d: %s\n",i,argv[i]);
   }
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
-    static char nemu_bin[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
+    static char img[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
-    static long img_size = load_image(nemu_bin);
+    static long img_size = load_image(img);
+    init_ram(img, img_size);
   #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
@@ -292,7 +300,7 @@ int main(int argc,char **argv){
 
   npc_init();
   printf(BLUE "Run verilog\n" NONE);
-  while (1)
+  while (1)               //主循环
   {
     updata_clk();  
     //Imm=top->CP_Imm;
