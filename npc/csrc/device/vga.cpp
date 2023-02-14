@@ -27,7 +27,7 @@ static uint32_t screen_size() {
 	return screen_width() * screen_height() * sizeof(uint32_t);
 }
 
-void inline update_vga() {
+void update_vga() {
   SDL_UpdateTexture(txr, NULL, vmem, VGA_W * sizeof(Pixel));
   SDL_RenderClear(rdr);
   SDL_RenderCopy(rdr, txr, NULL, NULL);

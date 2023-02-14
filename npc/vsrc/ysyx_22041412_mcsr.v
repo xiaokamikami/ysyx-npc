@@ -1,5 +1,7 @@
 module ysyx_22041412_mcsr(
      input clk,
+     input rst,
+
      input en,
      input [63:0]pc,
      input [2:0]addr,
@@ -18,9 +20,7 @@ module ysyx_22041412_mcsr(
 
 reg [63:0]mcsr_reg[5:0];
 reg ready;
-initial begin
-    mcsr_reg[2] = 64'ha00001800;
-end
+
 
 import "DPI-C" function void set_csr_ptr(input logic [63:0] a []);
 initial set_csr_ptr(mcsr_reg);  //read gpr
@@ -34,7 +34,8 @@ assign data_o=data_r;
 
 assign ready_o=ready;
 always @(posedge clk) begin
-    if(en& !ready & func3!='b000)begin
+    if(rst) mcsr_reg[2] = 64'ha00001800;
+    else if(en& !ready & func3!='b000)begin
         data_r<=mcsr_reg[addr];
         if(func3=='b001 | func3=='b101) data_w<=data_i;
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;

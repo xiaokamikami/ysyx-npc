@@ -1,5 +1,5 @@
 //#include Begin
-#include "../obj_dir/Vysyx_22041412_cpu.h"
+#include "../obj_dir/Vysyx_22041412_top.h"
 #include "verilated_vcd_c.h"
 #include "verilated_dpi.h"
 #include "color.h"
@@ -39,7 +39,7 @@ struct SPIK_state
 
 VerilatedContext *contextp = NULL;
 VerilatedVcdC* tfp = new VerilatedVcdC;
-Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
+Vysyx_22041412_top *top = new Vysyx_22041412_top("ysyx_22041412_top");
 uint64_t *cpu_gpr = NULL;
 uint64_t *csr_gpr = NULL;
 bool is_exit = false;
@@ -84,7 +84,7 @@ extern "C" void ram_read(long long raddr, uint32_t *rdata) {
   else if(raddr >= 0x83000000 & raddr<0x88000000 ){
     *rdata = pmem_read(raddr, 4);
   }
-  else assert(raddr<0x88000000);
+  else assert(raddr==0);
 }
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
@@ -118,7 +118,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     #ifdef diff_en
       spik.num=spik.num+1;
-      spik.pc[spik.num]=top->MEM_PC;
+      spik.pc[spik.num]=top->pip_mem_pc;
     #endif
   }
   else if(raddr !=0){
@@ -189,13 +189,6 @@ void updata_clk()    //刷新一次时钟与设备
   
 }
 
-
-
-double sc_time_stamp()
-{
-  return main_time;
-}
-
 static void top_clk()
 {
   top->clk = !(top->clk);
@@ -228,11 +221,11 @@ static int cmd_c()                //DIFFTEST
   static bool bubble;
   static paddr_t pc;
   static paddr_t npc;        
-  pc = top->CP_PC;
-  npc = top->CP_NPC;
+  pc = top->pip_pc;
+  npc = top->pip_dnpc;
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
-    if(last_pc != top->CP_PC){
+    if(last_pc != top->pip_pc){
       #ifdef diff_en
       for(int i = 0; i < 32; i++) {
         cpureg.gpr[i] = cpu_gpr[i];
@@ -247,7 +240,7 @@ static int cmd_c()                //DIFFTEST
       contextp->timeInc(1);
       #endif
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
-    last_pc=top->CP_PC;
+    last_pc=top->pip_pc;
     main_dir_value++;
     same_pc = 0; 
     }
@@ -283,20 +276,28 @@ int main(int argc,char **argv){
   {
     printf("arg %d: %s\n",i,argv[i]);
   }
+    npc_init();
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
     static char img[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(img);
     init_ram(img, img_size);
+    top->clk=0;
+    top->rst=1;
+    top->eval();
+    printf("init cpu\n");
+    updata_clk();
+    top->rst=0;
+    
+    //rst_cpu();
   #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
-    printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
-    updata_clk();  
+    printf("\033[1;32mimg_size %lx\33[0m\n", img_size);  
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
   #endif
 
-  npc_init();
+
   printf(BLUE "Run verilog\n" NONE);
   while (1)               //主循环
   {
@@ -304,13 +305,13 @@ int main(int argc,char **argv){
     //Imm=top->CP_Imm;
     
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak
-      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
       updata_clk();  
       break;
     }
     else if(is_exit ==true){
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->CP_PC,main_time);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->pip_pc,main_time);
       
       updata_clk();  
 
