@@ -1,9 +1,9 @@
 module ysyx_22041412_stall (
 	output	reg		[5:0]		stall,				 // 暂停流水线的控制信号
 	input   wire				rst,
-	input	reg			    stall_from_id,		// 来自译码阶段的暂停请求
-	input	reg			    stall_from_ex,		// 来自执行阶段的暂停请求
-    input   reg             stall_from_mem
+	input	wire			    stall_from_id,		// 来自译码阶段的暂停请求
+	input	wire			    stall_from_ex,		// 来自执行阶段的暂停请求
+    input   wire             	stall_from_mem		// 来自访存阶段的暂停请求
 );
 
 	always @ (*)	begin

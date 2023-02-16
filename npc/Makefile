@@ -15,7 +15,7 @@ BIN = $(NPC_HOME)/vsrc/$(TOPNAME)
 VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.*v
 CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp" -or -name "*.cc")
 CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
-VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412_*.v")
+VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 #rules for verilator
 VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads {$(2)}\
@@ -48,4 +48,4 @@ all:
 	make build -s
 	make compile -s
 	make run
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+#$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!

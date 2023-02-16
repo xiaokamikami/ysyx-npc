@@ -75,17 +75,6 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 
-extern "C" void ram_read(long long raddr, uint32_t *rdata) {
-  if(raddr >= 0x80000000 & raddr<0x83000000 ){
-    raddr=(raddr-CONFIG_MBASE);
-    *rdata =  *(uint32_t *)(sram+raddr);
-    //printf("ram_read raddr %llx data %lx \n",raddr,*rdata);
-  }
-  else if(raddr >= 0x83000000 & raddr<0x88000000 ){
-    *rdata = pmem_read(raddr, 4);
-  }
-  else assert(raddr==0);
-}
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   //if(raddr!=0)printf("mem_read %llx \n",raddr);
@@ -174,6 +163,16 @@ void updata_clk()    //刷新一次时钟与设备
       //
     }
   #endif 
+  axi_channel axi;
+  if (top->clk == 0) {
+    axi_copy_from_dut_ptr(top, axi);
+    dramsim3_helper_rising(axi);
+  }
+  else {
+    axi_copy_from_dut_ptr(top, axi);
+    dramsim3_helper_falling(axi);
+    axi_set_dut_ptr(top, axi);
+  }
   main_time++; 
   //控制帧数
   main_time_us=get_time(); 
@@ -303,7 +302,12 @@ int main(int argc,char **argv){
   {
     updata_clk();  
     //Imm=top->CP_Imm;
-    
+
+      
+
+
+
+
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
       updata_clk();  

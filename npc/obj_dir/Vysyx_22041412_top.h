@@ -37,7 +37,7 @@ class Vysyx_22041412_top VL_NOT_FINAL {
     VL_OUT8(&Ebreak,0,0);
     VL_IN8(&io_master_awready,0,0);
     VL_OUT8(&io_master_awvalid,0,0);
-    VL_OUT(&io_master_awaddr,31,0);
+    VL_OUT64(&io_master_awaddr,63,0);
     VL_OUT8(&io_master_awprot,2,0);
     VL_OUT8(&io_master_awid,3,0);
     VL_OUT8(&io_master_awuser,0,0);
@@ -61,7 +61,7 @@ class Vysyx_22041412_top VL_NOT_FINAL {
     VL_IN8(&io_master_buser,0,0);
     VL_IN8(&io_master_arready,0,0);
     VL_OUT8(&io_master_arvalid,0,0);
-    VL_OUT(&io_master_araddr,31,0);
+    VL_OUT64(&io_master_araddr,63,0);
     VL_OUT8(&io_master_arprot,2,0);
     VL_OUT8(&io_master_arid,3,0);
     VL_OUT8(&io_master_aruser,0,0);
