@@ -79,7 +79,7 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   //if(raddr!=0)printf("mem_read %llx \n",raddr);
   if(raddr >= 0x80000000 & raddr<0x88000000 ){
-    // 8×Ö½Ú¶ÔÆë
+    // 8å­—èŠ‚å¯¹é½
     *rdata = pmem_read((raddr & ~0x7ull), 8);
     uint8_t offset = raddr-(raddr & ~0x7ull);
     //mask
@@ -89,7 +89,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     //printf("get ram :%llx\n",*rdata);
   }
-  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //ÍâÉè¶Î
+  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //å¤–è®¾æ®µ
   {
     switch (raddr)
     {
@@ -118,7 +118,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
 extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    pmem_write((waddr), bits_set, wdata);     //Ğ´Èë²»¶ÔÆë
+    pmem_write((waddr), bits_set, wdata);     //å†™å…¥ä¸å¯¹é½
   }
   else if(waddr == SERIAL_PORT ){
     //printf("npc-usart\n");
@@ -138,7 +138,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 
 
 
-void sim_init() {                 //³õÊ¼»¯
+void sim_init() {                 //åˆå§‹åŒ–
   contextp = new VerilatedContext;
   contextp->traceEverOn(true);
   top->trace(tfp,0);
@@ -149,7 +149,7 @@ void sim_init() {                 //³õÊ¼»¯
 uint64_t last_us=0;
 uint64_t debuge_pc=0;
 
-void updata_clk()    //Ë¢ĞÂÒ»´ÎÊ±ÖÓÓëÉè±¸
+void updata_clk()    //åˆ·æ–°ä¸€æ¬¡æ—¶é’Ÿä¸è®¾å¤‡
 {
   top->clk = !(top->clk);
   top->eval();
@@ -174,7 +174,7 @@ void updata_clk()    //Ë¢ĞÂÒ»´ÎÊ±ÖÓÓëÉè±¸
     axi_set_dut_ptr(top, axi);
   }
   main_time++; 
-  //¿ØÖÆÖ¡Êı
+  //æ§åˆ¶å¸§æ•°
   main_time_us=get_time(); 
   //main_time_us=main_clk_value/100;
   #ifdef DEVICE_ENABLE
@@ -184,7 +184,7 @@ void updata_clk()    //Ë¢ĞÂÒ»´ÎÊ±ÖÓÓëÉè±¸
   //}  
   #endif
 
-  cmd_c();
+  cmd_c();//è®°å½•æŒ‡ä»¤çš„å˜åŒ–
   
 }
 
@@ -245,7 +245,7 @@ static int cmd_c()                //DIFFTEST
     }
     else {
       ++same_pc;
-      if(same_pc > 10) {
+      if(same_pc > 20) {
         printf("The pc No update many times \n");
         assert(0);
       }
@@ -298,12 +298,18 @@ int main(int argc,char **argv){
 
 
   printf(BLUE "Run verilog\n" NONE);
-  while (1)               //Ö÷Ñ­»·
+  while (1)               //ä¸»å¾ªç¯
   {
     updata_clk();  
     //Imm=top->CP_Imm;
 
-      
+    #ifdef end_time
+      if(main_clk_value>end_time){
+        printf(BLUE "[TIME END]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
+        updata_clk();  
+        break;
+      }
+    #endif
 
 
 

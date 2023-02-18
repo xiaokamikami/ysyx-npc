@@ -48,4 +48,4 @@ all:
 	make build -s
 	make compile -s
 	make run
-#$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!

@@ -207,7 +207,7 @@ wire mem_en;
 wire wb_en;
 wire id_stall;
 reg id_wait;
-assign id_stall = !if_r_valid | id_wait;
+assign id_stall = 0;
 
 wire ex_stall;
 wire mul_stall;
@@ -238,17 +238,29 @@ wire [31:0]if_imm;
 wire [7:0]if_r_strb;
 wire if_r_valid;
 wire if_r_ready;
-assign if_r_ready = r_ready;
-assign if_r_valid = r_valid;
+wire if_ready_o;
+wire if_valid_i;
+assign if_valid_i= 1;
+reg if_jr_en;
+reg if_jr_ready;
+wire if_wait;
+assign if_wait = if_jr_en | if_jr_ready| id_wait;
+assign if_r_ready=r_ready;
+assign r_valid=if_r_valid;
 assign r_strb = if_r_strb;
-reg [63:0]if_pc;
-reg [63:0]if_dnpc;
+wire [63:0]if_pc;
+reg  [63:0]if_dnpc;
 
 ysyx_22041412_sram IF_sram (      //imm
     .clk(clk),
-    .Addr(if_pc),
-	.Imm(if_imm),
-    .stall(id_stall),
+    .rst(rst),
+    .pc(if_pc),
+    .dnpc(if_dnpc),
+	.imm_data(if_imm),
+    .stall(if_wait),
+    .ready_o(if_ready_o),       //准备好输出数据并更新pc值
+    .valid_i(if_valid_i),
+    .jarl_en(if_jr_en),
     //axi
     .ready_i(if_r_ready),
     .valid_o(if_r_valid),
@@ -257,18 +269,20 @@ ysyx_22041412_sram IF_sram (      //imm
     .r_addr_o(axi_r_addr)
 
   );
+
 always@(posedge clk )begin
     if(rst)
-        if_pc<= 64'h0000000080000000;
-    else if(if_en)begin
-        if_pc<= if_pc+4;
+        if_dnpc<= 64'h0000000080000000;
+    else if(if_ready_o & if_en & !if_jr_en)begin
+        if_dnpc<= if_dnpc+4;
     end
-    else if(mem_opcode == `ysyx_22041412_B_type | mem_opcode == `ysyx_22041412_jal | mem_opcode == `ysyx_22041412_jalr | mem_csr_jar_en)begin
-        if_pc<= if_dnpc;
-        id_wait<=0;
+    else if(if_ready_o & if_en & if_jr_en & if_jr_ready)begin
+        if_dnpc<= if_dnpc;
+        if_jr_en<=0;
+        if_jr_ready<=0;
     end
     else begin
-        if_pc<= if_pc;
+        if_dnpc<= if_dnpc;
     end
 end  
 
@@ -286,6 +300,7 @@ wire [4:0]id_Ra,id_Rb,id_Rw;
 wire [6:0]id_opcode;
 wire [63:0]id_rsA;
 wire [63:0]id_rsB;
+
 
     wire csr_jar_en;
     wire [11:0]csr;
@@ -316,18 +331,25 @@ ysyx_22041412_decode ID_decode( //opcode
     .Mul_en(id_mul_en)
 );
 
-//遇到跳转指令 冲刷流水线
+
 always@(posedge clk )begin
     if(id_en)begin
+        
         id_imm <= if_imm;
         id_pc  <= if_pc;
-        if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
-            id_wait<=1;
-            id_imm<=32'b0;
-            id_pc <=`ysyx_22041412_zero_word;
-            if_pc <=`ysyx_22041412_zero_word;
-        end
     end
+    else begin//遇到跳转指令 冲刷流水线
+        id_imm <= 32'b0;
+        id_pc  <= `ysyx_22041412_zero_word;
+    end
+    if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
+        if_jr_en<=1;
+        if_dnpc <=`ysyx_22041412_zero_word;
+        id_pc <=`ysyx_22041412_zero_word; 
+    end
+
+
+
 end
 
 //EXE
@@ -428,6 +450,7 @@ always@(posedge clk)begin
         if(ex_rw!=0 & ((id_imm_V1Type==0 & id_Ra == ex_rw )| (id_Rb == ex_rw )) & ex_opcode==`ysyx_22041412_load ) begin
              ex_wait<=1;
         end
+
     end
      if( ex_wait & ex_imm_V1Type==0 & mem_valid_o & (ex_Ra == mem_rw & mem_opcode==`ysyx_22041412_load ))begin
         ex_v1<=mem_rdata;
@@ -506,6 +529,7 @@ always@(posedge clk)begin
         end
         else if(ex_opcode == `ysyx_22041412_B_type & ex_res[0]==1 )begin 
             if_dnpc <= ex_imm_data+ex_pc;
+            if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
@@ -514,6 +538,7 @@ always@(posedge clk)begin
         end    
         else if (ex_opcode== `ysyx_22041412_B_type & ex_res[0]==0 )begin
             if_dnpc <=ex_pc+4;
+            if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
@@ -522,6 +547,7 @@ always@(posedge clk)begin
         end   
         else if(ex_opcode == `ysyx_22041412_jal | ex_opcode==`ysyx_22041412_jalr)begin
             if_dnpc<= ex_res;
+            if_jr_ready<=1'b1;
             mem_rw_type<=0;
             mem_ram_en <=0;
             mem_reg_en <=1;
@@ -530,6 +556,7 @@ always@(posedge clk)begin
         end
         else if(ex_opcode == `ysyx_22041412_Environment & ex_csr_jar_en)begin
             if_dnpc <= csr_data_o;
+            if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;

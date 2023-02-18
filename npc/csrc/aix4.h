@@ -10,7 +10,7 @@
 void init_ram(char *file, long img_size);
 
 #define AXI_DATA_WIDTH_64 1
-
+//#define DEBUG_LOG_AXI4
 typedef uint64_t axi_addr_t;
 typedef uint64_t axi_data_t[AXI_DATA_WIDTH_64];
 #define axi_copy_data(dest, src) \
