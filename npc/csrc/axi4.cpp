@@ -167,6 +167,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
 
   if (axi_get_raddr(axi, raddr)) {
     axi.ar.ready = 1;
+
     //printf("try to accept read request to 0x%lx\n", raddr);
   }
 

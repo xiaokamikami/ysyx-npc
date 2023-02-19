@@ -60,10 +60,8 @@
 
 
 module ysyx_22041412_axi # (
-    parameter RW_DATA_WIDTH     = 64,
-    parameter RW_ADDR_WIDTH     = 64,
     parameter AXI_DATA_WIDTH    = 64,
-    parameter AXI_ADDR_WIDTH    = 64,
+    parameter AXI_ADDR_WIDTH    = 32,
     parameter AXI_ID_WIDTH      = 4,
     parameter AXI_STRB_WIDTH    = AXI_DATA_WIDTH/8,
     parameter AXI_USER_WIDTH    = 1
@@ -76,8 +74,8 @@ module ysyx_22041412_axi # (
     input                               w_valid_i,          //写请求
 	  output reg                          r_ready_o,          //读数据结束
     output reg                          w_ready_o,          //写数据结束
-    output reg [RW_DATA_WIDTH-1:0]      data_read_o,        //数据输出
-    input  [RW_DATA_WIDTH-1:0]          rw_w_data_i,        //写数据
+    output reg [AXI_DATA_WIDTH-1:0]     data_read_o,        //数据输出
+    input  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
     input  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //地址
     input  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //地址
     input  [7:0]                        w_size_i,           //掩码
@@ -333,13 +331,13 @@ module ysyx_22041412_axi # (
                     axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR; 
                     axi_ar_cache_o  <= `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
                     axi_ar_valid_o  <= `ysyx_22041412_False;
-                    axi_ar_addr_o   <= `ysyx_22041412_zero_word; 
+                    axi_ar_addr_o   <= 32'b0; 
                 end
             end
             `ARREADY:  begin
                 if(axi_ar_ready_i == `ysyx_22041412_True)begin  //
                 //Interface with AXI Adress Read            Chanal
-                    axi_ar_addr_o   <=  `ysyx_22041412_zero_word;
+                    axi_ar_addr_o   <=  32'b0;
                     axi_ar_len_o    <=  r_len_i;//uncertain
                     axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR;
                     axi_ar_cache_o  <=  `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
@@ -358,9 +356,7 @@ module ysyx_22041412_axi # (
             end
             `RVALID:  begin
                 
-                if(axi_r_valid_i == `ysyx_22041412_True 
-                    && axi_r_last_i == `ysyx_22041412_True
-                    && axi_r_ready_o == `ysyx_22041412_True)begin
+                if(axi_r_valid_i == `ysyx_22041412_True && axi_r_last_i == `ysyx_22041412_True && axi_r_ready_o == `ysyx_22041412_True)begin
                     r_ready_o <= axi_r_valid_i;
                     data_read_o <= axi_r_data_i;
                     axi_r_ready_o <= `ysyx_22041412_False;

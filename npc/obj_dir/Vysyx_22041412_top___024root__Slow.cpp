@@ -36,7 +36,7 @@ void Vysyx_22041412_top___024root___initial__TOP__1(Vysyx_22041412_top___024root
     VL_DEBUG_IF(VL_DBG_MSGF("+    Vysyx_22041412_top___024root___initial__TOP__1\n"); );
     // Body
     vlSelf->io_master_awvalid = 0U;
-    vlSelf->io_master_awaddr = 0ULL;
+    vlSelf->io_master_awaddr = 0U;
     vlSelf->io_master_awprot = 0U;
     vlSelf->io_master_awid = 0U;
     vlSelf->io_master_awuser = 0U;
@@ -550,6 +550,20 @@ void Vysyx_22041412_top___024root___settle__TOP__3(Vysyx_22041412_top___024root*
                                                   == (IData)(vlSelf->ysyx_22041412_top__DOT__ex_opcode)))
                                                ? 2U
                                                : 0U))))))));
+    __Vtableidx2 = (((IData)(vlSelf->ysyx_22041412_top__DOT__r_ready) 
+                     << 7U) | (((IData)(vlSelf->io_master_rready) 
+                                << 6U) | (((IData)(vlSelf->io_master_rvalid) 
+                                           << 5U) | 
+                                          (((IData)(vlSelf->io_master_arready) 
+                                            << 4U) 
+                                           | (((IData)(vlSelf->ysyx_22041412_top__DOT__if_r_valid) 
+                                               << 3U) 
+                                              | (((IData)(vlSelf->ysyx_22041412_top__DOT__axi4__DOT__ar_state) 
+                                                  << 1U) 
+                                                 | (IData)(vlSelf->rst)))))));
+    vlSelf->ysyx_22041412_top__DOT__axi4__DOT__ar_next_state 
+        = Vysyx_22041412_top__ConstPool__TABLE_942d406d_0
+        [__Vtableidx2];
     vlSelf->ysyx_22041412_top__DOT__pip_stall = ((IData)(vlSelf->ysyx_22041412_top__DOT__pip_rst)
                                                   ? 0U
                                                   : 
@@ -598,20 +612,6 @@ void Vysyx_22041412_top___024root___settle__TOP__3(Vysyx_22041412_top___024root*
     vlSelf->ysyx_22041412_top__DOT__ID_decode__DOT__U_type 
         = ((0x37U == (0x7fU & vlSelf->ysyx_22041412_top__DOT__id_imm)) 
            | (0x17U == (0x7fU & vlSelf->ysyx_22041412_top__DOT__id_imm)));
-    __Vtableidx2 = (((IData)(vlSelf->ysyx_22041412_top__DOT__r_ready) 
-                     << 7U) | (((IData)(vlSelf->io_master_rready) 
-                                << 6U) | (((IData)(vlSelf->io_master_rvalid) 
-                                           << 5U) | 
-                                          (((IData)(vlSelf->io_master_arready) 
-                                            << 4U) 
-                                           | (((IData)(vlSelf->ysyx_22041412_top__DOT__if_r_valid) 
-                                               << 3U) 
-                                              | (((IData)(vlSelf->ysyx_22041412_top__DOT__axi4__DOT__ar_state) 
-                                                  << 1U) 
-                                                 | (IData)(vlSelf->rst)))))));
-    vlSelf->ysyx_22041412_top__DOT__axi4__DOT__ar_next_state 
-        = Vysyx_22041412_top__ConstPool__TABLE_942d406d_0
-        [__Vtableidx2];
     vlSelf->ysyx_22041412_top__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__pair_list[0U][0U] 
         = vlSelf->ysyx_22041412_top__DOT__EXE_alu__DOT____Vcellinp__Mux_ALU____pinNumber4[0U];
     vlSelf->ysyx_22041412_top__DOT__EXE_alu__DOT__Mux_ALU__DOT__i0__DOT__pair_list[0U][1U] 
@@ -1480,8 +1480,8 @@ void Vysyx_22041412_top___024root___ctor_var_reset(Vysyx_22041412_top___024root*
     vlSelf->ysyx_22041412_top__DOT__if_r_strb = 0;
     vlSelf->ysyx_22041412_top__DOT__if_r_valid = 0;
     vlSelf->ysyx_22041412_top__DOT__if_ready_o = 0;
-    vlSelf->ysyx_22041412_top__DOT__if_jr_en = 0;
     vlSelf->ysyx_22041412_top__DOT__if_jr_ready = 0;
+    vlSelf->ysyx_22041412_top__DOT__if_wait = 0;
     vlSelf->ysyx_22041412_top__DOT__if_pc = 0;
     vlSelf->ysyx_22041412_top__DOT__if_dnpc = 0;
     vlSelf->ysyx_22041412_top__DOT__id_imm = 0;
@@ -1523,6 +1523,7 @@ void Vysyx_22041412_top___024root___ctor_var_reset(Vysyx_22041412_top___024root*
     vlSelf->ysyx_22041412_top__DOT__mem_addr = 0;
     vlSelf->ysyx_22041412_top__DOT__mem_wdata = 0;
     vlSelf->ysyx_22041412_top__DOT__mem_pc = 0;
+    vlSelf->ysyx_22041412_top__DOT__mem_dnpc = 0;
     vlSelf->ysyx_22041412_top__DOT__mem_imm_data = 0;
     vlSelf->ysyx_22041412_top__DOT__mem_temp = 0;
     vlSelf->ysyx_22041412_top__DOT__mem_res = 0;

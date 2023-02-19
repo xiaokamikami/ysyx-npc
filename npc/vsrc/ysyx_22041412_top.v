@@ -98,13 +98,11 @@ module ysyx_22041412_top(
     input  [3:0]                        io_slave_rid
 );
     parameter AXI_DATA_WIDTH    = 64;
-    parameter AXI_ADDR_WIDTH    = 64;
+    parameter AXI_ADDR_WIDTH    = 32;
     parameter AXI_ID_WIDTH      = 4;
     parameter AXI_STRB_WIDTH    = AXI_DATA_WIDTH/8;
     parameter AXI_USER_WIDTH    = 1;
-    parameter RW_DATA_WIDTH     = 64;
-    parameter RW_ADDR_WIDTH     = 64;
-
+    parameter PC_WIDTH          = 64;
 assign pip_mem_pc = mem_pc;
 assign Ebreak=(id_imm=='b000100000000000001110011)?1:0;
 
@@ -114,10 +112,10 @@ wire         r_ready;  // 访存完成
 wire         w_valid;  // 请求有效
 wire         w_ready;  // 访存完成
 
-wire [RW_DATA_WIDTH-1:0] axi_r_data; // 读数据
-wire [RW_DATA_WIDTH-1:0] axi_w_data; // 写数据
-wire [RW_ADDR_WIDTH-1:0] axi_r_addr; // 读地址
-wire [RW_ADDR_WIDTH-1:0] axi_w_addr; // 写地址
+wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数据
+wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数据
+wire [AXI_ADDR_WIDTH-1:0] axi_r_addr; // 读地址
+wire [AXI_ADDR_WIDTH-1:0] axi_w_addr; // 写地址
 
 
 wire  [7:0] r_strb;   // 字节掩码
@@ -239,17 +237,18 @@ wire [7:0]if_r_strb;
 wire if_r_valid;
 wire if_r_ready;
 wire if_ready_o;
-wire if_valid_i;
-assign if_valid_i= 1;
+wire id_vaile;
+assign id_vaile= if_en ;
 reg if_jr_en;
+assign if_jr_en=(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)?1:0;
 reg if_jr_ready;
-wire if_wait;
-assign if_wait = if_jr_en | if_jr_ready| id_wait;
+reg if_wait;
+
 assign if_r_ready=r_ready;
 assign r_valid=if_r_valid;
 assign r_strb = if_r_strb;
-wire [63:0]if_pc;
-reg  [63:0]if_dnpc;
+wire [PC_WIDTH-1:0]if_pc;
+reg  [PC_WIDTH-1:0]if_dnpc;
 
 ysyx_22041412_sram IF_sram (      //imm
     .clk(clk),
@@ -259,36 +258,37 @@ ysyx_22041412_sram IF_sram (      //imm
 	.imm_data(if_imm),
     .stall(if_wait),
     .ready_o(if_ready_o),       //准备好输出数据并更新pc值
-    .valid_i(if_valid_i),
+    .valid_i(id_vaile),
     .jarl_en(if_jr_en),
     //axi
     .ready_i(if_r_ready),
     .valid_o(if_r_valid),
     .r_size_i(if_r_strb),
-    .r_data_i(axi_r_data[31:0]),
+    .r_data_i(axi_r_data),
     .r_addr_o(axi_r_addr)
 
   );
 
 always@(posedge clk )begin
-    if(rst)
+    if(rst)begin
         if_dnpc<= 64'h0000000080000000;
-    else if(if_ready_o & if_en & !if_jr_en)begin
+    end
+    else if(if_r_ready & id_vaile & !if_wait)begin
         if_dnpc<= if_dnpc+4;
     end
-    else if(if_ready_o & if_en & if_jr_en & if_jr_ready)begin
-        if_dnpc<= if_dnpc;
-        if_jr_en<=0;
+    else if(id_vaile & if_wait & if_jr_ready)begin
+        if_dnpc<= mem_dnpc;
         if_jr_ready<=0;
+        if_wait<=0;
     end
     else begin
-        if_dnpc<= if_dnpc;
+
     end
 end  
 
 //ID
 reg [31:0]id_imm;
-reg [63:0]id_pc;
+reg [PC_WIDTH-1:0]id_pc;
 
 wire [1:0]id_imm_V1Type;
 wire [1:0]id_imm_V2Type;
@@ -333,17 +333,16 @@ ysyx_22041412_decode ID_decode( //opcode
 
 
 always@(posedge clk )begin
-    if(id_en)begin
-        
+    if(if_ready_o & id_vaile)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
     end
-    else begin//遇到跳转指令 冲刷流水线
+    else begin//没有新指令 冲刷流水线
         id_imm <= 32'b0;
         id_pc  <= `ysyx_22041412_zero_word;
     end
     if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
-        if_jr_en<=1;
+        if_wait <=1;
         if_dnpc <=`ysyx_22041412_zero_word;
         id_pc <=`ysyx_22041412_zero_word; 
     end
@@ -366,7 +365,7 @@ reg [4:0]ex_Ra,ex_Rb;
 reg [2:0]ex_func3;
 reg ex_func7;
 reg [6:0]ex_opcode;
-reg [63:0]ex_pc;
+reg [PC_WIDTH-1:0]ex_pc;
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
@@ -423,7 +422,7 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .func7(ex_func7),
     .opcode(ex_opcode),
     .mul_en(ex_mul_en),
-    .ready_i(ex_ready_i),
+    .ready_i(ex_ready),
     .stall(mul_stall),
     .result(ex_res)
 );
@@ -476,14 +475,15 @@ reg mem_ram_en;
 reg mem_reg_en;
 reg [63:0]mem_addr;
 reg [63:0]mem_wdata;
-reg [63:0]mem_pc;
+reg [PC_WIDTH-1:0]mem_pc;
+reg [PC_WIDTH-1:0]mem_dnpc;
 reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg mem_csr_jar_en;
 wire [63:0]mem_rdata;
-wire ex_ready_i;
-assign ex_ready_i = !ex_wait;
+wire ex_ready;
+assign ex_ready = !ex_wait;
 wire mem_valid_o;
 
 ysyx_22041412_dram MEM_dram(        //SRAM
@@ -494,12 +494,12 @@ ysyx_22041412_dram MEM_dram(        //SRAM
     .wdata(mem_wdata),
     .rdata(mem_rdata),
     .stall(mem_busy),
-    .ready_i(ex_ready_i),
+    .ready_i(ex_ready),
     .ready_o(mem_valid_o),
     .wen(mem_rw_type)           //1 wt  0 read
 );
 always@(posedge clk)begin           
-    if(mem_en & !ex_wait)begin
+    if(mem_en & ex_ready)begin
         mem_imm<=ex_imm;
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
@@ -528,7 +528,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_B_type & ex_res[0]==1 )begin 
-            if_dnpc <= ex_imm_data+ex_pc;
+            mem_dnpc <= ex_imm_data+ex_pc;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
@@ -537,7 +537,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end    
         else if (ex_opcode== `ysyx_22041412_B_type & ex_res[0]==0 )begin
-            if_dnpc <=ex_pc+4;
+            mem_dnpc <=ex_pc+4;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
@@ -546,7 +546,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end   
         else if(ex_opcode == `ysyx_22041412_jal | ex_opcode==`ysyx_22041412_jalr)begin
-            if_dnpc<= ex_res;
+            mem_dnpc<= ex_res;
             if_jr_ready<=1'b1;
             mem_rw_type<=0;
             mem_ram_en <=0;
@@ -555,7 +555,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_Environment & ex_csr_jar_en)begin
-            if_dnpc <= csr_data_o;
+            mem_dnpc <= csr_data_o;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
@@ -582,7 +582,7 @@ reg [31:0]wb_imm;
 reg [4:0]wb_addr;
 reg [63:0]wb_imm_data;
 reg [63:0]wb_data;
-reg [63:0]wb_pc;
+reg [PC_WIDTH-1:0]wb_pc;
 reg [63:0]wb_dnpc;
 reg [6:0]wb_opcode;
 reg wb_csr_jar_en;
