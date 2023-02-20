@@ -226,17 +226,17 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != top->pip_pc){
       #ifdef diff_en
-      for(int i = 0; i < 32; i++) {
-        cpureg.gpr[i] = cpu_gpr[i];
-        cpureg.pc=npc;
-      }// sp regs are used for addtion
-      if(spik.pc[spik.num] ==pc & spik.num>0 )  {
-        difftest_skip_ref();
-        spik.pc[spik.num]=0;
-        spik.num=spik.num-1;
-      }
-      else difftest_step(pc, npc);
-      contextp->timeInc(1);
+        for(int i = 0; i < 32; i++) {
+          cpureg.gpr[i] = cpu_gpr[i];
+          cpureg.pc=npc;
+        }// sp regs are used for addtion
+        if(spik.pc[spik.num] ==pc & spik.num>0 )  {
+          difftest_skip_ref();
+          spik.pc[spik.num]=0;
+          spik.num=spik.num-1;
+        }
+        else difftest_step(pc, npc);
+        contextp->timeInc(1);
       #endif
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
     last_pc=top->pip_pc;
@@ -245,14 +245,18 @@ static int cmd_c()                //DIFFTEST
     }
     else {
       ++same_pc;
-      if(same_pc > 20) {
+      if(same_pc > 50) {
         printf("The pc No update many times \n");
         assert(0);
       }
-      
     }
-
-
+  }
+  else if(pc==0){
+    ++same_pc;
+    if(same_pc > 50) {
+      printf("The pc No update many times \n");
+      assert(0);
+    }
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;

@@ -12,21 +12,18 @@ module ysyx_22041412_axi_Arbiter #(
     output  reg    if_ar_ready,
     input          if_ar_wen_w,
     output  reg[63:0] if_ar_data,
-    input   [63:0] if_ar_data,
     input   [31:0] if_ar_addr,
-    input   [15:0] if_ar_wstrb,
-    input    [1:0] if_ar_len,
+    input    [7:0] if_ar_len,
     input    [7:0] if_ar_size,
 
 // mem
-    input          mem_rw_vali,                           //MEM请求
+    input          mem_rw_valid,                          //MEM请求
     output  reg    mem_rw_ready,
     input          mem_rw_wen,
     output  reg[63:0] mem_rw_r_data,
     input   [63:0] mem_rw_w_data,
     input   [31:0] mem_rw_addr,
-    input   [15:0] mem_rw_wstrb,
-    input    [1:0] mem_rw_len,
+    input    [7:0] mem_rw_len,
     input    [7:0] mem_rw_size,
 
 // axi
@@ -40,24 +37,27 @@ module ysyx_22041412_axi_Arbiter #(
     output  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //读地址
     output  [7:0]                        w_size_i,           //写掩码
     output  [7:0]                        r_size_i,           //读掩码
-    output  [1:0]                        r_len_i,            //读突发长度
-    output  [1:0]                        w_len_i,            //写突发长度
+    output  [7:0]                        r_len_i,            //读突发长度
+    output  [7:0]                        w_len_i             //写突发长度
 );
 
 always @(posedge clk) begin
   if(rst)begin
-    r_valid_i <=0,            //读请求
-    w_valid_i <=0,            //写请求
-    rw_w_data_i<=64'0,        //写数据
-    w_addr_i<=32'0,           //地址
-    r_addr_i<=32'0,           //地址
-    w_size_i<=8'b0,           //掩码
-    r_size_i<=8'b0,           //掩码
-    r_len_i<=2'b0,            //突发长度
-    w_len_i<=2'b0,            //突发长度
+    if_ar_ready<=0;
+    mem_rw_ready<=0;
+
+    r_valid_i <=0;            //读请求
+    w_valid_i <=0;            //写请求
+    rw_w_data_i<=64'0;        //写数据
+    w_addr_i<=32'0;           //地址
+    r_addr_i<=32'0;           //地址
+    w_size_i<=8'b0;           //掩码
+    r_size_i<=8'b0;           //掩码
+    r_len_i<=8'b0;            //突发长度
+    w_len_i<=8'b0;            //突发长度
   end
   else begin
-    if(mem_rw_vali)begin                 
+    if(mem_rw_valid)begin                 
         if(mem_rw_wen)begin      //MEM写
             if(w_ready_o)begin    //写结束
                 w_addr_i    <=0;
@@ -72,9 +72,10 @@ always @(posedge clk) begin
                 w_addr_i    <=mem_rw_addr;
                 rw_w_data_i <=mem_rw_w_data;
                 w_size_i    <=mem_rw_size;
-                w_len_i     <=mem_len;
+                w_len_i     <=mem_rw_len;
 
-                w_valid_i<=1;
+                mem_rw_ready<=0;
+                w_valid_i<=mem_rw_valid;
             end
         end
         else begin                //MEM读
@@ -91,24 +92,41 @@ always @(posedge clk) begin
                 r_size_i <=mem_rw_len;
                 r_len_i  <=mem_rw_size;
 
-                r_valid_i<=1;
+                mem_rw_ready <=0;
+                r_valid_i<=mem_rw_valid;
             end
         end
     end
     else if(if_ar_valid)begin   //IF请求 只有读
+        if(r_ready_o)begin
+            if_ar_data<= data_read_o;
 
+            if_ar_ready <=1;
+            r_valid_i<=0;  
+        end
+        else begin
+            r_addr_i <=if_ar_addr;
+            r_size_i <=if_ar_len;
+            r_len_i  <=if_ar_size;
 
+            if_ar_ready <=0;
+            r_valid_i<=if_ar_valid;
+            
+        end
     end
     else begin  //没有请求
-        r_valid_i <=0,            //读请求
-        w_valid_i <=0,            //写请求
-        rw_w_data_i<=64'0,        //写数据
-        w_addr_i<=32'0,           //地址
-        r_addr_i<=32'0,           //地址
-        w_size_i<=8'b0,           //掩码
-        r_size_i<=8'b0,           //掩码
-        r_len_i<=2'b0,            //突发长度
-        w_len_i<=2'b0,            //突发长度
+        if_ar_ready<=0;
+        mem_rw_ready<=0;
+
+        r_valid_i <=0;            //读请求
+        w_valid_i <=0;            //写请求
+        rw_w_data_i<=64'0;        //写数据
+        w_addr_i<=32'0;           //地址
+        r_addr_i<=32'0;           //地址
+        w_size_i<=8'b0;           //掩码
+        r_size_i<=8'b0;           //掩码
+        r_len_i<=8'b0;            //突发长度
+        w_len_i<=8'b0;            //突发长度
     end
   end
 end

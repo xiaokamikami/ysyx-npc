@@ -325,7 +325,8 @@ module ysyx_22041412_axi # (
                     axi_ar_cache_o  <= `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
                     axi_ar_valid_o  <= `ysyx_22041412_True;
                     axi_ar_addr_o   <= r_addr_i; 
-                end else begin  
+                end 
+                else begin  
                     axi_ar_len_o    <= r_len_i;//uncertain;     
                     axi_ar_size_o   <=  'b0;
                     axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR; 
@@ -344,7 +345,8 @@ module ysyx_22041412_axi # (
                     axi_ar_valid_o  <=  `ysyx_22041412_False;
                 //Interface with AXI Date   Read            Chanal
                     axi_r_ready_o   <=  `ysyx_22041412_True;
-                end else begin
+                end 
+                else begin
                     axi_ar_addr_o   <=  axi_ar_addr_o;
                     axi_ar_len_o    <=  r_len_i;//uncertain
                     axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR;

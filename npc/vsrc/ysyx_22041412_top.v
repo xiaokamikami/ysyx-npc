@@ -122,8 +122,7 @@ wire  [7:0] r_strb;   // 字节掩码
 wire  [7:0] w_strb;   // 字节掩码
 wire  [7:0] r_len_i;
 wire  [7:0] w_len_i;
-assign r_len_i=8'b00000001;
-assign w_len_i=8'b00000001;
+
 ysyx_22041412_axi axi4(
     .clk(clk),
     .rst(rst),
@@ -194,7 +193,60 @@ ysyx_22041412_axi axi4(
     .axi_r_id_i(io_master_rid),    // 读数据ID
     .axi_r_user_i(io_master_ruser)   // 用户定义信号
 );
+wire          if_ar_valid;                           //IF请求
+wire          if_ar_ready;
+wire          if_ar_wen_w;
+wire   [63:0] if_ar_data;
+wire   [31:0] if_ar_addr;
+wire    [7:0] if_ar_len;
+wire    [7:0] if_ar_size;
 
+wire          mem_rw_valid;                           //MEM请求
+wire          mem_rw_ready;
+wire          mem_rw_wen;
+wire   [63:0] mem_rw_r_data;
+wire   [63:0] mem_rw_w_data;
+wire   [31:0] mem_rw_addr;
+wire    [7:0] mem_rw_len;
+wire    [7:0] mem_rw_size;
+
+ysyx_22041412_axi_Arbiter axi_Arbiter(
+    .clk(clk),
+    .rst(rst),
+// if   
+    .if_ar_valid(if_ar_valid),                           //IF请求
+    .if_ar_ready(if_ar_ready),
+    .if_ar_wen_w(if_ar_wen_w),
+    .if_ar_data(if_ar_data),
+    .if_ar_addr(if_ar_addr),
+    .if_ar_len(if_ar_len),
+    .if_ar_size(if_ar_size),
+
+// mem
+    .mem_rw_valid(mem_rw_valid),                           //MEM请求
+    .mem_rw_ready(mem_rw_ready),
+    .mem_rw_wen(mem_rw_wen),
+    .mem_rw_r_data(mem_rw_r_data),
+    .mem_rw_w_data(mem_rw_w_data),
+    .mem_rw_addr(mem_rw_addr),
+    .mem_rw_len(mem_rw_len),
+    .mem_rw_size(mem_rw_size),
+
+// axi
+    .r_valid_i(r_valid),         //读请求
+    .w_valid_i(w_valid),         //写请求
+	.r_ready_o(r_ready),         //读数据结束
+    .w_ready_o(w_ready),         //写数据结束
+    .data_read_o(axi_r_data),    //数据输出
+    .rw_w_data_i(axi_w_data),    //写数据
+    .w_addr_i(axi_w_addr),       //地址
+    .r_addr_i(axi_r_addr),       //地址
+    .w_size_i(w_strb),           //掩码
+    .r_size_i(r_strb),           //掩码
+    .r_len_i(r_len_i),            //突发长度
+    .w_len_i(w_len_i)            //突发长度
+
+);
 //STALL 
 wire [5:0]pip_stall;
 reg pip_rst;
@@ -234,57 +286,41 @@ assign pip_imm = wb_imm;
 //IF 
 wire [31:0]if_imm;
 wire [7:0]if_r_strb;
-wire if_r_valid;
-wire if_r_ready;
+wire [63:0]if_pc;
 wire if_ready_o;
-wire id_vaile;
-assign id_vaile= if_en ;
+
+
+wire id_valid;
+assign id_valid= if_en ;
 reg if_jr_en;
 assign if_jr_en=(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)?1:0;
 reg if_jr_ready;
 reg if_wait;
 
-assign if_r_ready=r_ready;
-assign r_valid=if_r_valid;
-assign r_strb = if_r_strb;
-wire [PC_WIDTH-1:0]if_pc;
-reg  [PC_WIDTH-1:0]if_dnpc;
-
+wire jar_end;   
 ysyx_22041412_sram IF_sram (      //imm
     .clk(clk),
     .rst(rst),
     .pc(if_pc),
-    .dnpc(if_dnpc),
+    .mem_pc(mem_dnpc),
 	.imm_data(if_imm),
     .stall(if_wait),
-    .ready_o(if_ready_o),       //准备好输出数据并更新pc值
-    .valid_i(id_vaile),
     .jarl_en(if_jr_en),
+    .jarl_rady(if_jr_ready),
+    .jar_end(jar_end),
+
+    .ready_o(if_ready_o),       //准备好输出数据并更新pc值
+    .valid_i(id_valid),
+
     //axi
-    .ready_i(if_r_ready),
-    .valid_o(if_r_valid),
-    .r_size_i(if_r_strb),
-    .r_data_i(axi_r_data),
-    .r_addr_o(axi_r_addr)
+    .ready_i(if_ar_ready),
+    .valid(if_ar_valid),
+    .r_size_i(if_ar_size),
+    .r_data_i(if_ar_data),
+    .r_addr_o(if_ar_addr)
 
   );
 
-always@(posedge clk )begin
-    if(rst)begin
-        if_dnpc<= 64'h0000000080000000;
-    end
-    else if(if_r_ready & id_vaile & !if_wait)begin
-        if_dnpc<= if_dnpc+4;
-    end
-    else if(id_vaile & if_wait & if_jr_ready)begin
-        if_dnpc<= mem_dnpc;
-        if_jr_ready<=0;
-        if_wait<=0;
-    end
-    else begin
-
-    end
-end  
 
 //ID
 reg [31:0]id_imm;
@@ -333,7 +369,7 @@ ysyx_22041412_decode ID_decode( //opcode
 
 
 always@(posedge clk )begin
-    if(if_ready_o & id_vaile)begin
+    if(if_ready_o & id_valid)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
     end
@@ -343,8 +379,10 @@ always@(posedge clk )begin
     end
     if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
         if_wait <=1;
-        if_dnpc <=`ysyx_22041412_zero_word;
         id_pc <=`ysyx_22041412_zero_word; 
+    end
+    else if(if_wait & jar_end)begin
+        if_wait <=0;
     end
 
 
@@ -514,6 +552,7 @@ always@(posedge clk)begin
             mem_res<=ex_res;
         end
         if(ex_opcode == `ysyx_22041412_store)begin //w mem
+            if_jr_ready<=0;
             mem_rw_type<=1;
             mem_ram_en <=1;
             mem_reg_en <=0;
@@ -521,6 +560,7 @@ always@(posedge clk)begin
             mem_wdata  <=ex_rs2;
         end
         else if(ex_opcode == `ysyx_22041412_load)begin  //r mem 
+            if_jr_ready<=0;
             mem_rw_type<=0;
             mem_ram_en <=1;
             mem_reg_en <=1;
@@ -567,6 +607,7 @@ always@(posedge clk)begin
             mem_rw_type<=0;
             mem_ram_en <=0;
             mem_reg_en <=1;
+            if_jr_ready<=0;
             mem_addr   <=`ysyx_22041412_zero_word;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end

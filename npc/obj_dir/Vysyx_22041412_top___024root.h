@@ -103,20 +103,34 @@ VL_MODULE(Vysyx_22041412_top___024root) {
     // LOCAL SIGNALS
     // Anonymous structures to workaround compiler member-count bugs
     struct {
+        CData/*0:0*/ ysyx_22041412_top__DOT__r_valid;
         CData/*0:0*/ ysyx_22041412_top__DOT__r_ready;
         CData/*0:0*/ ysyx_22041412_top__DOT__w_valid;
         CData/*0:0*/ ysyx_22041412_top__DOT__w_ready;
+        CData/*7:0*/ ysyx_22041412_top__DOT__r_strb;
         CData/*7:0*/ ysyx_22041412_top__DOT__w_strb;
+        CData/*7:0*/ ysyx_22041412_top__DOT__r_len_i;
+        CData/*7:0*/ ysyx_22041412_top__DOT__w_len_i;
+        CData/*0:0*/ ysyx_22041412_top__DOT__if_ar_valid;
+        CData/*0:0*/ ysyx_22041412_top__DOT__if_ar_ready;
+        CData/*0:0*/ ysyx_22041412_top__DOT__if_ar_wen_w;
+        CData/*7:0*/ ysyx_22041412_top__DOT__if_ar_len;
+        CData/*7:0*/ ysyx_22041412_top__DOT__if_ar_size;
+        CData/*0:0*/ ysyx_22041412_top__DOT__mem_rw_valid;
+        CData/*0:0*/ ysyx_22041412_top__DOT__mem_rw_ready;
+        CData/*0:0*/ ysyx_22041412_top__DOT__mem_rw_wen;
+        CData/*7:0*/ ysyx_22041412_top__DOT__mem_rw_len;
+        CData/*7:0*/ ysyx_22041412_top__DOT__mem_rw_size;
         CData/*5:0*/ ysyx_22041412_top__DOT__pip_stall;
         CData/*0:0*/ ysyx_22041412_top__DOT__pip_rst;
         CData/*0:0*/ ysyx_22041412_top__DOT__id_wait;
         CData/*0:0*/ ysyx_22041412_top__DOT__ex_wait;
         CData/*0:0*/ ysyx_22041412_top__DOT__mem_wait;
         CData/*7:0*/ ysyx_22041412_top__DOT__if_r_strb;
-        CData/*0:0*/ ysyx_22041412_top__DOT__if_r_valid;
         CData/*0:0*/ ysyx_22041412_top__DOT__if_ready_o;
         CData/*0:0*/ ysyx_22041412_top__DOT__if_jr_ready;
         CData/*0:0*/ ysyx_22041412_top__DOT__if_wait;
+        CData/*0:0*/ ysyx_22041412_top__DOT__jar_end;
         CData/*1:0*/ ysyx_22041412_top__DOT__id_imm_V1Type;
         CData/*1:0*/ ysyx_22041412_top__DOT__id_imm_V2Type;
         CData/*4:0*/ ysyx_22041412_top__DOT__id_Ra;
@@ -151,7 +165,10 @@ VL_MODULE(Vysyx_22041412_top___024root) {
         CData/*1:0*/ ysyx_22041412_top__DOT__axi4__DOT__aw_next_state;
         CData/*1:0*/ ysyx_22041412_top__DOT__axi4__DOT__ar_state;
         CData/*1:0*/ ysyx_22041412_top__DOT__axi4__DOT__ar_next_state;
+        CData/*0:0*/ ysyx_22041412_top__DOT__IF_sram__DOT__valid_o;
         CData/*0:0*/ ysyx_22041412_top__DOT__ID_decode__DOT__I_type;
+    };
+    struct {
         CData/*0:0*/ ysyx_22041412_top__DOT__ID_decode__DOT__U_type;
         CData/*0:0*/ ysyx_22041412_top__DOT__ID_decode__DOT__R_type;
         CData/*0:0*/ ysyx_22041412_top__DOT__csr_reg__DOT__ready;
@@ -162,17 +179,19 @@ VL_MODULE(Vysyx_22041412_top___024root) {
         SData/*11:0*/ ysyx_22041412_top__DOT__csr;
         IData/*31:0*/ ysyx_22041412_top__DOT__axi_r_addr;
         IData/*31:0*/ ysyx_22041412_top__DOT__axi_w_addr;
+        IData/*31:0*/ ysyx_22041412_top__DOT__if_ar_addr;
+        IData/*31:0*/ ysyx_22041412_top__DOT__mem_rw_addr;
         IData/*31:0*/ ysyx_22041412_top__DOT__if_imm;
         IData/*31:0*/ ysyx_22041412_top__DOT__id_imm;
         IData/*31:0*/ ysyx_22041412_top__DOT__ex_imm;
         IData/*31:0*/ ysyx_22041412_top__DOT__mem_imm;
         IData/*31:0*/ ysyx_22041412_top__DOT__wb_imm;
-    };
-    struct {
         QData/*63:0*/ ysyx_22041412_top__DOT__axi_r_data;
         QData/*63:0*/ ysyx_22041412_top__DOT__axi_w_data;
+        QData/*63:0*/ ysyx_22041412_top__DOT__if_ar_data;
+        QData/*63:0*/ ysyx_22041412_top__DOT__mem_rw_r_data;
+        QData/*63:0*/ ysyx_22041412_top__DOT__mem_rw_w_data;
         QData/*63:0*/ ysyx_22041412_top__DOT__if_pc;
-        QData/*63:0*/ ysyx_22041412_top__DOT__if_dnpc;
         QData/*63:0*/ ysyx_22041412_top__DOT__id_pc;
         QData/*63:0*/ ysyx_22041412_top__DOT__id_imm_data;
         QData/*63:0*/ ysyx_22041412_top__DOT__id_rsB;
@@ -192,6 +211,7 @@ VL_MODULE(Vysyx_22041412_top___024root) {
         QData/*63:0*/ ysyx_22041412_top__DOT__wb_data;
         QData/*63:0*/ ysyx_22041412_top__DOT__wb_pc;
         QData/*63:0*/ ysyx_22041412_top__DOT__wb_dnpc;
+        QData/*63:0*/ ysyx_22041412_top__DOT__IF_sram__DOT__dnpc;
         QData/*63:0*/ ysyx_22041412_top__DOT__csr_reg__DOT__data_r;
         QData/*63:0*/ ysyx_22041412_top__DOT__csr_reg__DOT__data_w;
         QData/*63:0*/ ysyx_22041412_top__DOT__csr_reg__DOT__data;

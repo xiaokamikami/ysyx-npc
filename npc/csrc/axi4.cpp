@@ -100,7 +100,7 @@ static void ram_read(long long raddr, uint32_t *rdata) {
   if(raddr >= 0x80000000 & raddr<0x83000000 ){
     raddr=(raddr-CONFIG_MBASE);
     *rdata =  *(uint32_t *)(sram+raddr);
-    //printf("ram_read raddr %llx data %lx \n",raddr,*rdata);
+    //printf("ram_read raddr %llx data %x \n",raddr,*rdata);
   }
   else if(raddr >= 0x83000000 & raddr<0x88000000 ){
     *rdata = pmem_read(raddr, 4);

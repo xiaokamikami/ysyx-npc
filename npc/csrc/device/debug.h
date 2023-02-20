@@ -3,7 +3,7 @@
 #include "../color.h"
 //debug
 #define diff_en         //difftest开关
-#define vcd_en          //波形记录
+//#define vcd_en          //波形记录
 //#define end_time 200
 //device
 #define DEVICE_ENABLE 1
