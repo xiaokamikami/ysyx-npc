@@ -147,7 +147,7 @@ void sim_init() {                 //初始化
 
 //end
 uint64_t last_us=0;
-uint64_t debuge_pc=0;
+uint64_t debuge_pc=0;  //debug的时钟地点
 
 void updata_clk()    //刷新一次时钟与设备
 {
@@ -247,7 +247,8 @@ static int cmd_c()                //DIFFTEST
       ++same_pc;
       if(same_pc > 50) {
         printf("The pc No update many times \n");
-        assert(0);
+        is_exit =true;
+        //assert(0);
       }
     }
   }
@@ -255,7 +256,8 @@ static int cmd_c()                //DIFFTEST
     ++same_pc;
     if(same_pc > 50) {
       printf("The pc No update many times \n");
-      assert(0);
+      is_exit =true;
+      //assert(0);
     }
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){

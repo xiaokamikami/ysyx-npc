@@ -10,7 +10,7 @@ uint8_t sram[CONFIG_MSIZE];
 #define MAX_AXI_DATA_LEN 8
 //uint64_t *dram;
 
-void init_ram(char *img, long img_size){
+void init_ram(char *img, long img_size){  //加载程序到内存中
 
     assert(sram !=NULL);
     int ret;
@@ -54,6 +54,7 @@ bool axi_get_raddr(const axi_channel &axi, axi_addr_t &addr) {
   // 如果master发送valid，则读取读地址通道的读地址
   if (axi.ar.valid) {
     addr = axi.ar.addr;
+    //printf("axi ar channel fired addr = 0x%016lx, id = %d\n", axi.ar.addr, axi.ar.id);
     return true;
   }
   return false;
@@ -148,7 +149,13 @@ void dramsim3_helper_falling(axi_channel &axi) {
   axi.b.valid  = 0;
   axi.ar.ready = 0;
   axi.r.valid  = 0;
+  // RADDR: check whether the read request can be accepted
+  // 读地址，检测是否有读地址请求，并且dram能否接收请求，那么就接收读地址
+  if (axi_get_raddr(axi, raddr)) {
+    axi.ar.ready = 1;
 
+    //printf("try to accept read request to 0x%lx\n", raddr);
+  }
   // RDATA: if finished, we try the next rdata response
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
   if (axi.r.ready==1) {
@@ -162,14 +169,8 @@ void dramsim3_helper_falling(axi_channel &axi) {
       axi.r.id = 0;
       //printf("[axi ar]addr=%lx ,data=%x \n",raddr,data);
   }
-  // RADDR: check whether the read request can be accepted
-  // 读地址，检测是否有读地址请求，并且dram能否接收请求，那么就接收读地址
 
-  if (axi_get_raddr(axi, raddr)) {
-    axi.ar.ready = 1;
 
-    //printf("try to accept read request to 0x%lx\n", raddr);
-  }
 
   // WREQ: check whether the write request can be accepted
   // Note: block the next write here to simplify logic

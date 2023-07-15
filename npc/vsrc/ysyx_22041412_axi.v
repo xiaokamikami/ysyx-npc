@@ -139,104 +139,6 @@ module ysyx_22041412_axi # (
     input  [AXI_USER_WIDTH-1:0]         axi_r_user_i   // 用户定义信号
 );
     
-
-    // ------------------State Machine------------------TODO
-    
-    // 写通道状态切换
-    
-    reg[1:0] aw_state;
-    reg[1:0] aw_next_state;
-
-    always@(posedge clk)begin
-      if(rst == `ysyx_22041412_RstEnable)begin
-        aw_state <= `IDLE;
-      end else begin
-        aw_state <= aw_next_state;
-      end
-    end
-
-    always@(*)begin
-      if(rst == `ysyx_22041412_RstEnable )begin
-        aw_next_state = `IDLE;
-      end 
-      else begin
-        case(aw_state)
-          `IDLE: begin
-          if(w_valid_i == `ysyx_22041412_True)begin
-              aw_next_state = `AWREADY;
-            end else begin
-              aw_next_state = `IDLE;
-            end
-          end
-          `AWREADY:  begin
-            if(axi_aw_ready_i == `ysyx_22041412_True)begin
-                aw_next_state = `WREADY;
-              end else begin
-                aw_next_state = `AWREADY;
-              end
-            end
-          `WREADY:   begin
-            if(axi_w_ready_i == `ysyx_22041412_True)begin
-                aw_next_state = `BVALID; 
-              end else begin
-                aw_next_state = `WREADY;
-              end
-            end
-          `BVALID:   begin
-            if(w_ready_o == `ysyx_22041412_True)begin    
-                aw_next_state = `IDLE; 
-              end else begin
-                aw_next_state = `BVALID; 
-              end
-            end
-          default: aw_next_state = `IDLE;
-          endcase
-        end
-    end
-
-    // 读通道状态切换
-    reg[1:0] ar_state;
-    reg[1:0] ar_next_state;
-
-    always@(posedge clk)begin
-      if(rst == `ysyx_22041412_RstEnable)begin
-        ar_state <= `IDLE;
-      end else begin
-        ar_state <= ar_next_state;
-      end
-    end
-    
-    //next state
-    always@(*)begin
-      if(rst == `ysyx_22041412_RstEnable)begin
-        ar_next_state = `IDLE;
-      end else begin
-        case(ar_state)
-        `IDLE: begin
-          if(r_valid_i == `ysyx_22041412_True)begin
-            ar_next_state = `ARREADY;
-          end else begin
-            ar_next_state = `IDLE;
-          end
-        end
-        `ARREADY:  begin
-          if(axi_ar_ready_i == `ysyx_22041412_True)begin
-            ar_next_state = `RVALID;
-          end else begin
-            ar_next_state = `ARREADY;
-          end
-        end
-        `RVALID:   begin
-          if(axi_r_valid_i == `ysyx_22041412_False && axi_r_ready_o == `ysyx_22041412_False && r_ready_o == `ysyx_22041412_True)begin
-            ar_next_state = `IDLE;
-          end else begin
-            ar_next_state = `RVALID;
-            end
-          end
-        default: ar_next_state = `IDLE;
-        endcase
-      end
-    end
     // ------------------Write Transaction------------------
     parameter AXI_SIZE      = $clog2(AXI_DATA_WIDTH / 8);
     wire [AXI_ID_WIDTH-1:0] axi_id              = {AXI_ID_WIDTH{1'b0}};
@@ -278,104 +180,52 @@ module ysyx_22041412_axi # (
     assign axi_ar_id_o      = axi_id;                                                                           //初始化信号即可                        
     assign axi_ar_user_o    = axi_user;                                                                         //初始化信号即可
     //assign axi_ar_len_o     = axi_len;                                                                          
-    //assign axi_ar_size_o    = axi_size;
-    //assign axi_ar_burst_o   = `AXI_BURST_TYPE_INCR;
+    assign axi_ar_size_o    = `AXI_SIZE_BYTES_32;
+    assign axi_ar_burst_o   = `AXI_BURST_TYPE_INCR;
     assign axi_ar_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_ar_cache_o   = `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;                                 //初始化信号即可
     assign axi_ar_qos_o     = 4'h0;                                                                             //初始化信号即可
-
+    assign axi_ar_addr_o    = r_addr_i;
     // Read data channel signals
     //assign axi_r_ready_o    = r_state_read;
-    always@(posedge clk)begin  
-        if(rst == `ysyx_22041412_RstEnable )begin
-            //Interface with AXI Adress Write Chanal
-            axi_ar_len_o    <=  r_len_i;//uncertain
-            axi_ar_size_o   <=  'b0;
-            axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR; 
-            axi_ar_cache_o  <=  `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-            axi_ar_valid_o  <=  `ysyx_22041412_False;
-            axi_ar_addr_o   <=  'b0;
-            //Interface with AXI Date  Write Chanal
-           // axi_r_strb_o    <=  r_size_i;
-            axi_r_ready_o   <=  `ysyx_22041412_False;
-            r_ready_o       <=  `ysyx_22041412_False;
-            data_read_o     <=  `ysyx_22041412_zero_word;
+    
+    /* =============================读地址通道=========================== */
+    reg axi_ar_valid;  //地址传输成功标志位
+    always @(posedge clk) begin
+      if (rst) begin
+        axi_ar_valid_o  <= 1'b0;
+      end else if (r_valid_i ) begin
+        if (axi_ar_ready_i && axi_r_ready_o) begin  // 读地址通道ready和valid均为高则握手后拉低
+          axi_ar_valid_o <= 1'b0;
+          axi_ar_valid   <= 1;
         end else begin
-            case(ar_state)
-            `IDLE: begin         
-                axi_r_ready_o   <=  `ysyx_22041412_False;                                                                  
-                data_read_o     <=  data_read_o;
-                r_ready_o       <=  `ysyx_22041412_False;
-                if( r_valid_i == `ysyx_22041412_True)begin
-                    //Interface with AXI Adress Read            Chanal
-                    axi_ar_len_o    <= r_len_i;//uncertain;   
-                    if (r_size_i == 8'b0001 || r_size_i == 8'b0010 || r_size_i == 8'b0100 || r_size_i == 8'b1000 ||
-                        r_size_i == 8'b00010000 || r_size_i == 8'b00100000 || r_size_i == 8'b01000000 || r_size_i == 8'b10000000) begin
-                        axi_ar_size_o   <=  `AXI_SIZE_BYTES_1;
-                    end else if (r_size_i == 8'b00000011 || r_size_i == 8'b00001100 ||r_size_i == 8'b11000000 || r_size_i == 8'b00110000) begin
-                        axi_ar_size_o   <=  `AXI_SIZE_BYTES_2;
-                    end else if (r_size_i == 8'b00001111 || r_size_i == 8'b11110000)begin
-                        axi_ar_size_o   <=  `AXI_SIZE_BYTES_4;
-                    end else 
-                        axi_ar_size_o   <=  `AXI_SIZE_BYTES_8;
-
-                    //axi_ar_size_o   <=  3'b011;//r_size_i;
-                    
-                    axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR; 
-                    axi_ar_cache_o  <= `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-                    axi_ar_valid_o  <= `ysyx_22041412_True;
-                    axi_ar_addr_o   <= r_addr_i; 
-                end 
-                else begin  
-                    axi_ar_len_o    <= r_len_i;//uncertain;     
-                    axi_ar_size_o   <=  'b0;
-                    axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR; 
-                    axi_ar_cache_o  <= `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-                    axi_ar_valid_o  <= `ysyx_22041412_False;
-                    axi_ar_addr_o   <= 32'b0; 
-                end
-            end
-            `ARREADY:  begin
-                if(axi_ar_ready_i == `ysyx_22041412_True)begin  //
-                //Interface with AXI Adress Read            Chanal
-                    axi_ar_addr_o   <=  32'b0;
-                    axi_ar_len_o    <=  r_len_i;//uncertain
-                    axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR;
-                    axi_ar_cache_o  <=  `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-                    axi_ar_valid_o  <=  `ysyx_22041412_False;
-                //Interface with AXI Date   Read            Chanal
-                    axi_r_ready_o   <=  `ysyx_22041412_True;
-                end 
-                else begin
-                    axi_ar_addr_o   <=  axi_ar_addr_o;
-                    axi_ar_len_o    <=  r_len_i;//uncertain
-                    axi_ar_burst_o  <=  `AXI_BURST_TYPE_INCR;
-                    axi_ar_cache_o  <=  `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;
-                    axi_ar_valid_o  <=  `ysyx_22041412_True;
-                //Interface with AXI Date   Read            Chanal
-                    axi_r_ready_o   <=  `ysyx_22041412_False;
-                end
-            end
-            `RVALID:  begin
-                
-                if(axi_r_valid_i == `ysyx_22041412_True && axi_r_last_i == `ysyx_22041412_True && axi_r_ready_o == `ysyx_22041412_True)begin
-                    r_ready_o <= axi_r_valid_i;
-                    data_read_o <= axi_r_data_i;
-                    axi_r_ready_o <= `ysyx_22041412_False;
-                    //rresp<= axi_r_resp_i   ; 
-                end else if((axi_ar_len_o!=0)&&axi_r_valid_i == `ysyx_22041412_True) begin
-                    data_read_o <= axi_r_data_i;
-                    r_ready_o <= axi_r_valid_i;
-                end else if(axi_r_valid_i == `ysyx_22041412_False //read response
-                    && axi_r_ready_o == `ysyx_22041412_False 
-                    && r_ready_o == `ysyx_22041412_True) begin 
-                    r_ready_o  <= `ysyx_22041412_False;
-                     //           <= axi_r_resp_i   ;           
-                end
-            end
-            default:;
-            endcase
-            
+          axi_ar_valid_o <= 1'b1;
+          axi_ar_valid   <= 0;
         end
+      end else axi_ar_valid<=0;
     end
+    /* =============================读数据通道=========================== */
+    always @(posedge clk) begin
+      if (rst) begin
+        axi_r_ready_o <= 1'b0;
+        r_ready_o       <= 1'b0;
+        data_read_o <= 0;
+      end else if (r_valid_i) begin  // 从设备给出的数据有效即rvalid拉高
+        if (axi_r_last_i && axi_r_valid_i ) begin // 完成数据传输
+          axi_r_ready_o <= 1'b0;
+          r_ready_o     <= 1'b1;
+          data_read_o   <= axi_r_data_i;
+          end else begin             // 保持接收
+          axi_r_ready_o <= 1'b1;
+          r_ready_o     <= 1'b0;
+          data_read_o   <= 0;
+        end
+      end else begin 
+        r_ready_o       <= 1'b0;
+        data_read_o     <= 0;
+      end
+    end
+
+
+
 endmodule

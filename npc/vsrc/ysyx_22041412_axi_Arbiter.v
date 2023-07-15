@@ -29,7 +29,7 @@ module ysyx_22041412_axi_Arbiter #(
 // axi
     output                               r_valid_i,          //读请求
     output                               w_valid_i,          //写请求
-	input                                r_ready_o,          //读数据结束
+	  input                                r_ready_o,          //读数据结束
     input                                w_ready_o,          //写数据结束
     input   [AXI_DATA_WIDTH-1:0]         data_read_o,        //数据输出
     output  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
@@ -40,95 +40,86 @@ module ysyx_22041412_axi_Arbiter #(
     output  [7:0]                        r_len_i,            //读突发长度
     output  [7:0]                        w_len_i             //写突发长度
 );
+`define AXI_IDLE         3'b000     //空闲
+`define MEMW             3'b001     //选通MEM写
+`define MEMR             3'b010     //选通MEM读
+`define IF               3'b100     //选通IF
+reg[2:0] switch;          //选择器状态  
+reg[2:0] next_switch;
 
-always @(posedge clk) begin
-  if(rst)begin
-    if_ar_ready<=0;
-    mem_rw_ready<=0;
+`define IDLE         2'b00  
+`define BUSY         2'b01     
+//`define DONE         2'b100     
+reg[1:0] state;       //状态机
+reg[1:0] next_state;
 
-    r_valid_i <=0;            //读请求
-    w_valid_i <=0;            //写请求
-    rw_w_data_i<=64'0;        //写数据
-    w_addr_i<=32'0;           //地址
-    r_addr_i<=32'0;           //地址
-    w_size_i<=8'b0;           //掩码
-    r_size_i<=8'b0;           //掩码
-    r_len_i<=8'b0;            //突发长度
-    w_len_i<=8'b0;            //突发长度
-  end
-  else begin
-    if(mem_rw_valid)begin                 
-        if(mem_rw_wen)begin      //MEM写
-            if(w_ready_o)begin    //写结束
-                w_addr_i    <=0;
-                rw_w_data_i <=0;
-                w_size_i    <=0;
-                w_len_i     <=0;
-
-                mem_rw_ready<=1;
-                w_valid_i   <=0;
-            end
-            else begin
-                w_addr_i    <=mem_rw_addr;
-                rw_w_data_i <=mem_rw_w_data;
-                w_size_i    <=mem_rw_size;
-                w_len_i     <=mem_rw_len;
-
-                mem_rw_ready<=0;
-                w_valid_i<=mem_rw_valid;
-            end
-        end
-        else begin                //MEM读
-            if(r_ready_o)begin      //读结束
-                mem_rw_r_data<= data_read_o;
-                r_size_i <=0;
-                r_len_i  <=0;
-
-                mem_rw_ready <=1;
-                r_valid_i<=0;   
-            end
-            else begin
-                r_addr_i <=mem_rw_addr;
-                r_size_i <=mem_rw_len;
-                r_len_i  <=mem_rw_size;
-
-                mem_rw_ready <=0;
-                r_valid_i<=mem_rw_valid;
-            end
-        end
+    always@(posedge clk)begin
+      if(rst )begin
+        state <= `IDLE;
+      end else begin
+        state <= next_state;
+        switch<= next_switch;
+      end
     end
-    else if(if_ar_valid)begin   //IF请求 只有读
-        if(r_ready_o)begin
-            if_ar_data<= data_read_o;
-
-            if_ar_ready <=1;
-            r_valid_i<=0;  
+    //next state
+    always@(*)begin
+      if(rst )begin
+        next_state  = `IDLE;
+        next_switch = 'b0000;
+      end else begin
+        case(state) //写入状态机的控制 
+        `IDLE: begin
+              if(mem_rw_valid & mem_rw_wen )begin    //基于1234顺序选择本次传输的对象
+                next_state  = `BUSY;
+                next_switch =  `MEMW;   
+              end else if(mem_rw_valid & ~mem_rw_wen )begin
+                next_state  = `BUSY;
+                next_switch =  `MEMR;
+              end 
+              else if(if_ar_valid)begin
+                next_state  = `BUSY;
+                next_switch = `IF;
+              end else begin   
+                next_state  = `IDLE;
+                next_switch = `AXI_IDLE;
+              end
         end
-        else begin
-            r_addr_i <=if_ar_addr;
-            r_size_i <=if_ar_len;
-            r_len_i  <=if_ar_size;
-
-            if_ar_ready <=0;
-            r_valid_i<=if_ar_valid;
-            
+        `BUSY:  begin                       //数据传输中
+          if(r_ready_o || w_ready_o )begin    
+            next_state = `IDLE;//ddr结束传输
+            next_switch= `AXI_IDLE;
+          end else begin
+            next_state = `BUSY;//传输状态
+            next_switch= switch;
+          end
         end
+        default: next_state = `IDLE;
+        endcase
+      end
     end
-    else begin  //没有请求
-        if_ar_ready<=0;
-        mem_rw_ready<=0;
 
-        r_valid_i <=0;            //读请求
-        w_valid_i <=0;            //写请求
-        rw_w_data_i<=64'0;        //写数据
-        w_addr_i<=32'0;           //地址
-        r_addr_i<=32'0;           //地址
-        w_size_i<=8'b0;           //掩码
-        r_size_i<=8'b0;           //掩码
-        r_len_i<=8'b0;            //突发长度
-        w_len_i<=8'b0;            //突发长度
-    end
-  end
-end
+
+assign if_ar_data  =(switch==`IF)   ?data_read_o: 0;
+assign if_ar_ready =(switch==`IF)   ?r_ready_o  : 0;
+
+assign mem_rw_ready=(switch==`MEMR )?r_ready_o:
+                    (switch==`MEMW )?w_ready_o: 0;
+
+//读通道
+assign r_valid_i   =(switch==`MEMR) ? mem_rw_valid :                //读请求
+                    (switch==`IF)   ? if_ar_valid  : 0;
+assign r_addr_i    =(switch==`MEMR) ? mem_rw_addr  :                //读地址
+                    (switch==`IF)   ? if_ar_addr   : 0;
+assign r_size_i    =(switch==`MEMR) ? mem_rw_size  : 
+                    (switch==`IF)   ? if_ar_size   : 0;
+assign r_len_i     =(switch==`MEMR) ? mem_rw_len   : 
+                    (switch==`IF)   ? if_ar_len    : 0;
+
+//写通道
+assign w_valid_i   =(switch == `MEMW)? mem_rw_valid : 0;            //写请求
+assign rw_w_data_i =(switch == `MEMW)? mem_rw_w_data: 0;            //写数据
+assign w_size_i    =(switch == `MEMW)? mem_rw_size  : 0;            //掩码
+assign w_addr_i    =(switch == `MEMW)? mem_rw_addr  : 0;            //地址
+assign w_len_i     =(switch == `MEMW)? mem_rw_len   : 0;            //突发长度
 
 endmodule

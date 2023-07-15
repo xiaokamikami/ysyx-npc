@@ -223,7 +223,7 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .if_ar_size(if_ar_size),
 
 // mem
-    .mem_rw_valid(mem_rw_valid),                           //MEM请求
+    .mem_rw_valid(mem_rw_valid),                         //MEM请求
     .mem_rw_ready(mem_rw_ready),
     .mem_rw_wen(mem_rw_wen),
     .mem_rw_r_data(mem_rw_r_data),
@@ -418,7 +418,7 @@ wire csr_ready_o;
 wire csr_stall;
 assign csr_stall = (!csr_ready_o&ex_csr_en)?1:0;
 assign csr_data_i = ex_v1;
-
+//数据旁路
 assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
                   (id_imm_V1Type==`ysyx_22041412_v1zim)?{{59{1'b0}},id_Ra}:
                       (id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
