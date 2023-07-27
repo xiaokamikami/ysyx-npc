@@ -6,7 +6,7 @@
 #include "ref.h"
 #include "memory.h"
 
-#include "Vysyx_22041412_cpu.h"
+#include "Vysyx_22041412_top.h"
 typedef uint64_t paddr_t;
 
 #define PG_ALIGN __attribute((aligned(4096)))
@@ -17,7 +17,7 @@ uint8_t pmem[CONFIG_MSIZE]= {};
 
 #endif
 
-extern Vysyx_22041412_cpu *top;
+extern Vysyx_22041412_top *top;
 // pmem_read
 paddr_t host_read(void *addr, int len);
 uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }

@@ -6,7 +6,7 @@ export MAKEFLAGS += -j$(nproc)
 FILELIST_MK = $(shell find ./csrc -name "filelist.mk")
 include $(FILELIST_MK)
 
-TOPNAME = ysyx_22041412_cpu
+TOPNAME = ysyx_22041412_top
 OBJ_DIR = /obj_dir/*.*
 NPC_HOME = /home/kami/ysyx-workbench/npc
 BIN = $(NPC_HOME)/vsrc/$(TOPNAME)
@@ -15,10 +15,10 @@ BIN = $(NPC_HOME)/vsrc/$(TOPNAME)
 VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.*v
 CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp" -or -name "*.cc")
 CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
-VSRCS_INC = $(shell find $(abspath ./vsrc) -name "*.v")
-
+VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
+#--threads {$(2)}
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace \
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads {$(2)}\
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
 
@@ -37,7 +37,7 @@ compile:
 	make -C $(NPC_HOME)/obj_dir -j -f V$(TOPNAME).mk  V$(TOPNAME) 
 
 run:
-	./obj_dir/Vysyx_22041412_cpu 
+	./obj_dir/Vysyx_22041412_top
 
 clean:
 	rm obj_dir/*.*

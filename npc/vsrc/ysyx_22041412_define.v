@@ -48,3 +48,7 @@
 `define     ysyx_22041412_v1rsa         2'b00
 
 `define     ysyx_22041412_mulen         1'b1
+
+`define     ysyx_22041412_RstEnable     1'b1
+`define     ysyx_22041412_True          1'b1
+`define     ysyx_22041412_False         1'b0

@@ -14,5 +14,5 @@ typedef struct Pixel
 } Pixel;
 
 void init_vga();
-void inline update_vga();
+void update_vga();
 #endif

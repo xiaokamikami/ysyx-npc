@@ -42,9 +42,9 @@ void device_update() {
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
       case SDL_QUIT:
-        //sdl_exit=1;
+        sdl_exit=1;
         printf("Device :SDL_QUIT \n ");
-        exit_now();
+        //exit_now();
         break;
     #ifdef CONFIG_HAS_KEYBOARD
       // If a key was pressed

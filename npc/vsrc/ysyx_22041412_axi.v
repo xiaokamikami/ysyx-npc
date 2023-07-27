@@ -1,5 +1,5 @@
 
-`include "ysyx_22041412_define.v"
+`include "vsrc/ysyx_22041412_define.v"
 
 // Burst types
 `define AXI_BURST_TYPE_FIXED                                2'b00               //突发类型  FIFO
@@ -48,87 +48,97 @@
 `define AXI_SIZE_BYTES_64                                   3'b110
 `define AXI_SIZE_BYTES_128                                  3'b111
 
+`define IDLE         2'b00      //AXI空闲
 
-module ysyx_22041412_axi_rw # (
-    parameter RW_DATA_WIDTH     = 64,
-    parameter RW_ADDR_WIDTH     = 32,
+`define AWREADY      2'b01      
+`define WREADY       2'b10      
+`define BVALID       2'b11
+
+`define ARREADY      2'b01      
+`define RVALID       2'b10
+
+
+
+module ysyx_22041412_axi # (
     parameter AXI_DATA_WIDTH    = 64,
     parameter AXI_ADDR_WIDTH    = 32,
     parameter AXI_ID_WIDTH      = 4,
     parameter AXI_STRB_WIDTH    = AXI_DATA_WIDTH/8,
     parameter AXI_USER_WIDTH    = 1
 )(
-    input                               clock,
-    input                               reset,
+    input                               clk,
+    input                               rst,
 
-	input                               rw_valid_i,         //IF&MEM输入信号
-	output                              rw_ready_o,         //IF&MEM输入信号
-    output reg [RW_DATA_WIDTH-1:0]      data_read_o,        //IF&MEM输入信号
-    input  [RW_DATA_WIDTH-1:0]          rw_w_data_i,        //IF&MEM输入信号
-    input  [RW_ADDR_WIDTH-1:0]          rw_addr_i,          //IF&MEM输入信号
-    input  [7:0]                        rw_size_i,          //IF&MEM输入信号
+    //Interface with CPU
+    input                               r_valid_i,          //读请求
+    input                               w_valid_i,          //写请求
+	  output reg                          r_ready_o,          //读数据结束
+    output reg                          w_ready_o,          //写数据结束
+    output reg [AXI_DATA_WIDTH-1:0]     data_read_o,        //数据输出
+    input  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
+    input  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //地址
+    input  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //地址
+    input  [7:0]                        w_size_i,           //掩码
+    input  [7:0]                        r_size_i,           //掩码
+    input  [7:0]                        r_len_i,            //突发长度
+    input  [7:0]                        w_len_i,            //突发长度
+ 
+    // Advanced eXtensible Interface    AXI4总线接口
+    // 写地址通道
+    input                               axi_aw_ready_i,  // 从设备已准备好接收地址和相关的控制信号
+    output                              axi_aw_valid_o,  // 主设备给出的地址和相关的控制信号有效
+    output [AXI_ADDR_WIDTH-1:0]         axi_aw_addr_o,   // 写地址
+    output [2:0]                        axi_aw_prot_o,   // 保护类型
+    output [AXI_ID_WIDTH-1:0]           axi_aw_id_o,     // 写地址ID
+    output [AXI_USER_WIDTH-1:0]         axi_aw_user_o,   // 用户定义信号
+    output [7:0]                        axi_aw_len_o,    // 突发长度
+    output [2:0]                        axi_aw_size_o,   // 突发大小
+    output [1:0]                        axi_aw_burst_o,  // 突发类型
+    output                              axi_aw_lock_o,   // 原子锁类型
+    output [3:0]                        axi_aw_cache_o,  // 存储器类型
+    output [3:0]                        axi_aw_qos_o,    // 服务质量
+    output [3:0]                        axi_aw_region_o, // 区域标识符
 
+    // 写数据通道
+    input                               axi_w_ready_i, // 从设备已准备好接收数据和字节选通信号
+    output                              axi_w_valid_o, // 主设备给出的数据和字节选通信号有效
+    output [AXI_DATA_WIDTH-1:0]         axi_w_data_o,  // 写出的数据
+    output [AXI_STRB_WIDTH-1:0]         axi_w_strb_o,  // 数据的字节选通信号
+    output                              axi_w_last_o,  // 标识是否是最后一次突发传输
+    output [AXI_USER_WIDTH-1:0]         axi_w_user_o,  // 用户定义信号
 
+    // 写响应通道
+    output                              axi_b_ready_o, // 主设备已准备好接收写响应信号
+    input                               axi_b_valid_i, // 从设备给出的写响应信号有效
+    input  [1:0]                        axi_b_resp_i,  // 写传输的状态
+    input  [AXI_ID_WIDTH-1:0]           axi_b_id_i,    // 写响应ID
+    input  [AXI_USER_WIDTH-1:0]         axi_b_user_i,  // 用户定义信号
 
-    // Advanced eXtensible Interface
-    input                               axi_aw_ready_i,              
-    output                              axi_aw_valid_o,
-    output [AXI_ADDR_WIDTH-1:0]         axi_aw_addr_o,
-    output [2:0]                        axi_aw_prot_o,
-    output [AXI_ID_WIDTH-1:0]           axi_aw_id_o,
-    output [AXI_USER_WIDTH-1:0]         axi_aw_user_o,
-    output [7:0]                        axi_aw_len_o,
-    output [2:0]                        axi_aw_size_o,
-    output [1:0]                        axi_aw_burst_o,
-    output                              axi_aw_lock_o,
-    output [3:0]                        axi_aw_cache_o,
-    output [3:0]                        axi_aw_qos_o,
-    output [3:0]                        axi_aw_region_o,
+    // 读地址通道
+    input                               axi_ar_ready_i,  // 从设备已经准备好接收地址和相关信息
+    output                              axi_ar_valid_o,  // 主设备给出的地址和相关信息有效
+    output [AXI_ADDR_WIDTH-1:0]         axi_ar_addr_o,   // 读地址
+    output [2:0]                        axi_ar_prot_o,   // 保护类型
+    output [AXI_ID_WIDTH-1:0]           axi_ar_id_o,     // 读地址ID
+    output [AXI_USER_WIDTH-1:0]         axi_ar_user_o,   // 用户定义信号
+    output [7:0]                        axi_ar_len_o,    // 突发长度
+    output [2:0]                        axi_ar_size_o,   // 突发大小（每次突发传输的大小）
+    output [1:0]                        axi_ar_burst_o,  // 突发类型
+    output                              axi_ar_lock_o,   // 原子锁类型
+    output [3:0]                        axi_ar_cache_o,  // 存储器类型
+    output [3:0]                        axi_ar_qos_o,    // 服务质量
+    output [3:0]                        axi_ar_region_o, // 区域标识符
 
-    input                               axi_w_ready_i,                
-    output                              axi_w_valid_o,
-    output [AXI_DATA_WIDTH-1:0]         axi_w_data_o,
-    output [AXI_DATA_WIDTH/8-1:0]       axi_w_strb_o,
-    output                              axi_w_last_o,
-    output [AXI_USER_WIDTH-1:0]         axi_w_user_o,
-    
-    output                              axi_b_ready_o,                
-    input                               axi_b_valid_i,
-    input  [1:0]                        axi_b_resp_i,                 
-    input  [AXI_ID_WIDTH-1:0]           axi_b_id_i,
-    input  [AXI_USER_WIDTH-1:0]         axi_b_user_i,
-
-    input                               axi_ar_ready_i,                
-    output                              axi_ar_valid_o,
-    output [AXI_ADDR_WIDTH-1:0]         axi_ar_addr_o,
-    output [2:0]                        axi_ar_prot_o,
-    output [AXI_ID_WIDTH-1:0]           axi_ar_id_o,
-    output [AXI_USER_WIDTH-1:0]         axi_ar_user_o,
-    output [7:0]                        axi_ar_len_o,
-    output [2:0]                        axi_ar_size_o,
-    output [1:0]                        axi_ar_burst_o,
-    output                              axi_ar_lock_o,
-    output [3:0]                        axi_ar_cache_o,
-    output [3:0]                        axi_ar_qos_o,
-    output [3:0]                        axi_ar_region_o,
-    
-    output                              axi_r_ready_o,                 
-    input                               axi_r_valid_i,                
-    input  [1:0]                        axi_r_resp_i,
-    input  [AXI_DATA_WIDTH-1:0]         axi_r_data_i,
-    input                               axi_r_last_i,
-    input  [AXI_ID_WIDTH-1:0]           axi_r_id_i,
-    input  [AXI_USER_WIDTH-1:0]         axi_r_user_i
+    // 读数据通道
+    output                              axi_r_ready_o, // 主设备已经准备好接收读取的数据和响应信息
+    input                               axi_r_valid_i, // 从设备给出的数据和响应信息有效
+    input  [1:0]                        axi_r_resp_i,  // 读传输的状态
+    input  [AXI_DATA_WIDTH-1:0]         axi_r_data_i,  // 读出的数据
+    input                               axi_r_last_i,  // 标识是否是最后一次突发传输
+    input  [AXI_ID_WIDTH-1:0]           axi_r_id_i,    // 读数据ID
+    input  [AXI_USER_WIDTH-1:0]         axi_r_user_i   // 用户定义信号
 );
     
-    // ------------------State Machine------------------TODO
-    
-    // 写通道状态切换
-    
-
-    // 读通道状态切换
-    
-
     // ------------------Write Transaction------------------
     parameter AXI_SIZE      = $clog2(AXI_DATA_WIDTH / 8);
     wire [AXI_ID_WIDTH-1:0] axi_id              = {AXI_ID_WIDTH{1'b0}};
@@ -136,13 +146,13 @@ module ysyx_22041412_axi_rw # (
     wire [7:0] axi_len      =  8'b0 ;
     wire [2:0] axi_size     = AXI_SIZE[2:0];
     // 写地址通道  以下没有备注初始化信号的都可能是你需要产生和用到的
-    assign axi_aw_valid_o   = w_state_addr;
-    assign axi_aw_addr_o    = rw_addr_i;
+    assign axi_aw_valid_o   = 0;
+    assign axi_aw_addr_o    = 0;
     assign axi_aw_prot_o    = `AXI_PROT_UNPRIVILEGED_ACCESS | `AXI_PROT_SECURE_ACCESS | `AXI_PROT_DATA_ACCESS;  //初始化信号即可
     assign axi_aw_id_o      = axi_id;                                                                           //初始化信号即可
     assign axi_aw_user_o    = axi_user;                                                                         //初始化信号即可
-    assign axi_aw_len_o     = axi_len;
-    assign axi_aw_size_o    = axi_size;
+    assign axi_aw_len_o     = 0;
+    assign axi_aw_size_o    = 0;
     assign axi_aw_burst_o   = `AXI_BURST_TYPE_INCR;                                                             
     assign axi_aw_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_aw_cache_o   = `AXI_AWCACHE_WRITE_BACK_READ_AND_WRITE_ALLOCATE;                                  //初始化信号即可
@@ -150,31 +160,72 @@ module ysyx_22041412_axi_rw # (
     assign axi_aw_region_o  = 4'h0;                                                                             //初始化信号即可
 
     // 写数据通道
-    assign axi_w_valid_o    = w_state_write;
-    assign axi_w_data_o     = rw_w_data_i ;
-    assign axi_w_strb_o     = rw_size_i;
-    assign axi_w_last_o     = 1'b0;
+    //assign axi_w_valid_o    = w_state_write;
+    //assign axi_w_data_o     = rw_w_data_i ;
+    //assign axi_w_strb_o     = rw_size_i;
+    //assign axi_w_last_o     = 1'b0;
     assign axi_w_user_o     = axi_user;                                                                         //初始化信号即可
 
     // 写应答通道
-    assign axi_b_ready_o    = w_state_resp;
+    //assign axi_b_ready_o    = w_state_resp;
+
+
 
     // ------------------Read Transaction------------------
 
     // Read address channel signals
-    assign axi_ar_valid_o   = r_state_addr;
-    assign axi_ar_addr_o    = rw_addr_i;
+    //assign axi_ar_valid_o   = r_state_addr;
+    //assign axi_ar_addr_o    = rw_addr_i;
     assign axi_ar_prot_o    = `AXI_PROT_UNPRIVILEGED_ACCESS | `AXI_PROT_SECURE_ACCESS | `AXI_PROT_DATA_ACCESS;  //初始化信号即可
     assign axi_ar_id_o      = axi_id;                                                                           //初始化信号即可                        
     assign axi_ar_user_o    = axi_user;                                                                         //初始化信号即可
-    assign axi_ar_len_o     = axi_len;                                                                          
-    assign axi_ar_size_o    = axi_size;
+    //assign axi_ar_len_o     = axi_len;                                                                          
+    assign axi_ar_size_o    = `AXI_SIZE_BYTES_32;
     assign axi_ar_burst_o   = `AXI_BURST_TYPE_INCR;
     assign axi_ar_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_ar_cache_o   = `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;                                 //初始化信号即可
     assign axi_ar_qos_o     = 4'h0;                                                                             //初始化信号即可
-
+    assign axi_ar_addr_o    = r_addr_i;
     // Read data channel signals
-    assign axi_r_ready_o    = r_state_read;
+    //assign axi_r_ready_o    = r_state_read;
+    
+    /* =============================读地址通道=========================== */
+    reg axi_ar_valid;  //地址传输成功标志位
+    always @(posedge clk) begin
+      if (rst) begin
+        axi_ar_valid_o  <= 1'b0;
+      end else if (r_valid_i ) begin
+        if (axi_ar_ready_i && axi_r_ready_o) begin  // 读地址通道ready和valid均为高则握手后拉低
+          axi_ar_valid_o <= 1'b0;
+          axi_ar_valid   <= 1;
+        end else begin
+          axi_ar_valid_o <= 1'b1;
+          axi_ar_valid   <= 0;
+        end
+      end else axi_ar_valid<=0;
+    end
+    /* =============================读数据通道=========================== */
+    always @(posedge clk) begin
+      if (rst) begin
+        axi_r_ready_o <= 1'b0;
+        r_ready_o       <= 1'b0;
+        data_read_o <= 0;
+      end else if (r_valid_i) begin  // 从设备给出的数据有效即rvalid拉高
+        if (axi_r_last_i && axi_r_valid_i ) begin // 完成数据传输
+          axi_r_ready_o <= 1'b0;
+          r_ready_o     <= 1'b1;
+          data_read_o   <= axi_r_data_i;
+          end else begin             // 保持接收
+          axi_r_ready_o <= 1'b1;
+          r_ready_o     <= 1'b0;
+          data_read_o   <= 0;
+        end
+      end else begin 
+        r_ready_o       <= 1'b0;
+        data_read_o     <= 0;
+      end
+    end
+
+
 
 endmodule

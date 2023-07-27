@@ -9,6 +9,9 @@ module ysyx_22041412_alu(
   input func7,
   input mul_en,
   input ready_i,
+  
+
+
   output stall,
   output [63:0]result
   );

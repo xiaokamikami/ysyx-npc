@@ -1,5 +1,5 @@
 //#include Begin
-#include "../obj_dir/Vysyx_22041412_cpu.h"
+#include "../obj_dir/Vysyx_22041412_top.h"
 #include "verilated_vcd_c.h"
 #include "verilated_dpi.h"
 #include "color.h"
@@ -39,7 +39,7 @@ struct SPIK_state
 
 VerilatedContext *contextp = NULL;
 VerilatedVcdC* tfp = new VerilatedVcdC;
-Vysyx_22041412_cpu *top = new Vysyx_22041412_cpu("ysyx_22041412_cpu");
+Vysyx_22041412_top *top = new Vysyx_22041412_top("ysyx_22041412_top");
 uint64_t *cpu_gpr = NULL;
 uint64_t *csr_gpr = NULL;
 bool is_exit = false;
@@ -75,22 +75,11 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 
-extern "C" void ram_read(long long raddr, uint32_t *rdata) {
-  if(raddr >= 0x80000000 & raddr<0x83000000 ){
-    raddr=(raddr-CONFIG_MBASE);
-    *rdata =  *(uint32_t *)(sram+raddr);
-    //printf("ram_read raddr %llx data %lx \n",raddr,*rdata);
-  }
-  else if(raddr >= 0x83000000 & raddr<0x88000000 ){
-    *rdata = pmem_read(raddr, 4);
-  }
-  else assert(raddr<0x88000000);
-}
 
 extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
   //if(raddr!=0)printf("mem_read %llx \n",raddr);
   if(raddr >= 0x80000000 & raddr<0x88000000 ){
-    // 8×Ö½Ú¶ÔÆë
+    // 8å­—èŠ‚å¯¹é½
     *rdata = pmem_read((raddr & ~0x7ull), 8);
     uint8_t offset = raddr-(raddr & ~0x7ull);
     //mask
@@ -100,7 +89,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     //printf("get ram :%llx\n",*rdata);
   }
-  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //ÍâÉè¶Î
+  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //å¤–è®¾æ®µ
   {
     switch (raddr)
     {
@@ -118,7 +107,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
     }
     #ifdef diff_en
       spik.num=spik.num+1;
-      spik.pc[spik.num]=top->MEM_PC;
+      spik.pc[spik.num]=top->pip_mem_pc;
     #endif
   }
   else if(raddr !=0){
@@ -129,7 +118,7 @@ extern "C" void mem_read(long long raddr, uint64_t *rdata) {
 extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
   uint8_t bits_set = get_bit(wmask);
   if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    pmem_write((waddr), bits_set, wdata);     //Ð´Èë²»¶ÔÆë
+    pmem_write((waddr), bits_set, wdata);     //å†™å…¥ä¸å¯¹é½
   }
   else if(waddr == SERIAL_PORT ){
     //printf("npc-usart\n");
@@ -149,7 +138,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 
 
 
-void sim_init() {                 //³õÊ¼»¯
+void sim_init() {                 //åˆå§‹åŒ–
   contextp = new VerilatedContext;
   contextp->traceEverOn(true);
   top->trace(tfp,0);
@@ -158,9 +147,9 @@ void sim_init() {                 //³õÊ¼»¯
 
 //end
 uint64_t last_us=0;
-uint64_t debuge_pc=0;
+uint64_t debuge_pc=0;  //debugçš„æ—¶é’Ÿåœ°ç‚¹
 
-void updata_clk()    //Ë¢ÐÂÒ»´ÎÊ±ÖÓÓëÉè±¸
+void updata_clk()    //åˆ·æ–°ä¸€æ¬¡æ—¶é’Ÿä¸Žè®¾å¤‡
 {
   top->clk = !(top->clk);
   top->eval();
@@ -174,8 +163,18 @@ void updata_clk()    //Ë¢ÐÂÒ»´ÎÊ±ÖÓÓëÉè±¸
       //
     }
   #endif 
+  axi_channel axi;
+  if (top->clk == 0) {
+    axi_copy_from_dut_ptr(top, axi);
+    dramsim3_helper_rising(axi);
+  }
+  else {
+    axi_copy_from_dut_ptr(top, axi);
+    dramsim3_helper_falling(axi);
+    axi_set_dut_ptr(top, axi);
+  }
   main_time++; 
-  //¿ØÖÆÖ¡Êý
+  //æŽ§åˆ¶å¸§æ•°
   main_time_us=get_time(); 
   //main_time_us=main_clk_value/100;
   #ifdef DEVICE_ENABLE
@@ -185,15 +184,8 @@ void updata_clk()    //Ë¢ÐÂÒ»´ÎÊ±ÖÓÓëÉè±¸
   //}  
   #endif
 
-  cmd_c();
+  cmd_c();//è®°å½•æŒ‡ä»¤çš„å˜åŒ–
   
-}
-
-
-
-double sc_time_stamp()
-{
-  return main_time;
 }
 
 static void top_clk()
@@ -228,39 +220,45 @@ static int cmd_c()                //DIFFTEST
   static bool bubble;
   static paddr_t pc;
   static paddr_t npc;        
-  pc = top->CP_PC;
-  npc = top->CP_NPC;
+  pc = top->pip_pc;
+  npc = top->pip_dnpc;
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
-    if(last_pc != top->CP_PC){
+    if(last_pc != top->pip_pc){
       #ifdef diff_en
-      for(int i = 0; i < 32; i++) {
-        cpureg.gpr[i] = cpu_gpr[i];
-        cpureg.pc=npc;
-      }// sp regs are used for addtion
-      if(spik.pc[spik.num] ==pc & spik.num>0 )  {
-        difftest_skip_ref();
-        spik.pc[spik.num]=0;
-        spik.num=spik.num-1;
-      }
-      else difftest_step(pc, npc);
-      contextp->timeInc(1);
+        for(int i = 0; i < 32; i++) {
+          cpureg.gpr[i] = cpu_gpr[i];
+          cpureg.pc=npc;
+        }// sp regs are used for addtion
+        if(spik.pc[spik.num] ==pc & spik.num>0 )  {
+          difftest_skip_ref();
+          spik.pc[spik.num]=0;
+          spik.num=spik.num-1;
+        }
+        else difftest_step(pc, npc);
+        contextp->timeInc(1);
       #endif
       //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
-    last_pc=top->CP_PC;
+    last_pc=top->pip_pc;
     main_dir_value++;
     same_pc = 0; 
     }
     else {
       ++same_pc;
-      if(same_pc > 10) {
+      if(same_pc > 50) {
         printf("The pc No update many times \n");
-        assert(0);
+        is_exit =true;
+        //assert(0);
       }
-      
     }
-
-
+  }
+  else if(pc==0){
+    ++same_pc;
+    if(same_pc > 50) {
+      printf("The pc No update many times \n");
+      is_exit =true;
+      //assert(0);
+    }
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;
@@ -283,34 +281,53 @@ int main(int argc,char **argv){
   {
     printf("arg %d: %s\n",i,argv[i]);
   }
+    npc_init();
     static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
     static char img[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(img);
     init_ram(img, img_size);
+    top->clk=0;
+    top->rst=1;
+    top->eval();
+    printf("init cpu\n");
+    updata_clk();
+    top->rst=0;
+    
+    //rst_cpu();
   #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
-    printf("\033[1;32mimg_size %lx\33[0m\n", img_size);
-    updata_clk();  
+    printf("\033[1;32mimg_size %lx\33[0m\n", img_size);  
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);
   #endif
 
-  npc_init();
+
   printf(BLUE "Run verilog\n" NONE);
-  while (1)               //Ö÷Ñ­»·
+  while (1)               //ä¸»å¾ªçŽ¯
   {
     updata_clk();  
     //Imm=top->CP_Imm;
-    
+
+    #ifdef end_time
+      if(main_clk_value>end_time){
+        printf(BLUE "[TIME END]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
+        updata_clk();  
+        break;
+      }
+    #endif
+
+
+
+
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak
-      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->CP_PC);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
       updata_clk();  
       break;
     }
     else if(is_exit ==true){
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->CP_PC,main_time);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->pip_pc,main_time);
       
       updata_clk();  
 
