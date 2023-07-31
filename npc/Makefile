@@ -18,7 +18,7 @@ CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads {$(2)}\
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace \
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
 

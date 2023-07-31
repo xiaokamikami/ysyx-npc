@@ -305,7 +305,6 @@ ysyx_22041412_sram IF_sram (      //imm
     .mem_pc(mem_dnpc),
 	.imm_data(if_imm),
     .stall(if_wait),
-    .jarl_en(if_jr_en),
     .jarl_rady(if_jr_ready),
     .jar_end(jar_end),
 
@@ -368,7 +367,7 @@ ysyx_22041412_decode ID_decode( //opcode
 );
 
 
-always@(posedge clk )begin
+always@(posedge clk )begin //IF ID
     if(if_ready_o & id_valid)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
