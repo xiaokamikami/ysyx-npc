@@ -18,7 +18,7 @@ CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace \
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads {$(2)}\
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
 
@@ -47,5 +47,5 @@ all:
 #make clean 
 	make build -s
 	make compile -s
-	make run
+	make run -s
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
