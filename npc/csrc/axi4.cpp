@@ -97,14 +97,14 @@ void axi4_write(){
     
 }
 
-static void ram_read(long long raddr, uint32_t *rdata) {
+static void ram_read(long long raddr, uint64_t *rdata) {
   if(raddr >= 0x80000000 & raddr<0x83000000 ){
     raddr=(raddr-CONFIG_MBASE);
-    *rdata =  *(uint32_t *)(sram+raddr);
+    *rdata =  *(uint64_t *)(sram+raddr);
     //printf("ram_read raddr %llx data %x \n",raddr,*rdata);
   }
   else if(raddr >= 0x83000000 & raddr<0x88000000 ){
-    *rdata = pmem_read(raddr, 4);
+    *rdata = pmem_read(raddr, 8);
   }
   else assert(raddr==0);
 }
@@ -140,6 +140,8 @@ void dramsim3_helper_rising(const axi_channel &axi) {
 
 }
 axi_addr_t raddr;
+uint8_t   ar_len_count;
+
 // 准备下降沿的处理
 void dramsim3_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
@@ -159,15 +161,39 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // RDATA: if finished, we try the next rdata response
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
   if (axi.r.ready==1) {
-      uint32_t data;
-      ram_read(raddr,&data);
+      uint64_t data;
 
-      // 利用返回的读数据设置axi总线
-      memcpy(axi.r.data, &data, 4);
-      axi.r.valid = 1;
-      axi.r.last =  1;
-      axi.r.id = 0;
-      //printf("[axi ar]addr=%lx ,data=%x \n",raddr,data);
+      printf("ar len %ld ",axi.ar.len);
+      if(axi.ar.len <= 64){
+        ram_read(raddr,&data);
+        // 利用返回的读数据设置axi总线
+        memcpy(axi.r.data, &data, 8);
+        axi.r.valid = 1;
+        axi.r.last =  1;
+        axi.r.id = 0;
+        printf("[axi ar]addr=%lx ,data=%lx \n",raddr+(ar_len_count/8),data);
+      }else if(ar_len_count< axi.ar.len){
+        ram_read(raddr+(ar_len_count/8),&data);
+        // 利用返回的读数据设置axi总线
+        memcpy(axi.r.data, &data, 8);
+        printf("[axi ar]addr=%lx ,data=%lx \n",raddr+(ar_len_count/8),data);
+        ar_len_count =ar_len_count+64;
+        if(ar_len_count >= axi.ar.len){
+          axi.r.valid = 1;
+          axi.r.last =  1;
+          axi.r.id = 0;
+          ar_len_count = 0;
+          printf("[axi ar] end \n");
+        } else{
+          axi.r.valid = 1;
+          axi.r.last =  0;
+          axi.r.id = 0;
+          //printf("[axi ar] bust \n");
+        }
+      }
+
+
+
   }
 
 

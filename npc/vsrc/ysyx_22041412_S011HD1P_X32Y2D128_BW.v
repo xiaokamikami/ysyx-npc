@@ -1,4 +1,4 @@
-module S011HD1P_X32Y2D128_BW(
+module ysyx_22041412_S011HD1P_X32Y2D128_BW(
     Q, CLK, CEN, WEN, BWEN, A, D
 );
 parameter Bits = 128;

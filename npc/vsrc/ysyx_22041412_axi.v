@@ -82,7 +82,8 @@ module ysyx_22041412_axi # (
     input  [7:0]                        r_size_i,           //掩码
     input  [7:0]                        r_len_i,            //突发长度
     input  [7:0]                        w_len_i,            //突发长度
- 
+    output reg                          r_last_o,
+    output reg                          w_last_o,
     // Advanced eXtensible Interface    AXI4总线接口
     // 写地址通道
     input                               axi_aw_ready_i,  // 从设备已准备好接收地址和相关的控制信号
@@ -179,8 +180,8 @@ module ysyx_22041412_axi # (
     assign axi_ar_prot_o    = `AXI_PROT_UNPRIVILEGED_ACCESS | `AXI_PROT_SECURE_ACCESS | `AXI_PROT_DATA_ACCESS;  //初始化信号即可
     assign axi_ar_id_o      = axi_id;                                                                           //初始化信号即可                        
     assign axi_ar_user_o    = axi_user;                                                                         //初始化信号即可
-    //assign axi_ar_len_o     = axi_len;                                                                          
-    assign axi_ar_size_o    = `AXI_SIZE_BYTES_32;
+    assign axi_ar_len_o     = r_len_i;                                                                          
+    assign axi_ar_size_o    = `AXI_SIZE_BYTES_64;
     assign axi_ar_burst_o   = `AXI_BURST_TYPE_INCR;
     assign axi_ar_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_ar_cache_o   = `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;                                 //初始化信号即可
@@ -210,12 +211,18 @@ module ysyx_22041412_axi # (
         axi_r_ready_o <= 1'b0;
         r_ready_o       <= 1'b0;
         data_read_o <= 0;
-      end else if (r_valid_i) begin  // 从设备给出的数据有效即rvalid拉高
-        if (axi_r_last_i && axi_r_valid_i ) begin // 完成数据传输
+      end else if (r_valid_i) begin  // 从设备给出的数据有效即valid拉高
+        if (axi_r_last_i && axi_r_valid_i ) begin // 完成最后一次数据传输
           axi_r_ready_o <= 1'b0;
           r_ready_o     <= 1'b1;
           data_read_o   <= axi_r_data_i;
-          end else begin             // 保持接收
+          r_last_o      <= 1'b1;
+        end else if(axi_r_valid_i)begin       //接收一次bust传输
+          axi_r_ready_o <= 1'b1;
+          r_ready_o     <= 1'b1;
+          data_read_o   <= axi_r_data_i;
+          r_last_o      <= 1'b0;
+        end else begin             // 等待接收
           axi_r_ready_o <= 1'b1;
           r_ready_o     <= 1'b0;
           data_read_o   <= 0;

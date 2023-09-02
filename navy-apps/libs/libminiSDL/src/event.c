@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <string.h>
 #include <assert.h>
-#include <stdio.h>
+#include "stdio.h"
 #define keyname(k) #k,
 
 static const char *keyname[] = {

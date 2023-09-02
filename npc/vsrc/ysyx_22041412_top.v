@@ -122,6 +122,8 @@ wire  [7:0] r_strb;   // 字节掩码
 wire  [7:0] w_strb;   // 字节掩码
 wire  [7:0] r_len_i;
 wire  [7:0] w_len_i;
+wire        r_last_o;
+wire        w_last_o;
 
 ysyx_22041412_axi axi4(
     .clk(clk),
@@ -137,8 +139,10 @@ ysyx_22041412_axi axi4(
     .r_addr_i(axi_r_addr),       //地址
     .w_size_i(w_strb),           //掩码
     .r_size_i(r_strb),           //掩码
-    .r_len_i(r_len_i),            //突发长度
-    .w_len_i(w_len_i),            //突发长度
+    .r_len_i(r_len_i),           //突发长度
+    .w_len_i(w_len_i),           //突发长度
+    .r_last_o(r_last_o),
+    .w_last_o(w_last_o),
     // 写地址通道
     .axi_aw_ready_i(io_master_awready),  // 从设备已准备好接收地址和相关的控制信号
     .axi_aw_valid_o(io_master_awvalid),  // 主设备给出的地址和相关的控制信号有效
@@ -195,11 +199,8 @@ ysyx_22041412_axi axi4(
 );
 wire          if_ar_valid;                           //IF请求
 wire          if_ar_ready;
-wire          if_ar_wen_w;
-wire   [63:0] if_ar_data;
+wire   [31:0] if_ar_data;
 wire   [31:0] if_ar_addr;
-wire    [7:0] if_ar_len;
-wire    [7:0] if_ar_size;
 
 wire          mem_rw_valid;                           //MEM请求
 wire          mem_rw_ready;
@@ -214,14 +215,12 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .clk(clk),
     .rst(rst),
 // if   
-    .if_ar_valid(if_ar_valid),                           //IF请求
-    .if_ar_ready(if_ar_ready),
-    .if_ar_wen_w(if_ar_wen_w),
-    .if_ar_data(if_ar_data),
-    .if_ar_addr(if_ar_addr),
-    .if_ar_len(if_ar_len),
-    .if_ar_size(if_ar_size),
-
+    .if_ar_valid(icache_ar_valid),                           //IF请求
+    .if_ar_ready(icache_ar_ready),
+    .if_ar_data (icache_ar_data),
+    .if_ar_addr (icache_ar_addr),
+    .if_ar_len  (icache_ar_len),
+    .if_last_i  (icache_last_i),
 // mem
     .mem_rw_valid(mem_rw_valid),                         //MEM请求
     .mem_rw_ready(mem_rw_ready),
@@ -231,7 +230,7 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .mem_rw_addr(mem_rw_addr),
     .mem_rw_len(mem_rw_len),
     .mem_rw_size(mem_rw_size),
-
+    .mem_last_i(),
 // axi
     .r_valid_i(r_valid),         //读请求
     .w_valid_i(w_valid),         //写请求
@@ -244,8 +243,9 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .w_size_i(w_strb),           //掩码
     .r_size_i(r_strb),           //掩码
     .r_len_i(r_len_i),            //突发长度
-    .w_len_i(w_len_i)            //突发长度
-
+    .w_len_i(w_len_i),            //突发长度
+    .r_last_i(r_last_o),
+    .w_last_i(w_last_o)
 );
 //STALL 
 wire [5:0]pip_stall;
@@ -282,11 +282,33 @@ assign pip_dnpc= wb_dnpc;
 assign pip_imm = wb_imm;
 //
 
-
+wire          icache_ar_valid;                           //IF请求
+wire          icache_ar_ready;
+wire   [63:0] icache_ar_data;
+wire   [31:0] icache_ar_addr;
+wire    [7:0] icache_ar_len;
+wire          icache_last_i;
+ysyx_22041412_Icache Icache_L1(
+    .clk(clk),
+    .rst(rst),
+//cpu       <---> icache
+    .cpu_req_addr   (if_ar_addr),
+    .cpu_valid      (if_ar_valid),
+    .cpu_read_data  (if_ar_data),
+    .cpu_ready      (if_ar_ready),
+//icache    <---> AXI
+    .axi_ready_i    (icache_ar_ready),        // 读有效等待接收
+    .axi_valid      (icache_ar_valid),        // 发出读请求
+    .axi_ready_o    (icache_ar_ready),            
+    .axi_r_last_i   (icache_last_i),          //传输结束标识
+    .axi_r_len_i    (icache_ar_len),
+    .axi_r_data_i   (icache_ar_data), 		  // 读数据
+    .axi_r_addr_o  	(icache_ar_addr)	      // 读地址
+);
 //IF 
 wire [31:0]if_imm;
 wire [7:0]if_r_strb;
-wire [63:0]if_pc;
+wire [PC_WIDTH-1:0]if_pc;
 wire if_ready_o;
 
 
@@ -298,7 +320,7 @@ reg if_jr_ready;
 reg if_wait;
 
 wire jar_end;   
-ysyx_22041412_sram IF_sram (      //imm
+ysyx_22041412_if IF_s1 (      //imm
     .clk(clk),
     .rst(rst),
     .pc(if_pc),
@@ -311,10 +333,9 @@ ysyx_22041412_sram IF_sram (      //imm
     .ready_o(if_ready_o),       //准备好输出数据并更新pc值
     .valid_i(id_valid),
 
-    //axi
+    //if <------->cache
     .ready_i(if_ar_ready),
     .valid(if_ar_valid),
-    .r_size_i(if_ar_size),
     .r_data_i(if_ar_data),
     .r_addr_o(if_ar_addr)
 

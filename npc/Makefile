@@ -12,13 +12,13 @@ NPC_HOME = /home/kami/ysyx-workbench/npc
 BIN = $(NPC_HOME)/vsrc/$(TOPNAME)
 
 # project source
-VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.*v
+VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412*.*v
 CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp" -or -name "*.cc")
 CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads {$(2)}\
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads 6\
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
 
@@ -40,7 +40,7 @@ run:
 	./obj_dir/Vysyx_22041412_top
 
 clean:
-	rm obj_dir/*.*
+	rm obj_dir/*
 
 all:
 #python3 Immobj.py

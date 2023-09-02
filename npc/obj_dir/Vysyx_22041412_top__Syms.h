@@ -7,7 +7,7 @@
 #ifndef VERILATED_VYSYX_22041412_TOP__SYMS_H_
 #define VERILATED_VYSYX_22041412_TOP__SYMS_H_  // guard
 
-#include "verilated_heavy.h"
+#include "verilated.h"
 
 // INCLUDE MODEL CLASS
 
@@ -25,7 +25,14 @@ class Vysyx_22041412_top__Syms final : public VerilatedSyms {
     Vysyx_22041412_top* const __Vm_modelp;
     bool __Vm_activity = false;  ///< Used by trace routines to determine change occurred
     uint32_t __Vm_baseCode = 0;  ///< Used by trace routines when tracing multiple models
+    VlDeleter __Vm_deleter;
     bool __Vm_didInit = false;
+
+    // MULTI-THREADING
+    VlThreadPool* const __Vm_threadPoolp;
+    bool __Vm_even_cycle__ico = false;
+    bool __Vm_even_cycle__act = false;
+    bool __Vm_even_cycle__nba = false;
 
     // MODULE INSTANCE STATE
     Vysyx_22041412_top___024root   TOP;

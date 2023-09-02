@@ -8,18 +8,37 @@ extern void exit_now();
 using namespace std;
 extern bool sdl_exit;
 static uint64_t boot_time = 0;
-static uint64_t get_time_internal() {
+static uint64_t sys_time_ns=0;
+#define GHZ_1 1000000000 //HZ
+
+
+static uint64_t get_time_internal() {     //get liunx sys time
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
   uint64_t us = now.tv_sec * 1000000 + now.tv_nsec/ 1000;
   return us;
 }
 void rct_init(){
-  boot_time = get_time_internal();
+  #ifdef TIME_HARD
+    boot_time = 0; 
+  #else
+    boot_time = get_time_internal();
+  #endif 
 }
 uint64_t get_time() {
-  uint64_t now = get_time_internal();
-  return now - boot_time;
+  uint64_t now_us;
+  #ifdef TIME_HARD
+    if(sys_time_ns <1000) sys_time_ns=sys_time_ns+1;
+    else {
+      sys_time_ns = 0;
+      now_us = now_us + 1;
+    }
+    return now_us;
+  #else
+    now_us = get_time_internal();
+    return now_us - boot_time;
+  #endif 
+
 }
 
 static void serial_putc(char ch) {

@@ -32,7 +32,7 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
   //Log("file offset %ld  len: %ld ",file_offset,file_len);
   fs_read(fd, &ehdr, sizeof(ehdr));
 
-  //检查elf
+  //检查elf是否符合riscv
   assert(*(uint32_t *)ehdr.e_ident == 0x464c457f);
   assert(ehdr.e_machine == EXPECT_TYPE);
   

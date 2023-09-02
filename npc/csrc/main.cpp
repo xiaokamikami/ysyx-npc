@@ -138,7 +138,7 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
 
 
 
-void sim_init() {                 //初始化
+void sim_init() {                 //vcd init
   contextp = new VerilatedContext;
   contextp->traceEverOn(true);
   top->trace(tfp,0);
@@ -321,7 +321,7 @@ int main(int argc,char **argv){
 
 
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak
-      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,last_pc);
       updata_clk();  
       break;
     }

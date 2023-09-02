@@ -10,12 +10,10 @@ module ysyx_22041412_axi_Arbiter #(
 // if   
     input          if_ar_valid,                           //IF请求
     output         if_ar_ready,
-    input          if_ar_wen_w,
     output  [63:0] if_ar_data,
     input   [31:0] if_ar_addr,
     input    [7:0] if_ar_len,
-    input    [7:0] if_ar_size,
-
+    output         if_last_i,
 // mem
     input          mem_rw_valid,                          //MEM请求
     output         mem_rw_ready,
@@ -25,7 +23,7 @@ module ysyx_22041412_axi_Arbiter #(
     input   [31:0] mem_rw_addr,
     input    [7:0] mem_rw_len,
     input    [7:0] mem_rw_size,
-
+    output         mem_last_i,
 // axi
     output                               r_valid_i,          //读请求
     output                               w_valid_i,          //写请求
@@ -38,7 +36,9 @@ module ysyx_22041412_axi_Arbiter #(
     output  [7:0]                        w_size_i,           //写掩码
     output  [7:0]                        r_size_i,           //读掩码
     output  [7:0]                        r_len_i,            //读突发长度
-    output  [7:0]                        w_len_i             //写突发长度
+    output  [7:0]                        w_len_i,            //写突发长度
+    input                                r_last_i,
+    input                                w_last_i
 );
 //读通道常通 IF , MEM有读请求则在本次IF结束后立刻处理
 `define AXI_IDLE         3'b000     //空闲
@@ -88,7 +88,7 @@ reg[1:0] wr_next_state;
               end
         end
         `BUSY:  begin                       //数据传输中
-          if(r_ready_o || w_ready_o )begin    
+          if((r_ready_o & r_last_i)|| (w_ready_o&  w_last_i) )begin    
             if(mem_rw_valid & ~mem_rw_wen )begin  //IF结束了，检查一下有没有MEM请求
               rd_next_state  = `IDLE;
               rd_next_switch = `MEMR;
@@ -113,14 +113,14 @@ reg[1:0] wr_next_state;
 
 assign if_ar_data  =(rd_switch==`IF)   ?data_read_o: 0;
 assign if_ar_ready =(rd_switch==`IF)   ?r_ready_o  : 0;
-
+assign if_last_i   =(rd_switch==`IF)   ?r_last_i   : 0;
 assign mem_rw_ready=(rd_switch==`MEMR )?r_ready_o:
                     (wr_switch==`MEMW )?w_ready_o: 0;
 
 //读通道
 assign r_valid_i   =(rd_switch==`MEMR) ? mem_rw_valid : if_ar_valid ;  //读请求
 assign r_addr_i    =(rd_switch==`MEMR) ? mem_rw_addr  : if_ar_addr  ;  //读地址
-assign r_size_i    =(rd_switch==`MEMR) ? mem_rw_size  : if_ar_size  ;  //读位宽
+assign r_size_i    =(rd_switch==`MEMR) ? mem_rw_size  : 'b1111_1111 ;  //读位宽
 assign r_len_i     =(rd_switch==`MEMR) ? mem_rw_len   : if_ar_len   ;  //读长度
 
 //写通道
