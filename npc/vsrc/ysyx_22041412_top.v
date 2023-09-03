@@ -298,8 +298,7 @@ ysyx_22041412_Icache Icache_L1(
     .cpu_ready      (if_ar_ready),
 //icache    <---> AXI
     .axi_ready_i    (icache_ar_ready),        // 读有效等待接收
-    .axi_valid      (icache_ar_valid),        // 发出读请求
-    .axi_ready_o    (icache_ar_ready),            
+    .axi_valid_o    (icache_ar_valid),        // 发出读请求            
     .axi_r_last_i   (icache_last_i),          //传输结束标识
     .axi_r_len_i    (icache_ar_len),
     .axi_r_data_i   (icache_ar_data), 		  // 读数据
@@ -319,7 +318,6 @@ assign if_jr_en=(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_
 reg if_jr_ready;
 reg if_wait;
 
-wire jar_end;   
 ysyx_22041412_if IF_s1 (      //imm
     .clk(clk),
     .rst(rst),
@@ -328,14 +326,15 @@ ysyx_22041412_if IF_s1 (      //imm
 	.imm_data(if_imm),
     .stall(if_wait),
     .jarl_rady(if_jr_ready),
-    .jar_end(jar_end),
 
+
+    //if <------->de
     .ready_o(if_ready_o),       //准备好输出数据并更新pc值
     .valid_i(id_valid),
 
     //if <------->cache
     .ready_i(if_ar_ready),
-    .valid(if_ar_valid),
+    .valid_o(if_ar_valid),
     .r_data_i(if_ar_data),
     .r_addr_o(if_ar_addr)
 
@@ -392,19 +391,13 @@ always@(posedge clk )begin //IF ID
     if(if_ready_o & id_valid)begin
         id_imm <= if_imm;
         id_pc  <= if_pc;
-    end
-    else begin//没有新指令 冲刷流水线
+    end else if(~id_en)begin
+        id_imm <= id_imm;
+        id_pc  <= id_pc;   
+    end else begin//没有新指令 插入空泡
         id_imm <= 32'b0;
         id_pc  <= `ysyx_22041412_zero_word;
     end
-    if(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)begin
-        if_wait <=1;
-        id_pc <=`ysyx_22041412_zero_word; 
-    end
-    else if(if_wait & jar_end)begin
-        if_wait <=0;
-    end
-
 
 
 end
@@ -571,6 +564,7 @@ always@(posedge clk)begin
         else begin 
             mem_res<=ex_res;
         end
+        
         if(ex_opcode == `ysyx_22041412_store)begin //w mem
             if_jr_ready<=0;
             mem_rw_type<=1;
@@ -588,7 +582,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_B_type & ex_res[0]==1 )begin 
-            mem_dnpc <= ex_imm_data+ex_pc;
+            mem_dnpc   <= ex_imm_data+ex_pc;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
@@ -597,7 +591,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end    
         else if (ex_opcode== `ysyx_22041412_B_type & ex_res[0]==0 )begin
-            mem_dnpc <=ex_pc+4;
+            mem_dnpc   <=ex_pc+4;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;
@@ -606,7 +600,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end   
         else if(ex_opcode == `ysyx_22041412_jal | ex_opcode==`ysyx_22041412_jalr)begin
-            mem_dnpc<= ex_res;
+            mem_dnpc   <= ex_res;
             if_jr_ready<=1'b1;
             mem_rw_type<=0;
             mem_ram_en <=0;
@@ -615,7 +609,7 @@ always@(posedge clk)begin
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_Environment & ex_csr_jar_en)begin
-            mem_dnpc <= csr_data_o;
+            mem_dnpc   <= csr_data_o;
             if_jr_ready<=1'b1;
             mem_reg_en <=0;
             mem_rw_type<=0;

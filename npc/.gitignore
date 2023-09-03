@@ -1,7 +1,5 @@
 *.*
 *
-obj_dir/
-resource/
 !*/
 !Makefile
 !*.mk
@@ -13,3 +11,5 @@ resource/
 !.gitignore
 !README.md
 
+obj_dir/*
+resource/*

@@ -12,20 +12,20 @@
 Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const char* _vcname__)
     : VerilatedModel{*_vcontextp__}
     , vlSymsp{new Vysyx_22041412_top__Syms(contextp(), _vcname__, this)}
-    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
-    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
     , Ebreak{vlSymsp->TOP.Ebreak}
-    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
-    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
-    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
+    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
+    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
     , rst{vlSymsp->TOP.rst}
-    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
     , io_master_arready{vlSymsp->TOP.io_master_arready}
     , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
     , io_master_rready{vlSymsp->TOP.io_master_rready}
+    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
+    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
     , pip_imm{vlSymsp->TOP.pip_imm}
     , pip_pc{vlSymsp->TOP.pip_pc}
     , pip_dnpc{vlSymsp->TOP.pip_dnpc}
+    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
+    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
     , clk{vlSymsp->TOP.clk}
     , io_master_awready{vlSymsp->TOP.io_master_awready}
     , io_master_awvalid{vlSymsp->TOP.io_master_awvalid}

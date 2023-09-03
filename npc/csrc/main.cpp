@@ -224,8 +224,9 @@ static int cmd_c()                //DIFFTEST
   npc = top->pip_dnpc;
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
-    if(last_pc != top->pip_pc){
+    if(last_pc != pc){
       #ifdef diff_en
+      printf("DIFFTEST : pc:%lx\n next pc=%lx time=%ld \n",pc,npc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
           cpureg.pc=npc;
@@ -238,14 +239,13 @@ static int cmd_c()                //DIFFTEST
         else difftest_step(pc, npc);
         contextp->timeInc(1);
       #endif
-      //printf("pc:%lx\n next pc=%lx time=%ld \n",pc,top->CP_NPC,main_time);
     last_pc=top->pip_pc;
     main_dir_value++;
     same_pc = 0; 
     }
     else {
       ++same_pc;
-      if(same_pc > 50) {
+      if(same_pc > 100) {
         printf("The pc No update many times \n");
         is_exit =true;
         //assert(0);
@@ -254,11 +254,16 @@ static int cmd_c()                //DIFFTEST
   }
   else if(pc==0){
     ++same_pc;
-    if(same_pc > 50) {
+    if(same_pc > 100) {
       printf("The pc No update many times \n");
       is_exit =true;
       //assert(0);
     }
+  } 
+  else if((pc < CONFIG_MBASE) && (pc > (CONFIG_MBASE + CONFIG_MSIZE))){
+    
+    printf("IF越界 %lx \n", pc);
+    assert(0);
   }
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;

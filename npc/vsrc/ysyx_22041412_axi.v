@@ -209,11 +209,11 @@ module ysyx_22041412_axi # (
     always @(posedge clk) begin
       if (rst) begin
         axi_r_ready_o <= 1'b0;
-        r_ready_o       <= 1'b0;
-        data_read_o <= 0;
+        r_ready_o     <= 1'b0;
+        data_read_o   <= 0;
       end else if (r_valid_i) begin  // 从设备给出的数据有效即valid拉高
         if (axi_r_last_i && axi_r_valid_i ) begin // 完成最后一次数据传输
-          axi_r_ready_o <= 1'b0;
+          axi_r_ready_o <= 1'b1;
           r_ready_o     <= 1'b1;
           data_read_o   <= axi_r_data_i;
           r_last_o      <= 1'b1;
@@ -222,14 +222,16 @@ module ysyx_22041412_axi # (
           r_ready_o     <= 1'b1;
           data_read_o   <= axi_r_data_i;
           r_last_o      <= 1'b0;
-        end else begin             // 等待接收
+        end else begin                        // 等待接收
           axi_r_ready_o <= 1'b1;
           r_ready_o     <= 1'b0;
           data_read_o   <= 0;
         end
       end else begin 
+        axi_r_ready_o   <= 1'b0;
         r_ready_o       <= 1'b0;
         data_read_o     <= 0;
+        r_last_o        <= 1'b0;
       end
     end
 

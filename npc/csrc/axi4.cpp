@@ -151,6 +151,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
   axi.b.valid  = 0;
   axi.ar.ready = 0;
   axi.r.valid  = 0;
+  axi.r.last   =  0;
   // RADDR: check whether the read request can be accepted
   // 读地址，检测是否有读地址请求，并且dram能否接收请求，那么就接收读地址
   if (axi_get_raddr(axi, raddr)) {
@@ -163,7 +164,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
   if (axi.r.ready==1) {
       uint64_t data;
 
-      printf("ar len %ld ",axi.ar.len);
+      //printf("ar len %ld ",axi.ar.len);
       if(axi.ar.len <= 64){
         ram_read(raddr,&data);
         // 利用返回的读数据设置axi总线
@@ -171,29 +172,27 @@ void dramsim3_helper_falling(axi_channel &axi) {
         axi.r.valid = 1;
         axi.r.last =  1;
         axi.r.id = 0;
-        printf("[axi ar]addr=%lx ,data=%lx \n",raddr+(ar_len_count/8),data);
-      }else if(ar_len_count< axi.ar.len){
-        ram_read(raddr+(ar_len_count/8),&data);
-        // 利用返回的读数据设置axi总线
-        memcpy(axi.r.data, &data, 8);
-        printf("[axi ar]addr=%lx ,data=%lx \n",raddr+(ar_len_count/8),data);
-        ar_len_count =ar_len_count+64;
+        printf("[axi ar]addr=%lx ,data=%lx END \n",raddr+(ar_len_count/8),data);
+      }else {
         if(ar_len_count >= axi.ar.len){
           axi.r.valid = 1;
           axi.r.last =  1;
           axi.r.id = 0;
-          ar_len_count = 0;
-          printf("[axi ar] end \n");
+          printf("[axi ar] END \n");
         } else{
+          ram_read(raddr+(ar_len_count/8),&data);
+          // 利用返回的读数据设置axi总线
+          memcpy(axi.r.data, &data, 8);
+          printf("[axi ar]addr=%lx ,data=%lx ",raddr+(ar_len_count/8),data);
+          ar_len_count =ar_len_count+64;
           axi.r.valid = 1;
           axi.r.last =  0;
           axi.r.id = 0;
           //printf("[axi ar] bust \n");
         }
       }
-
-
-
+  } else {
+    ar_len_count = 0;
   }
 
 
