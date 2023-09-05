@@ -6,21 +6,20 @@ module ysyx_22041412_mul(
     input [2:0]func3,
     input rv64_en,
     input ready_i,
-    output ready_o,
+    output reg ready_o,
     output [63:0]result
  );
 wire [31:0]rsAW;
 wire [31:0]rsBW;
 assign rsAW = rsA[31:0];
 assign rsBW = rsB[31:0];
-reg ready;
-assign ready_o = ready;
+
 
 reg[63:0]data;
 assign result =data;
 
 always@(posedge clk)begin 
-    if(en & !ready & !rv64_en)begin
+    if(en & !ready_o & !rv64_en)begin
         if (func3==3'b000)
             data <=  rsA*rsB;
         else if (func3==3'b100)
@@ -33,9 +32,9 @@ always@(posedge clk)begin
             data <= rsA%rsB;
         else data<=64'h00000000;
 
-        ready   <=1'b1;
+        ready_o   <=1'b1;
     end
-    else if(en & !ready  & rv64_en)begin
+    else if(en & !ready_o  & rv64_en)begin
         if (func3==3'b000)
             data <=  rsA*rsB;
         else if (func3==3'b100)
@@ -48,11 +47,11 @@ always@(posedge clk)begin
             data <= {{32{1'b0}},rsAW%rsBW};
         else data<=64'h00000000;
 
-        ready   <=1'b1;
+        ready_o   <=1'b1;
     end
     else begin
-        ready <=1'b0;
-        data  <=`ysyx_22041412_zero_word;
+        ready_o <=1'b0;
+        data    <=`ysyx_22041412_zero_word;
     end
 end
 

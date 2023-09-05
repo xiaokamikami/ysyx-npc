@@ -48,7 +48,8 @@ void init_vga() {
     printf("SDL could not be initialized: %s\n", SDL_GetError());
     assert(0);
   }
-
+  printf("SLD init successful \n");
+  
   win = SDL_CreateWindow("riscv64-npc",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,VGA_W,VGA_H,0);    //´´½¨´°¿Ú
   if (!win) {
     printf("Window creation failed: %s\n", SDL_GetError());

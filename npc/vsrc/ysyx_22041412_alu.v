@@ -12,16 +12,17 @@ module ysyx_22041412_alu(
   
 
 
-  output stall,
+  output ready_o,
   output [63:0]result
+
   );
   wire [4:0]Mode;
   wire [63:0]AU,BU,AY,BY;
 
   
-  wire mul_ready;
+  wire mul_ready_o;
 
-  assign stall = (!mul_ready&mul_en)?1:0;
+  assign ready_o = ((mul_ready_o&mul_en) | ~mul_en )?1:0;
   wire [63:0]mux_result;
   wire [63:0]mul_result;
   reg  [63:0]Alusu;
@@ -49,7 +50,7 @@ module ysyx_22041412_alu(
     .func3(func3),
     .rv64_en(rv64r_en),
     .ready_i(ready_i),
-    .ready_o(mul_ready),
+    .ready_o(mul_ready_o),
     .result(mul_result)
   );
 
@@ -144,10 +145,10 @@ always @(*) begin
     Alusu = {{32{mux_result[31]}},mux_result[31:0]};
     //$display("shift=%d  zext=%d, result=%h",BU[4:0],mux_result[31],mux_result);
   end
-  else if(rv64r_en & mul_en & mul_ready)begin
+  else if(rv64r_en & mul_en & mul_ready_o)begin
     Alusu = {{32{mul_result[31]}},mul_result[31:0]};
   end
-  else if(!rv64r_en & mul_en & mul_ready)begin
+  else if(!rv64r_en & mul_en & mul_ready_o)begin
     Alusu = mul_result;
   end
   else if(opcode==`ysyx_22041412_Environment)begin

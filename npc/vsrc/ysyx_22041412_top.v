@@ -255,9 +255,8 @@ wire id_en;
 wire ex_en;
 wire mem_en;
 wire wb_en;
-wire id_stall;
+
 reg id_wait;
-assign id_stall = 0;
 
 wire ex_stall;
 wire mul_stall;
@@ -269,12 +268,6 @@ wire mem_busy;
 wire mem_stall;
 assign mem_stall = mem_wait | mem_busy | csr_stall ;
 
-
-assign if_en  = !pip_stall[1];
-assign id_en  = !pip_stall[2];
-assign ex_en  = !pip_stall[3];
-assign mem_en = !pip_stall[4];
-assign wb_en  = !pip_stall[5];
 
 //DIFF-TEST
 assign pip_pc  = wb_pc;
@@ -306,31 +299,24 @@ ysyx_22041412_Icache Icache_L1(
 );
 //IF 
 wire [31:0]if_imm;
-wire [7:0]if_r_strb;
+
 wire [PC_WIDTH-1:0]if_pc;
 wire if_ready_o;
-
-
-wire id_valid;
-assign id_valid= if_en ;
-reg if_jr_en;
-assign if_jr_en=(id_opcode == `ysyx_22041412_jal | id_opcode ==`ysyx_22041412_B_type | id_opcode ==`ysyx_22041412_jalr |csr_jar_en)?1:0;
+wire id_valid_o = ~ex_wait;
 reg if_jr_ready;
-reg if_wait;
 
 ysyx_22041412_if IF_s1 (      //imm
     .clk(clk),
     .rst(rst),
     .pc(if_pc),
-    .mem_pc(mem_dnpc),
+    .mem_dnpc(mem_dnpc),
 	.imm_data(if_imm),
-    .stall(if_wait),
     .jarl_rady(if_jr_ready),
 
 
-    //if <------->de
+    //流水线握手信号
     .ready_o(if_ready_o),       //准备好输出数据并更新pc值
-    .valid_i(id_valid),
+    .valid_i(id_valid_o),
 
     //if <------->cache
     .ready_i(if_ar_ready),
@@ -355,7 +341,7 @@ wire [4:0]id_Ra,id_Rb,id_Rw;
 wire [6:0]id_opcode;
 wire [63:0]id_rsA;
 wire [63:0]id_rsB;
-
+reg id_ready_o ;
 
     wire csr_jar_en;
     wire [11:0]csr;
@@ -388,15 +374,18 @@ ysyx_22041412_decode ID_decode( //opcode
 
 
 always@(posedge clk )begin //IF ID
-    if(if_ready_o & id_valid)begin
-        id_imm <= if_imm;
-        id_pc  <= if_pc;
-    end else if(~id_en)begin
-        id_imm <= id_imm;
-        id_pc  <= id_pc;   
+    if(if_ready_o & id_valid_o)begin
+        id_imm    <= if_imm;
+        id_pc     <= if_pc;
+        id_ready_o<= 1'b1;
+    end else if(~id_valid_o)begin    //暂停 保持信号
+        id_imm     <= id_imm;
+        id_pc      <= id_pc;
+        id_ready_o <= 1'b0;   
     end else begin//没有新指令 插入空泡
-        id_imm <= 32'b0;
-        id_pc  <= `ysyx_22041412_zero_word;
+        id_imm     <= 32'b0;
+        id_pc      <= `ysyx_22041412_zero_word;
+        id_ready_o <=1'b1;
     end
 
 
@@ -421,15 +410,18 @@ wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
 wire [63:0]ex_res;
+
 wire [63:0]csr_data_o;
 wire [63:0]csr_data_i;
 reg ex_csr_jar_en;
 reg ex_csr_en;
 reg [2:0]ex_csr_id;
+wire ex_vaild_o = ~ex_wait & alu_ready_o & csr_stall;
+wire ex_ready_o = ~ex_wait & alu_ready_o & csr_stall;
 
 wire csr_ready_o;
 wire csr_stall;
-assign csr_stall = (!csr_ready_o&ex_csr_en)?1:0;
+assign csr_stall = (!csr_ready_o&ex_csr_en)?0:1;
 assign csr_data_i = ex_v1;
 //数据旁路
 assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
@@ -452,7 +444,7 @@ assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )
                       (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & mem_ram_en)?mem_rdata:
                       (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
                       :id_rsB;
-
+wire alu_ready_o;
 ysyx_22041412_mcsr csr_reg(
      .clk(clk),
      .rst(rst),
@@ -473,12 +465,12 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .func7(ex_func7),
     .opcode(ex_opcode),
     .mul_en(ex_mul_en),
-    .ready_i(ex_ready),
-    .stall(mul_stall),
+    .ready_i(id_ready_o),
+    .ready_o(alu_ready_o),
     .result(ex_res)
 );
 always@(posedge clk)begin
-    if(ex_en)begin
+    if(id_ready_o & ex_vaild_o)begin
         ex_imm <=id_imm;
         ex_rw <= id_Rw;
         ex_opcode <= id_opcode;
@@ -533,24 +525,23 @@ reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg mem_csr_jar_en;
 wire [63:0]mem_rdata;
-wire ex_ready;
-assign ex_ready = !ex_wait;
+
 wire mem_valid_o;
 
 ysyx_22041412_dram MEM_dram(        //SRAM
     .clk(clk),
-    .en(mem_ram_en),
     .func3(mem_func3),
     .addr(mem_addr),
     .wdata(mem_wdata),
     .rdata(mem_rdata),
-    .stall(mem_busy),
-    .ready_i(ex_ready),
+
+    .ready_i(ex_ready_o),
+    .valid_i(mem_ram_en),
     .ready_o(mem_valid_o),
     .wen(mem_rw_type)           //1 wt  0 read
 );
 always@(posedge clk)begin           
-    if(mem_en & ex_ready)begin
+    if(((mem_valid_o & mem_ram_en) | (~mem_ram_en)) & ex_ready_o)begin
         mem_imm<=ex_imm;
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
@@ -643,14 +634,14 @@ reg [6:0]wb_opcode;
 reg wb_csr_jar_en;
 
 always@(posedge clk)begin           
-    if(wb_en)begin
+    if((mem_valid_o & mem_ram_en) | (~mem_ram_en))begin
         wb_imm<=mem_imm;
         wb_pc<=mem_pc;
         wb_reg_en<=mem_reg_en;
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
         wb_csr_jar_en<=mem_csr_jar_en;
-        if(mem_opcode == 0)begin
+        if(mem_opcode == 0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 ， 那就是取值模块有问题
             wb_data<=`ysyx_22041412_zero_word;
             wb_dnpc<=`ysyx_22041412_zero_word;
             wb_addr<= 0;
@@ -693,14 +684,6 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusB(id_rsB),
     .BusW(wb_data)
 
-);
-
-ysyx_22041412_stall Stall(
-    .stall(pip_stall),				
-	.rst(pip_rst),
-	.stall_from_id(id_stall),		
-	.stall_from_ex(ex_stall),		
-    .stall_from_mem(mem_stall)
 );
 
 

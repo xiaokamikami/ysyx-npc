@@ -172,18 +172,18 @@ void dramsim3_helper_falling(axi_channel &axi) {
         axi.r.valid = 1;
         axi.r.last =  1;
         axi.r.id = 0;
-        printf("[axi ar]addr=%lx ,data=%lx END \n",raddr+(ar_len_count/8),data);
+        //printf("[axi ar]addr=%lx ,data=%lx END \n",raddr+(ar_len_count/8),data);
       }else {
         if(ar_len_count >= axi.ar.len){
           axi.r.valid = 1;
           axi.r.last =  1;
           axi.r.id = 0;
-          printf("[axi ar] END \n");
+         //printf("[axi ar] END \n");
         } else{
           ram_read(raddr+(ar_len_count/8),&data);
           // 利用返回的读数据设置axi总线
           memcpy(axi.r.data, &data, 8);
-          printf("[axi ar]addr=%lx ,data=%lx ",raddr+(ar_len_count/8),data);
+          //printf("[axi ar]addr=%lx ,data=%lx ",raddr+(ar_len_count/8),data);
           ar_len_count =ar_len_count+64;
           axi.r.valid = 1;
           axi.r.last =  0;

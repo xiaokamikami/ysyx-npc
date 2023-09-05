@@ -176,7 +176,7 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
             endcase
             cpu_ready <= 1'b1;  
        
-            $display("Icache tag %lx Read: addr:%8h %32h",cpu_req_addr[31:0],read_data);
+            //$display("Icache hit Read: addr:%8h %32h",cpu_req_addr[31:0],read_data);
           end else begin
             cpu_ready <= 1'b0;  
           end
@@ -192,13 +192,14 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
           end else if(axi_valid_o & axi_ready_i & axi_r_last_i & bust_num)begin
             bust_num             <= 1'b0;
             axi_valid_o          <= 1'b0;
+            axi_r_len_i          <= 8'b0;
             write_data[127:64]        <= axi_r_data_i;  //写回cache
             read_data [127:64]        <= axi_r_data_i;  //更新接口数据
             write_en             [cache_write_point]          <= 1'b1;
             cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
             cpu_ready                                         <= 1'b1;
-            $display("Icache not %lx Read: addr:%8h %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
+            //$display("Icache not Read: addr:%8h %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end
 
 		    end

@@ -57,6 +57,8 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 uint8_t ff=0;
 
+//****************************debug*********************
+uint64_t debuge_pc=3319900;  //debug的时钟地点
 
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -147,7 +149,7 @@ void sim_init() {                 //vcd init
 
 //end
 uint64_t last_us=0;
-uint64_t debuge_pc=0;  //debug的时钟地点
+
 
 void updata_clk()    //刷新一次时钟与设备
 {
@@ -226,7 +228,7 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
-      printf("DIFFTEST : pc:%lx\n next pc=%lx time=%ld \n",pc,npc,main_time);
+      //printf("DIFFTEST : pc:%lx\n next pc=%lx time=%ld \n",pc,npc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
           cpureg.pc=npc;
@@ -332,7 +334,7 @@ int main(int argc,char **argv){
     }
     else if(is_exit ==true){
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",top->pip_pc,main_time);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",last_pc,main_time);
       
       updata_clk();  
 
