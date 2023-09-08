@@ -1024,12 +1024,12 @@ VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_full_sub_0(Vysyx_22041412_
     bufp->fullBit(oldp+95,(vlSelf->ysyx_22041412_top__DOT__ex_csr_jar_en));
     bufp->fullBit(oldp+96,(vlSelf->ysyx_22041412_top__DOT__ex_csr_en));
     bufp->fullCData(oldp+97,(vlSelf->ysyx_22041412_top__DOT__ex_csr_id),3);
-    bufp->fullBit(oldp+98,(((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_hced1f610__0) 
-                            & ((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_h23fa0458__0) 
-                               & ((0U != (IData)(vlSelf->ysyx_22041412_top__DOT__mem_rw)) 
-                                  & ((~ (IData)(vlSelf->ysyx_22041412_top__DOT__sram_ready_o)) 
-                                     & ((~ (IData)(vlSelf->ysyx_22041412_top__DOT__mem_rw_type)) 
-                                        & (IData)(vlSelf->ysyx_22041412_top__DOT__mem_ram_en))))))));
+    bufp->fullBit(oldp+98,((((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_hced1f610__0) 
+                             & ((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_h23fa0458__0) 
+                                & (IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_hf5e473dd__0))) 
+                            | ((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_h33efbaf3__0) 
+                               & ((IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_hd08a343c__0) 
+                                  & (IData)(vlSelf->ysyx_22041412_top__DOT____VdfgTmp_hf5e473dd__0))))));
     bufp->fullBit(oldp+99,((1U & ((~ (IData)(vlSelf->ysyx_22041412_top__DOT__ex_mul_en)) 
                                   | ((IData)(vlSelf->ysyx_22041412_top__DOT__EXE_alu__DOT__mul_ready_o) 
                                      & (IData)(vlSelf->ysyx_22041412_top__DOT__ex_mul_en))))));
