@@ -2,6 +2,7 @@
 #include <common.h>
 #include "ramdisk.h"
 #include "device.h"
+#include "debug.h"
 typedef size_t (*ReadFn) (void *buf, size_t offset, size_t len);
 typedef size_t (*WriteFn) (const void *buf, size_t offset, size_t len);
 
@@ -65,7 +66,9 @@ int fs_open(const char *pathname, int flags, int mode){
 }
 
 size_t fs_read(int fd, void *buf, size_t len){
-  //Log("read on %d %lx",fd,buf);
+  #ifdef DEBUG
+    DEBUG Log("read on %d %lx,len %ld",fd,buf,len);
+  #endif 
   size_t ret_len=0;
   if(fd == FD_EVENTS){
     ret_len = events_read(buf,0,len);
@@ -90,7 +93,9 @@ size_t fs_read(int fd, void *buf, size_t len){
   return ret_len;
 }
 size_t fs_write(int fd, const void *buf, size_t len){
-  //Log("sys_write fd=%ld,buf*=%lx,len=%lx",fd,buf,len);
+  #ifdef DEBUG
+    Log("sys_write fd=%ld,buf*=%lx,len=%lx",fd,buf,len);
+  #endif // DEBUG
   assert(fd>=0);
   size_t ret_len = 0;
   if(fd==FD_STDOUT||fd==FD_STDERR){        //stdout
@@ -101,7 +106,7 @@ size_t fs_write(int fd, const void *buf, size_t len){
     return len;
   }
   else if(fd==FD_FB ){
-    ret_len=fb_write(buf,file_table[fd].read_offset,len);
+    ret_len=fb_write(buf,file_table[fd].read_offset,len);//Ð´ÎÄ¼þ
   }
   else{
     assert(file_table[fd].read_offset + len <= file_table[fd].size);
@@ -113,7 +118,9 @@ size_t fs_write(int fd, const void *buf, size_t len){
   return ret_len;
 }
 size_t fs_lseek(int fd, size_t offset, int whence){
-  //Log("[fs lseek] fd read %d offset %ld ",fd,offset);
+  #ifdef DEBUG
+    Log("[fs lseek] fd read %d offset %ld ",fd,offset);
+  #endif // DEBUG
   if(whence == SEEK_SET){
     assert(offset <= file_table[fd].size);
     file_table[fd].read_offset = offset;
@@ -131,6 +138,9 @@ size_t fs_lseek(int fd, size_t offset, int whence){
   return file_table[fd].read_offset;
 }
 int fs_close(int fd){
+  #ifdef DEBUG
+    Log("[fs close] fd close %d  ",fd);
+  #endif // DEBUG
   file_table[fd].read_offset = 0;
   return 0;
 }

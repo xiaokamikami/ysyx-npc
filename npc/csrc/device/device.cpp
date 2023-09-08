@@ -4,14 +4,15 @@
 #include <stdio.h>
 #include "device.h"
 #include "io/map.h"
+#include "../main.h"
 extern void exit_now();
 using namespace std;
 extern bool sdl_exit;
 static uint64_t boot_time = 0;
 static uint64_t sys_time_ns=0;
 #define GHZ_1 1000000000 //HZ
-
-
+//#define TIME_HARD 1             //模拟真实时钟
+extern vluint64_t main_time;
 static uint64_t get_time_internal() {     //get liunx sys time
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC_COARSE, &now);
@@ -28,11 +29,8 @@ void rct_init(){
 uint64_t get_time() {
   uint64_t now_us;
   #ifdef TIME_HARD
-    if(sys_time_ns <1000) sys_time_ns=sys_time_ns+1;
-    else {
-      sys_time_ns = 0;
-      now_us = now_us + 1;
-    }
+     now_us=(main_time)/1000;
+
     return now_us;
   #else
     now_us = get_time_internal();

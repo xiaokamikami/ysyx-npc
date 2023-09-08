@@ -42,7 +42,7 @@ static uint32_t Canvas_x,Canvas_y;
 size_t dispinfo_read(void *buf, size_t offset, size_t len) {
   Canvas_x = io_read(AM_GPU_CONFIG).width ;
   Canvas_y = io_read(AM_GPU_CONFIG).height;
-  //Log("GET dispinfo %d %d ",w,h);
+  //Log("GET dispinfo %d %d ",Canvas_x,Canvas_y);
   sprintf(buf,"WIDTH :%d\nHEIGHT:%d\n",Canvas_x,Canvas_y);
   return len;
 }

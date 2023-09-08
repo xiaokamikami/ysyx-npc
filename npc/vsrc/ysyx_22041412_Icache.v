@@ -13,11 +13,11 @@ module ysyx_22041412_Icache(
     output  reg             cpu_ready,
 //icache    <---> AXI
     input  					        axi_ready_i,        // 读有效等待接收
-    output 					        axi_valid_o,          // 发出读请求      
+    output 					        axi_valid_o,        // 发出读请求      
     input                   axi_r_last_i,       //传输结束标识
     output  reg [7:0] 		  axi_r_len_i,
-    input       [63:0]		  axi_r_data_i, 		// 读数据
-    output  reg [31:0]		  axi_r_addr_o  		// 读地址
+    input       [63:0]		  axi_r_data_i, 	  	// 读数据
+    output  reg [31:0]		  axi_r_addr_o  		  // 读地址
 );
 `define  ram_widh         'd128;
 `define  cache_size       'd1024;
@@ -40,6 +40,8 @@ module ysyx_22041412_Icache(
 wire [20:0] cache_tag;
 wire [6:0]  cache_index;
 wire [3:0]  cache_offset;
+reg  [20:0] cache_tag_last;
+reg  [6:0]  cache_index_last;
 
 wire [127:0]  ram_rd_data [7:0][1:0];   //CACHE读数据
 
@@ -52,7 +54,7 @@ reg        cache_v_ram   [127:0][7:0]; //tag  V
 
 reg [127:0] read_data;
 reg [127:0] write_data;
-reg         write_en  [7:0];
+reg [7:0]   write_en  ;
 assign cpu_read_data = (cache_offset==4'b0000)?read_data[31:0] :
 					             (cache_offset==4'b0100)?read_data[63:32] :
 					             (cache_offset==4'b1000)?read_data[95:64] :
@@ -82,17 +84,14 @@ endgenerate
 
 
 reg hit;//命中标识
-wire[7:0] tag_v;	   //命中位置
+reg hit_p1;//命中标识
+reg[7:0] tag_v;	   //命中位置
 
 reg bust_num;  //axi bust 计数
 
 reg [2:0] state;  //cache状态机
 reg [2:0] next_state;
 
-assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
-                (cache_tag_ram[cache_index][3'd5]==cache_tag ),(cache_tag_ram[cache_index][3'd4]==cache_tag ),
-                (cache_tag_ram[cache_index][3'd3]==cache_tag ),(cache_tag_ram[cache_index][3'd2]==cache_tag ),
-                (cache_tag_ram[cache_index][3'd1]==cache_tag ),(cache_tag_ram[cache_index][3'd0]==cache_tag )};
 
 
 
@@ -110,17 +109,21 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
       end else begin
         case(state) //写入状态机的控制 
         `ICACHE_IDLE: begin
-          if(cpu_valid) 
+          if(cpu_valid) begin
             next_state = `ICACHE_INST;
+          end
           else next_state = `ICACHE_IDLE;
         end
         `ICACHE_INST:begin
-          if(cpu_valid)
+          if(cpu_valid & hit & (cache_tag_last==cache_tag) & (cache_index_last == cache_index))
+            next_state = `ICACHE_IDLE;
+          else if(cpu_valid)
             next_state = `ICACHE_RD_CACHE;
-          else next_state = `ICACHE_IDLE;
+          else
+            next_state = `ICACHE_IDLE;
         end
         `ICACHE_RD_CACHE:begin
-			    if(hit ) 
+			    if(tag_v != 8'b00000000 ) 
 				    next_state = `ICACHE_IDLE;
 			    else 
 				    next_state = `ICACHE_RD_RAM;
@@ -140,27 +143,48 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
         endcase
       end
     end
-
+    
+    always @(posedge clk) begin  //命中判断
+      if(rst)begin
+        tag_v <= 8'b00000000;
+      end else if(cpu_valid)begin
+        tag_v <= {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
+                  (cache_tag_ram[cache_index][3'd5]==cache_tag ),(cache_tag_ram[cache_index][3'd4]==cache_tag ),
+                  (cache_tag_ram[cache_index][3'd3]==cache_tag ),(cache_tag_ram[cache_index][3'd2]==cache_tag ),
+                  (cache_tag_ram[cache_index][3'd1]==cache_tag ),(cache_tag_ram[cache_index][3'd0]==cache_tag )};
+      end else begin
+        tag_v <= 8'b00000000;
+      end
+    end
 
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
 			    cpu_ready   <= 1'b0;
           axi_valid_o <= 1'b0;
+          cache_tag_last   <= 0;
+          cache_index_last <= 0;
       end else begin
         case(state) 
         `ICACHE_IDLE: begin
 			    cpu_ready   <= 1'b0;
           axi_valid_o <= 1'b0;
-          hit         <= 1'b0;
-          write_en[cache_write_point_last]  <= 1'b0;
-          write_data                        <= 128'b0;
+          write_en    <= 8'b00000000;
+          write_data  <= 128'b0;
         end
-        `ICACHE_INST:begin  //检查相关位置的TAG是否命中
-            if(tag_v!= 'b00000000) hit<=1'b1;
-            else hit<=1'b0;
+        `ICACHE_INST:begin  //如果请求地址还在上一轮line内，可以直接给值
+            if( hit & (cache_tag_last==cache_tag) & (cache_index_last == cache_index)) begin 
+              cpu_ready        <= 1'b1;
+              read_data        <= read_data;
+              //$display("Icache hit: %8h : %8h",cpu_req_addr[31:0],cpu_read_data);
+            end else begin 
+              cpu_ready        <= 1'b0;
+              read_data        <= 128'b0;
+              cache_tag_last   <= cache_tag;
+              cache_index_last <= cache_index;
+            end
         end
-        `ICACHE_RD_CACHE:begin
-          if(hit )begin
+        `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
+          if(tag_v !=8'b00000000 )begin
             case (tag_v)
               'b00000001: read_data <= (~cache_index[6])?ram_rd_data[0][0]:ram_rd_data[0][1];
               'b00000010: read_data <= (~cache_index[6])?ram_rd_data[1][0]:ram_rd_data[1][1];
@@ -171,14 +195,16 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
               'b01000000: read_data <= (~cache_index[6])?ram_rd_data[6][0]:ram_rd_data[6][1];
               'b10000000: read_data <= (~cache_index[6])?ram_rd_data[7][0]:ram_rd_data[7][1];
               default:begin
-                read_data <= 128'd0;
+                read_data <= 128'd0; //不应该走到这
+                $display("Icache %lx cache tag hit error");
               end
             endcase
+            hit       <= 1'b1;
             cpu_ready <= 1'b1;  
-       
-            //$display("Icache hit Read: addr:%8h %32h",cpu_req_addr[31:0],read_data);
+            //$display("Icache hit  Read cache addr:%8h ",cpu_req_addr[31:0]);
           end else begin
             cpu_ready <= 1'b0;  
+            hit       <= 1'b0;
           end
         end
         `ICACHE_RD_RAM:begin	//没有命中，从AXI请求内存
@@ -199,7 +225,7 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
             cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
             cpu_ready                                         <= 1'b1;
-            //$display("Icache not Read: addr:%8h %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
+            //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end
 
 		    end
@@ -212,15 +238,13 @@ assign tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[ca
     end
 
 
-
+//伪随机替换计数器
 reg [2:0] cache_write_point;
-reg [2:0] cache_write_point_last;
 always @(posedge clk) begin
   if(rst)begin
     cache_write_point <= 0;
   end else begin
-    cache_write_point_last <= cache_write_point;
-    cache_write_point      <= cache_write_point+1;
+    cache_write_point <= cache_write_point+1;
   end 
 end
 endmodule

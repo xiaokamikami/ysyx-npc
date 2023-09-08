@@ -15,7 +15,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <iostream>
-
+#include "main.h"
 //include END
 
 void exit_now();
@@ -55,10 +55,9 @@ vluint64_t main_time = 0;
 uint64_t main_dir_value= 0;
 uint64_t main_clk_value= 0;
 uint64_t main_time_us;
-uint8_t ff=0;
 
 //****************************debug*********************
-uint64_t debuge_pc=3319900;  //debug的时钟地点
+uint64_t debuge_pc=100;  //debug的时钟地点
 
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -155,8 +154,7 @@ void updata_clk()    //刷新一次时钟与设备
 {
   top->clk = !(top->clk);
   top->eval();
-  if(ff==0) {ff=1;}
-  else {ff=0;main_clk_value++;}
+
   #ifdef vcd_en
     if(debuge_pc < main_time & main_time< debuge_pc+500){
       tfp->dump(main_time);
@@ -185,8 +183,11 @@ void updata_clk()    //刷新一次时钟与设备
   //  last_us=main_time_us;
   //}  
   #endif
+  if(top->clk==0){
+    main_clk_value++;  
+    cmd_c();//记录指令的变化 并验证正确性
+  }
 
-  cmd_c();//记录指令的变化
   
 }
 

@@ -8,10 +8,12 @@ module ysyx_22041412_alu(
   input [2:0]func3,
   input func7,
   input mul_en,
+
+  //input [4:0]Mode,
+
   input ready_i,
   
-
-
+  input valid_i,
   output ready_o,
   output [63:0]result
 
@@ -110,52 +112,59 @@ module ysyx_22041412_alu(
     `ysyx_22041412_li,BU
   });
 
-
 always @(*) begin
-  if(Mode == `ysyx_22041412_slt)begin
-    if(func3 ==3'b010)begin
-      if($signed(AU-BU)<0) Alusu=1;
-      else Alusu=0;    
+    if(Mode == `ysyx_22041412_slt)begin
+      if(func3 ==3'b010)begin
+        if($signed(AU-BU)<0) Alusu=1;
+        else Alusu=0;    
+      end
+      else if(func3 ==3'b011) begin //sltu
+        if((AU<BU))begin 
+          Alusu=1;
+          //$display("STLU 1 ");
+        end
+        else begin 
+          Alusu=0;
+          //$display("STLU 0 ");
+        end
+      end
+      else  Alusu=0;
     end
-    else if(func3 ==3'b011) begin //sltu
-      if(AU<BU)Alusu=1;
-      else Alusu=0;
+    else if(opcode==`ysyx_22041412_B_type)begin
+      if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
+      else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
+      else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
+      else if(func3 == 3'b101 && ~($signed(AU)<$signed(BU))) Alusu=1; 
+      else if(func3 == 3'b110 && (AU < BU))         Alusu=1;
+      else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
+      else Alusu=0;  
+      //$display("ALU B ");
     end
-    else  Alusu=0;
-  end
-  else if(opcode==`ysyx_22041412_B_type)begin
-    if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
-    else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
-    else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
-    else if(func3 == 3'b101 && ~($signed(AU)<$signed(BU))) Alusu=1; 
-    else if(func3 == 3'b110 && (AU < BU))         Alusu=1;
-    else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
-    else Alusu=0;     
-  end
-  else if(opcode==`ysyx_22041412_jalr)begin
-    Alusu = mux_result&(~64'h00000001);
-    //$display("jarl =%h",Alusu);
-  end
-  else if(rv64i_en & !mul_en) begin
-    if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
-    else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
-    //$display("bu5=%d , result=%h",BU[5],Alusu);
-  end
-  else if(rv64r_en & !mul_en) begin
-    Alusu = {{32{mux_result[31]}},mux_result[31:0]};
-    //$display("shift=%d  zext=%d, result=%h",BU[4:0],mux_result[31],mux_result);
-  end
-  else if(rv64r_en & mul_en & mul_ready_o)begin
-    Alusu = {{32{mul_result[31]}},mul_result[31:0]};
-  end
-  else if(!rv64r_en & mul_en & mul_ready_o)begin
-    Alusu = mul_result;
-  end
-  else if(opcode==`ysyx_22041412_Environment)begin
-    Alusu=0; 
-  end
-  else
-    Alusu = mux_result;
-end
+    else if(opcode==`ysyx_22041412_jalr)begin
+      Alusu = mux_result&(~64'h00000001);
+      //$display("jarl =%h",Alusu);
+    end
+    else if(rv64i_en & !mul_en) begin
+      if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
+      else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+      //$display("bu5=%d , result=%h",BU[5],Alusu);
+    end
+    else if(rv64r_en & !mul_en) begin
+      Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+      //$display("shift=%d  zext=%d, result=%h",BU[4:0],mux_result[31],mux_result);
+    end
+    else if(rv64r_en & mul_en & mul_ready_o)begin
+      Alusu = {{32{mul_result[31]}},mul_result[31:0]};
+    end
+    else if(!rv64r_en & mul_en & mul_ready_o)begin
+      Alusu = mul_result;
+    end
+    else if(opcode==`ysyx_22041412_Environment)begin
+      Alusu=0; 
+    end
+    else
+      Alusu = mux_result;
+  end 
+
 endmodule
 

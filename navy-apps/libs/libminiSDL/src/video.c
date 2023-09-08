@@ -1,6 +1,6 @@
 #include <NDL.h>
 #include <sdl-video.h>
-#include "assert.h"
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

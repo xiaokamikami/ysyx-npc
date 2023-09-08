@@ -1,6 +1,6 @@
 #include <SDL_bmp.h>
 #include <BMP.h>
-#include "assert.h"
+#include <assert.h>
 
 SDL_Surface* SDL_LoadBMP(const char *filename) {
   int w, h;

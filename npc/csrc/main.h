@@ -1,0 +1,5 @@
+#include "../obj_dir/Vysyx_22041412_top.h"
+#include "verilated_vcd_c.h"
+#include "verilated_dpi.h"
+extern vluint64_t main_time ;
+

@@ -4,7 +4,7 @@
  *   display a boot menu and receive input
  */
 
-#include "stdio.h"
+#include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <fcntl.h>

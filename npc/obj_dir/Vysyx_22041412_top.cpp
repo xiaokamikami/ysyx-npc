@@ -12,21 +12,9 @@
 Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const char* _vcname__)
     : VerilatedModel{*_vcontextp__}
     , vlSymsp{new Vysyx_22041412_top__Syms(contextp(), _vcname__, this)}
-    , pip_pc{vlSymsp->TOP.pip_pc}
-    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
-    , rst{vlSymsp->TOP.rst}
-    , pip_imm{vlSymsp->TOP.pip_imm}
-    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
-    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
-    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
-    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
-    , io_master_arready{vlSymsp->TOP.io_master_arready}
-    , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
-    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
-    , io_master_rready{vlSymsp->TOP.io_master_rready}
-    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
-    , Ebreak{vlSymsp->TOP.Ebreak}
     , clk{vlSymsp->TOP.clk}
+    , rst{vlSymsp->TOP.rst}
+    , Ebreak{vlSymsp->TOP.Ebreak}
     , io_master_awready{vlSymsp->TOP.io_master_awready}
     , io_master_awvalid{vlSymsp->TOP.io_master_awvalid}
     , io_master_awprot{vlSymsp->TOP.io_master_awprot}
@@ -49,16 +37,22 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , io_master_bresp{vlSymsp->TOP.io_master_bresp}
     , io_master_bid{vlSymsp->TOP.io_master_bid}
     , io_master_buser{vlSymsp->TOP.io_master_buser}
+    , io_master_arready{vlSymsp->TOP.io_master_arready}
+    , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
     , io_master_arprot{vlSymsp->TOP.io_master_arprot}
     , io_master_arid{vlSymsp->TOP.io_master_arid}
     , io_master_aruser{vlSymsp->TOP.io_master_aruser}
+    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
     , io_master_arsize{vlSymsp->TOP.io_master_arsize}
     , io_master_arburst{vlSymsp->TOP.io_master_arburst}
     , io_master_arlock{vlSymsp->TOP.io_master_arlock}
     , io_master_arcache{vlSymsp->TOP.io_master_arcache}
     , io_master_arqos{vlSymsp->TOP.io_master_arqos}
     , io_master_arregion{vlSymsp->TOP.io_master_arregion}
+    , io_master_rready{vlSymsp->TOP.io_master_rready}
+    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
     , io_master_rresp{vlSymsp->TOP.io_master_rresp}
+    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
     , io_master_rid{vlSymsp->TOP.io_master_rid}
     , io_master_ruser{vlSymsp->TOP.io_master_ruser}
     , io_slave_awready{vlSymsp->TOP.io_slave_awready}
@@ -86,10 +80,16 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , io_slave_rresp{vlSymsp->TOP.io_slave_rresp}
     , io_slave_rlast{vlSymsp->TOP.io_slave_rlast}
     , io_slave_rid{vlSymsp->TOP.io_slave_rid}
+    , pip_imm{vlSymsp->TOP.pip_imm}
     , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
+    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
     , io_slave_awaddr{vlSymsp->TOP.io_slave_awaddr}
     , io_slave_araddr{vlSymsp->TOP.io_slave_araddr}
+    , pip_pc{vlSymsp->TOP.pip_pc}
+    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
+    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
     , io_master_wdata{vlSymsp->TOP.io_master_wdata}
+    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
     , io_slave_wdata{vlSymsp->TOP.io_slave_wdata}
     , io_slave_rdata{vlSymsp->TOP.io_slave_rdata}
     , rootp{&(vlSymsp->TOP)}
@@ -136,9 +136,13 @@ void Vysyx_22041412_top::eval_step() {
         Vysyx_22041412_top___024root___eval_initial(&(vlSymsp->TOP));
         Vysyx_22041412_top___024root___eval_settle(&(vlSymsp->TOP));
     }
+    // MTask 0 start
+    VL_DEBUG_IF(VL_DBG_MSGF("MTask0 starting\n"););
+    Verilated::mtaskId(0);
     VL_DEBUG_IF(VL_DBG_MSGF("+ Eval\n"););
     Vysyx_22041412_top___024root___eval(&(vlSymsp->TOP));
     // Evaluate cleanup
+    Verilated::endOfThreadMTask(vlSymsp->__Vm_evalMsgQp);
     Verilated::endOfEval(vlSymsp->__Vm_evalMsgQp);
 }
 
@@ -172,9 +176,9 @@ VL_ATTR_COLD void Vysyx_22041412_top::final() {
 
 const char* Vysyx_22041412_top::hierName() const { return vlSymsp->name(); }
 const char* Vysyx_22041412_top::modelName() const { return "Vysyx_22041412_top"; }
-unsigned Vysyx_22041412_top::threads() const { return 6; }
+unsigned Vysyx_22041412_top::threads() const { return 1; }
 std::unique_ptr<VerilatedTraceConfig> Vysyx_22041412_top::traceConfig() const {
-    return std::unique_ptr<VerilatedTraceConfig>{new VerilatedTraceConfig{true, false, false}};
+    return std::unique_ptr<VerilatedTraceConfig>{new VerilatedTraceConfig{false, false, false}};
 };
 
 //============================================================

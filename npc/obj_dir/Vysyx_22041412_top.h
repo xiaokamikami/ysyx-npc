@@ -9,7 +9,6 @@
 #define VERILATED_VYSYX_22041412_TOP_H_  // guard
 
 #include "verilated.h"
-#include "verilated_threads.h"
 #include "svdpi.h"
 
 class Vysyx_22041412_top__Syms;
@@ -27,21 +26,9 @@ class Vysyx_22041412_top VL_NOT_FINAL : public VerilatedModel {
     // PORTS
     // The application code writes and reads these signals to
     // propagate new values into/out from the Verilated model.
-    VL_OUT64(&pip_pc,63,0);
-    VL_OUT64(&pip_dnpc,63,0);
-    VL_IN8(&rst,0,0);
-    VL_OUT(&pip_imm,31,0);
-    VL_OUT(&io_master_araddr,31,0);
-    VL_IN8(&io_master_rvalid,0,0);
-    VL_IN8(&io_master_rlast,0,0);
-    VL_IN64(&io_master_rdata,63,0);
-    VL_IN8(&io_master_arready,0,0);
-    VL_OUT8(&io_master_arvalid,0,0);
-    VL_OUT8(&io_master_arlen,7,0);
-    VL_OUT8(&io_master_rready,0,0);
-    VL_OUT64(&pip_mem_pc,63,0);
-    VL_OUT8(&Ebreak,0,0);
     VL_IN8(&clk,0,0);
+    VL_IN8(&rst,0,0);
+    VL_OUT8(&Ebreak,0,0);
     VL_IN8(&io_master_awready,0,0);
     VL_OUT8(&io_master_awvalid,0,0);
     VL_OUT8(&io_master_awprot,2,0);
@@ -64,16 +51,22 @@ class Vysyx_22041412_top VL_NOT_FINAL : public VerilatedModel {
     VL_IN8(&io_master_bresp,1,0);
     VL_IN8(&io_master_bid,3,0);
     VL_IN8(&io_master_buser,0,0);
+    VL_IN8(&io_master_arready,0,0);
+    VL_OUT8(&io_master_arvalid,0,0);
     VL_OUT8(&io_master_arprot,2,0);
     VL_OUT8(&io_master_arid,3,0);
     VL_OUT8(&io_master_aruser,0,0);
+    VL_OUT8(&io_master_arlen,7,0);
     VL_OUT8(&io_master_arsize,2,0);
     VL_OUT8(&io_master_arburst,1,0);
     VL_OUT8(&io_master_arlock,0,0);
     VL_OUT8(&io_master_arcache,3,0);
     VL_OUT8(&io_master_arqos,3,0);
     VL_OUT8(&io_master_arregion,3,0);
+    VL_OUT8(&io_master_rready,0,0);
+    VL_IN8(&io_master_rvalid,0,0);
     VL_IN8(&io_master_rresp,1,0);
+    VL_IN8(&io_master_rlast,0,0);
     VL_IN8(&io_master_rid,3,0);
     VL_IN8(&io_master_ruser,0,0);
     VL_IN8(&io_slave_awready,0,0);
@@ -101,10 +94,16 @@ class Vysyx_22041412_top VL_NOT_FINAL : public VerilatedModel {
     VL_IN8(&io_slave_rresp,1,0);
     VL_IN8(&io_slave_rlast,0,0);
     VL_IN8(&io_slave_rid,3,0);
+    VL_OUT(&pip_imm,31,0);
     VL_OUT(&io_master_awaddr,31,0);
+    VL_OUT(&io_master_araddr,31,0);
     VL_OUT(&io_slave_awaddr,31,0);
     VL_OUT(&io_slave_araddr,31,0);
+    VL_OUT64(&pip_pc,63,0);
+    VL_OUT64(&pip_dnpc,63,0);
+    VL_OUT64(&pip_mem_pc,63,0);
     VL_OUT64(&io_master_wdata,63,0);
+    VL_IN64(&io_master_rdata,63,0);
     VL_OUT64(&io_slave_wdata,63,0);
     VL_IN64(&io_slave_rdata,63,0);
 

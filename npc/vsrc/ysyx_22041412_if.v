@@ -24,8 +24,13 @@ module ysyx_22041412_if(
 reg [2:0] state;              //状态机 
 
 wire jar ;
+wire jal ;
+assign jal= (r_data_i[6:0]==`ysyx_22041412_jal)?1'b1:1'b0;
 assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_jal | r_data_i[6:0]==`ysyx_22041412_B_type 
             | (r_data_i[6:0]==`ysyx_22041412_Environment & (r_data_i[31:20]==12'b00000000000 || r_data_i[31:20]==12'b001100000010)) )? 1'b1 : 1'b0;
+
+
+
 
   always@(posedge clk)begin //状态机更新
     if(rst )begin
@@ -42,6 +47,7 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
         end
         `IF_WAIT:begin
           if(jarl_rady)  state <= `IF_VAILD;
+
         end
         default: begin 
         ;
@@ -63,7 +69,7 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
     case (state)
         `IF_IDLE: begin
           valid_o  <=0;
-          ready_o  <=ready_o;
+          ready_o  <=0;
         end
         `IF_VAILD:begin
           if(ready_i==1'b1 && valid_i==1'b1  && ~jar) begin      //与cache握手并接收数据 刷新dnpc
@@ -78,9 +84,9 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
             pc[31:0] <=r_addr_o;
             ready_o  <=1;
             valid_o  <=0;
-          end else if(~valid_i )begin
+          end else if(~valid_i )begin  //暂停信号
             ready_o  <=ready_o;   
-            valid_o  <=valid_o;        
+            valid_o  <=0;        
           end else  begin     //第一次进入时，打开请求
             ready_o  <=0; 
             valid_o  <=1;
@@ -88,9 +94,11 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
         end
         `IF_WAIT:begin              //等待分支指令给出新地址
           if(jarl_rady) begin
-            valid_o  <=1;
-            ready_o  <=0;
+            valid_o  <=0;
+            ready_o  <=1;
             r_addr_o <=mem_dnpc[31:0];
+          end else if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
+            ready_o  <=1;
           end else begin
             valid_o  <=0;
             ready_o  <=0;             
