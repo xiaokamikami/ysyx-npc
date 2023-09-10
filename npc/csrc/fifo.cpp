@@ -5,70 +5,61 @@
 #include <stdio.h>
 #include "fifo.h"
 
-void insert_first(Node *head, Node *node)
-{
-	node->next = head->next;
-	node->prev = head;
+ 
 
-	// equality: head->next->prev = node;
-	node->next->prev = node;
-	head->next = node;
+void InitQueue(Queue *pQueue)
+{
+	pQueue->m_front = 0;
+	pQueue->m_rear = 0;
+	pQueue->m_size = 0;
 }
-
-void delete_node(const Node *node)
+ 
+bool IsFull(Queue *pQueue)
 {
-	Node *prev_node = node->prev;
-	Node *next_node = node->next;
-	// current node - node
-
-	prev_node->next = next_node;
-	next_node->prev = prev_node;
+	return pQueue->m_size == MAX_NODE_LEN ? true : false;
 }
-
-void delete_node_v1(const Node *node)
+ 
+void Push(Queue *pQueue, int v)
 {
-	// current node - node
-
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-}
-
-void delete_node_v2(Node *node)
-{
-	// current node - node
-
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-
-	node->prev = node->next = node;
-}
-
-void init_queue(Queue *queue)
-{
-	(queue->head).prev = (queue->head).next = &(queue->head);
-	queue->count = 0;
-}
-
-void in_queue(Queue *queue, Node *node)
-{
-	insert_first(&(queue->head), node);
-	queue->count += 1;
-}
-
-int out_queue(Queue *queue,uint64_t pc)
-{
-	if (queue->count <= 0)
+	pQueue->m_array[pQueue->m_rear] = v;
+ 
+	pQueue->m_rear++;
+	if (pQueue->m_rear == MAX_NODE_LEN)
 	{
-		return NULL;
+		pQueue->m_rear = 0;
 	}
+ 
+	pQueue->m_size++;
+}
+ 
+bool IsEmpty(Queue *pQueue)
+{
+	return pQueue->m_size == 0 ? true : false;
+}
+ 
+int Pop(Queue *pQueue,uint64_t pc)
+{
+	int current = pQueue->m_front;
 
-	Node *ret = (queue->head).prev;
-	if(ret->data == pc){
-		delete_node(ret);
-		queue->count -= 1;
+ 
+ 	//printf("out_queue pc = %lx ",pQueue->m_array[current]);
+	//printf("pQueue->front %d rear %d size %d  head pc = %lx ",pQueue->m_front,pQueue->m_rear,pQueue->m_size,pQueue->m_array[pQueue->m_front]);
+	if(pQueue->m_array[pQueue->m_front] == pc){
+		pQueue->m_front++;
+		if (pQueue->m_front == MAX_NODE_LEN)
+		{
+			pQueue->m_front = 0;
+		}
+	
+		pQueue->m_size--;
+		//printf("succseful \n");
 		return 1;
 	}
-	else return 0;
+	else {
+		//printf("failing \n");	
+		return 0;
+	}
     return 0;
 }
+
 

@@ -101,7 +101,7 @@ reg[1:0] wr_next_state;
             //end
           end else if(~r_valid_i) begin//传输被取消
               rd_next_state  = `IDLE;
-              rd_next_switch = `IF;   
+              rd_next_switch = `AXI_IDLE;   
           end else begin
             rd_next_state = `BUSY; //保持传输状态
             rd_next_switch= rd_switch;

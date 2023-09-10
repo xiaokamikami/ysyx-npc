@@ -56,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_pc=0;  //debug的时钟地点
+uint64_t debuge_pc=10500;  //debug的时钟地点
 
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -67,10 +67,8 @@ size_t get_bit(uint8_t wmask) {
   else return 0;
 }
 //储存等待同步NEMU的PC信息 
-Queue     dut_data; // 头节点 (非头指针)  
-Node      dut_array[MAX_NODE_LEN];
-int       dut_array_idx = 0;
-uint8_t   dut_num ;
+Queue     dut_data; // 需要跳过的PC情况缓存
+uint8_t   dut_num =0;
 
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
@@ -97,10 +95,9 @@ void device_read(uint64_t raddr, uint64_t *rdata){
         break;
       }
       #ifdef diff_en
-      	dut_array[dut_num].data = top->pip_mem_pc;
-	      in_queue(&dut_data, &(dut_array[dut_num]));
-        printf("in_queue dut_num %d,pc %lx ",dut_num,dut_array[dut_num].data);
-        dut_num =dut_num+1;
+	      Push(&dut_data, top->pip_mem_pc);
+        //printf("in_queue dut_num %d,pc %lx \n",dut_data.m_size,dut_data.m_array[dut_data.m_front]);
+
 
         //printf("Device read : pc =%lx  dut_num =%d \n",top->pip_mem_pc,dut_num);
       #endif
@@ -208,13 +205,13 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
-      printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+      //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
           cpureg.pc=pc;
         }// sp regs are used for addtion
-        if(dut_num>0 && out_queue(&dut_data,pc))  {
-          printf("out_queue dut_num %d ,pc %lx ",dut_num,pc);
+        if(dut_data.m_size>0 && Pop(&dut_data,pc))  {
+          //printf("out_queue dut_num %d ,pc %lx \n",dut_num,pc);
           difftest_skip_ref();
           dut_num=dut_num-1;
         }
@@ -256,13 +253,6 @@ static int cmd_c()                //DIFFTEST
 void npc_init(void){
   sim_init();
   rct_init();
-  init_queue(&dut_data);
-  for (int i = 0; i < MAX_NODE_LEN; ++i)
-	{
-		dut_array[i].prev = 0;
-		dut_array[i].next = 0;
-		dut_array[i].data = 0;
-	}
   #ifdef DEVICE_ENABLE
     init_device();
   #endif

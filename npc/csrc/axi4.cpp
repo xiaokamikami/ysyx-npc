@@ -154,7 +154,7 @@ void dramsim3_helper_rising(const axi_channel &axi) {
 
   // read data fire: check the last read request
   // 如果读数据握手了
-/*   if (axi_check_rdata_fire(axi)) {
+  if (axi_check_rdata_fire(axi)) {
 
   }
   // read address fire: accept a new request
@@ -180,7 +180,7 @@ void dramsim3_helper_rising(const axi_channel &axi) {
   // 如果写数据握手了
   if (axi_check_wdata_fire(axi)) {
 
-  } */
+  } 
 }
 axi_addr_t raddr;
 axi_addr_t waddr;
@@ -197,7 +197,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
   axi.b.valid  = 0;
   axi.ar.ready = 0;
   axi.r.valid  = 0;
-  axi.r.last   =  0;
+  axi.r.last   = 0;
   // RADDR: check whether the read request can be accepted
   // 读地址，检测是否有读地址请求，并且dram能否接收请求，那么就接收读地址
   if (axi_get_raddr(axi, raddr)) {
@@ -206,7 +206,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
   }
   // RDATA: if finished, we try the next rdata response
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
-  if (axi.r.ready==1) {
+  if (axi.r.ready==1 ) {
       //printf("ar len %ld ",axi.ar.len);
       if(axi.ar.len <= 64){
         ram_read(raddr,&data);
@@ -250,7 +250,7 @@ void dramsim3_helper_falling(axi_channel &axi) {
   }
   // WDATA: check whether the write data can be accepted
   // 写数据，burst持续接收写数据
-  if(axi.w.valid == 1){
+  if( axi.w.valid == 1){
     strb  = axi.w.strb;
     uint8_t len;
     switch (strb){

@@ -1,5 +1,4 @@
-`define		ysyx_22041412_zero_word		64'b0
-
+`define     ysyx_22041412_zero_word     64'b0
 `define		ysyx_22041412_lui			7'b0110111
 `define		ysyx_22041412_auipc			7'b0010111
 `define		ysyx_22041412_jal			7'b1101111
