@@ -80,7 +80,6 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , io_slave_rresp{vlSymsp->TOP.io_slave_rresp}
     , io_slave_rlast{vlSymsp->TOP.io_slave_rlast}
     , io_slave_rid{vlSymsp->TOP.io_slave_rid}
-    , pip_imm{vlSymsp->TOP.pip_imm}
     , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
     , io_master_araddr{vlSymsp->TOP.io_master_araddr}
     , io_slave_awaddr{vlSymsp->TOP.io_slave_awaddr}

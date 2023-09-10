@@ -94,7 +94,6 @@ class Vysyx_22041412_top VL_NOT_FINAL : public VerilatedModel {
     VL_IN8(&io_slave_rresp,1,0);
     VL_IN8(&io_slave_rlast,0,0);
     VL_IN8(&io_slave_rid,3,0);
-    VL_OUT(&pip_imm,31,0);
     VL_OUT(&io_master_awaddr,31,0);
     VL_OUT(&io_master_araddr,31,0);
     VL_OUT(&io_slave_awaddr,31,0);

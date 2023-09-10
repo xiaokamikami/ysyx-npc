@@ -51,6 +51,7 @@ VM_USER_CLASSES = \
 	vga \
 	difftest \
 	memory \
+	fifo \
 	main \
 
 # User .cpp directories (from .cpp's on Verilator command line)
@@ -87,6 +88,8 @@ vga.o: /home/kami/ysyx-workbench/npc/csrc/device/vga.cpp
 difftest.o: /home/kami/ysyx-workbench/npc/csrc/difftests/difftest.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 memory.o: /home/kami/ysyx-workbench/npc/csrc/difftests/memory.cpp
+	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
+fifo.o: /home/kami/ysyx-workbench/npc/csrc/fifo.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<
 main.o: /home/kami/ysyx-workbench/npc/csrc/main.cpp
 	$(OBJCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(OPT_FAST) -c -o $@ $<

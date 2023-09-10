@@ -24,7 +24,7 @@ uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 
 
 // read  .bin
-long load_image(char *filename)
+long load_image(char *filename)   //加载程序文件到内存中
 {
   if (filename == NULL)
   {
@@ -37,9 +37,9 @@ long load_image(char *filename)
   long size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
   int ret = fread(pmem, size, 1, fp);
-  printf("load_img:%s\n",filename);
+  printf("load_image:%s %d MB\n",filename,CONFIG_MSIZE/1024/1024);
   //assert(ret == 1);
-  fclose(fp);
+  fclose(fp);   
   //uint64_t addr = CONFIG_MBASE;
   //printf("\033[1;32mfirst inst: 0x%08lx \33[0m\n", host_read(guest_to_host(addr), 4));
   return size;
@@ -62,7 +62,7 @@ paddr_t host_read(void *addr, int len)
        return *(uint64_t *)addr;
     default:
     {
-      printf("read len:%d\n",len);
+      printf("read error len:%d\n",len);
       exit_now();
       //assert(0);
       return 0;
@@ -83,7 +83,7 @@ void host_write(void *addr, int len, uint64_t data)
   case 8:
     *(uint64_t *)addr = data; return;
   default:
-    printf("write len:%d\n",len);
+    printf("write error len:%d\n",len);
     exit_now();
     //assert(0);
   }

@@ -40,7 +40,6 @@ always @(posedge clk) begin
         if(func3=='b001 | func3=='b101) data_w<=data_i;
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
         else if(func3=='b011 | func3=='b111) data_w<=data& (~data_i);
-        else data_w<=64'b0;
         ready_o<=1'b1;
         //$display("PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d",pc,data_r,addr,data_i,func3);
     end
@@ -56,9 +55,9 @@ always @(posedge clk) begin
         ready_o<=1'b1;
         //$display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
-    else if(ready_o & func3!='b000) begin    //write csr reg
+    else if(en & func3!='b000) begin    //write csr reg
         mcsr_reg[addr]<=data_w;
-        ready_o<=1'b0;
+        ready_o<=1'b1;
         data_w<=64'b0;
         //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
     end

@@ -6,7 +6,6 @@ module ysyx_22041412_top(
     output wire [63:0]pip_pc,
     output wire [63:0]pip_dnpc,
     output wire [63:0]pip_mem_pc,
-    output wire [31:0]pip_imm,
     output Ebreak,
 
 
@@ -222,15 +221,15 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .if_ar_len  (icache_ar_len),
     .if_last_i  (icache_last_i),
 // mem
-    .mem_rw_valid(mem_rw_valid),                         //MEM请求
-    .mem_rw_ready(mem_rw_ready),
-    .mem_rw_wen(mem_rw_wen),
-    .mem_rw_r_data(mem_rw_r_data),
-    .mem_rw_w_data(mem_rw_w_data),
-    .mem_rw_addr(mem_rw_addr),
-    .mem_rw_len(mem_rw_len),
-    .mem_rw_size(mem_rw_size),
-    .mem_last_i(),
+    .mem_rw_valid   (mem_rw_valid),                         //MEM请求
+    .mem_rw_ready   (mem_rw_ready),
+    .mem_rw_wen     (mem_rw_wen),
+    .mem_rw_r_data  (mem_rw_r_data),
+    .mem_rw_w_data  (mem_rw_w_data),
+    .mem_rw_addr    (mem_rw_addr),
+    .mem_rw_len     (mem_rw_len),
+    .mem_rw_size    (mem_rw_size),
+    .mem_last_i     (),
 // axi
     .r_valid_i(r_valid),         //读请求
     .w_valid_i(w_valid),         //写请求
@@ -252,7 +251,6 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
 //DIFF-TEST
 assign pip_pc  = wb_pc;
 assign pip_dnpc= wb_dnpc;
-assign pip_imm = wb_imm;
 //
 
 wire          icache_ar_valid;                           //IF请求
@@ -360,15 +358,15 @@ always@(posedge clk )begin //IF ID
         id_imm     <= if_imm;
         id_pc      <= if_pc;
         id_ready_o <= 1'b1;
-    end else if( ~id_vaild_o)begin    //暂停 保持信号
+    end else if( ~id_vaild_o )begin    //暂停 保持信号
         id_imm     <= id_imm;
         id_pc      <= id_pc;
         id_ready_o <= id_ready_o; 
-    end else begin//没有新指令 插入空泡
+    end else if(ex_valid_o) begin//没有新指令 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
         id_ready_o <= 1'b1;
-    end
+    end 
 
 
 end
@@ -376,7 +374,6 @@ end
 //EXE
 reg [1:0]ex_imm_V1Type;
 reg [1:0]ex_imm_V2Type;
-reg [31:0]ex_imm;
 reg [63:0]ex_imm_data;
 reg ex_mul_en;
 reg [63:0]ex_v1;
@@ -401,45 +398,48 @@ reg [2:0]ex_csr_id;
 
 wire ex_wait;
 wire alu_ready_o;
-wire ex_valid_o = ~ex_wait & alu_ready_o & ~csr_stall;
-wire ex_ready_o = alu_ready_o & ~csr_stall;
+wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o ;
+wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
 
 wire csr_ready_o;
-wire csr_stall;
-assign csr_stall = (!csr_ready_o&ex_csr_en)?1:0;
 assign csr_data_i = ex_v1;
 //数据旁路
 assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
                   (id_imm_V1Type==`ysyx_22041412_v1zim)?{{59{1'b0}},id_Ra}:
-                      (id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~mem_ram_en))?mem_res:
-                      (id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
-                      (id_imm_V1Type==0 & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
+                      (id_imm_V1Type==0 & (id_Ra == ex_rw) & id_Ra!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      (id_imm_V1Type==0 & (id_Ra != ex_rw) & id_Ra == mem_rw  & id_Ra!=0 & (~mem_ram_en))?mem_res:
+                      (id_imm_V1Type==0 & (id_Ra != ex_rw) & id_Ra == mem_rw  & id_Ra!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
+                      (id_imm_V1Type==0 & (id_Ra != mem_rw) & id_Ra != ex_rw  & id_Ra == wb_addr & id_Ra!=0 & mem_reg_en==1'b1)?wb_data
                       :id_rsA;
 assign ex_v2_in = (id_imm_V2Type==`ysyx_22041412_v2imm)?id_imm_data:
                   //(id_imm_V2Type==`ysyx_22041412_v2csr)?csr_data_o:
-                      (id_imm_V2Type==0 & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & (~mem_ram_en))?mem_res:
-                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
-                      (id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
+                      (id_imm_V2Type==0 & id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (~mem_ram_en))?mem_res:
+                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
+                      (id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & id_Rb!=0 & mem_reg_en)?wb_data
                       :id_rsB;
-assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & ~mem_ram_en)?mem_res:
-                      (id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
-                      (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)?wb_data
+assign ex_rs2_in =  (id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
+                      (id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & ~mem_ram_en)?mem_res:
+                      (id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
+                      (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & id_Rb!=0 & mem_reg_en)?wb_data
                       :id_rsB;
 
-/*     always @(posedge clk) begin //旁路的DEBUG 模块   临时使用
+//需要旁路的数据还没算出来 先暂停
+assign ex_wait = ( id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) ||
+                 ( id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
+                    ?1'b1:1'b0;
+
+/*      always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
         if(id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )       
-            $display("id_pc=%8h  ex_v1 = ex_res   -->pc=%8h",id_pc,ex_pc);
+            $display("id_pc=%8h  ex_v1 = ex_res   -->pc=%16h",id_pc,ex_pc);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~mem_ram_en))
-            $display("id_pc=%8h  ex_v1 = mem_res  -->pc=%8h %16h",id_pc,mem_pc,mem_res);
+            $display("id_pc=%8h  ex_v1 = mem_res  -->pc=%16h %16h",id_pc,mem_pc,mem_res);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))
-            $display("id_pc=%8h  ex_v1 = mem_data -->pc=%8h %16h",id_pc,mem_pc,mem_rdata);
+            $display("id_pc=%8h  ex_v1 = mem_data -->pc=%16h %16h",id_pc,mem_pc,mem_rdata);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type))
-            $display("id_pc=%8h  ex_v1 = mem_data -->pc=%8h %16h ex_wait",id_pc,mem_pc,mem_rdata);
-        else if(id_imm_V1Type==0 & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & wb_addr!=0 & mem_reg_en)
-            $display("id_pc=%8h  ex_v1 = wb_data  -->pc=%8h ",id_pc,wb_pc);
+            $display("id_pc=%8h  ex_v1 = mem_data -->pc=%16h %16h ex_wait",id_pc,mem_pc,mem_rdata);
+        else if(id_imm_V1Type==0 & id_Ra != mem_rw & id_Ra != ex_rw  & id_Ra == wb_addr & id_Ra!=0 & mem_reg_en)
+            $display("id_pc=%8h  ex_v1 = wb_data  -->pc=%16h %16h",id_pc,wb_pc,wb_data);
 
 
         if(id_imm_V2Type==0 & id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )       
@@ -452,12 +452,7 @@ assign ex_rs2_in = (id_Rb == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )
             $display("id_pc=%8h  ex_v2 = mem_data -->pc=%8h ex_wait",id_pc,mem_pc);
         else if(id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)
             $display("id_pc=%8h  ex_v2 = wb_data  -->pc=%8h ",id_pc,wb_pc);
-    end */
-
-
-assign ex_wait = ( id_Ra != ex_rw & (id_Ra == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type))) ||
-                 ( id_Rb != ex_rw & (id_Rb == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type))) 
-                    ?1'b1:1'b0;
+    end  */
 
 
 ysyx_22041412_mcsr csr_reg(
@@ -488,8 +483,7 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .result(ex_res)
 );
 always@(posedge clk)begin
-    if(id_ready_o & ex_valid_o)begin
-        ex_imm     <= id_imm;
+    if(id_ready_o & ex_valid_o )begin
         ex_rw      <= id_Rw;
         ex_opcode  <= id_opcode;
         ex_func3   <= id_func3;
@@ -519,48 +513,69 @@ always@(posedge clk)begin
 
 end
 //MEM
-reg [31:0]mem_imm;
 reg [4:0]mem_rw;
 reg [6:0]mem_opcode;
 reg [2:0]mem_func3;
 reg mem_rw_type;
 reg mem_ram_en;
 reg mem_reg_en;
-reg [63:0]mem_addr;
+reg [31:0]mem_addr;
 reg [63:0]mem_wdata;
 reg [PC_WIDTH-1:0]mem_pc;
 reg [PC_WIDTH-1:0]mem_dnpc;
 reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
-reg mem_csr_jar_en;
+
 wire [63:0]mem_rdata;
 
 wire mem_valid_o;
 wire sram_ready_o;
 
 assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en);
-ysyx_22041412_dram MEM_dram(        //SRAM
-    .clk    (clk),
-    .func3  (mem_func3),
-    .addr   (mem_addr),
-    .wdata  (mem_wdata),
-    .rdata  (mem_rdata),
 
-    .ready_i(ex_ready_o),
-    .valid_i(mem_ram_en),
-    .ready_o(sram_ready_o),
-    .wen    (mem_rw_type)           //1 wt  0 read
+
+
+// wire          mem_rw_valid;                           //MEM请求
+// wire          mem_rw_ready;
+// wire          mem_rw_wen;
+// wire   [63:0] mem_rw_r_data;
+// wire   [63:0] mem_rw_w_data;
+// wire   [31:0] mem_rw_addr;
+// wire    [7:0] mem_rw_len;
+// wire    [7:0] mem_rw_size;
+ysyx_22041412_dram MEM_dram(        //SRAM
+    .clk            (clk),
+    .rst            (rst),
+
+    .func3          (mem_func3),
+    .addr           (mem_addr),
+    .wdata          (mem_wdata),
+    .r_data_o       (mem_rdata),
+
+    .ex_ready_i     (ex_ready_o),
+    .mem_valid_i    (mem_ram_en),
+    .mem_ready_o    (sram_ready_o),
+    .wen            (mem_rw_type),           //1 wt  0 read
+
+    //mem <---> dcache
+    .dcache_ready_i (mem_rw_ready),          // 读有效等待接收
+    .dcache_valid_o (mem_rw_valid),          // 发出读请求
+       
+    .rw_wen         (mem_rw_wen),
+    .wmask          (mem_rw_size),
+    .w_data_o       (mem_rw_w_data),         // 写数据
+    .w_addr_o       (mem_rw_addr),           // 写地址
+    .r_data_i       (mem_rw_r_data),         // 读数据
+    .r_addr_o       (mem_rw_addr)            // 读地址
 );
 always@(posedge clk)begin           
     if(mem_valid_o & ex_ready_o)begin
-        mem_imm<=ex_imm;
         mem_pc <=ex_pc;
         mem_rw <=ex_rw;
         mem_func3     <=ex_func3;
         mem_imm_data  <=ex_imm_data;
         mem_opcode    <=ex_opcode;
-        mem_csr_jar_en<=ex_csr_jar_en;
         mem_res       <=(ex_opcode == `ysyx_22041412_Environment)?csr_data_o : ex_res;
    
         
@@ -569,7 +584,7 @@ always@(posedge clk)begin
             mem_rw_type<=1;
             mem_ram_en <=1;
             mem_reg_en <=0;
-            mem_addr   <=ex_res;
+            mem_addr   <=ex_res[31:0];
             mem_wdata  <=ex_rs2;
         end
         else if(ex_opcode == `ysyx_22041412_load)begin  //r mem 
@@ -577,7 +592,7 @@ always@(posedge clk)begin
             mem_rw_type<=0;
             mem_ram_en <=1;
             mem_reg_en <=1;
-            mem_addr   <=ex_res;
+            mem_addr   <=ex_res[31:0];
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_B_type & ex_res[0]==1 )begin 
@@ -586,7 +601,7 @@ always@(posedge clk)begin
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
-            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end    
         else if (ex_opcode== `ysyx_22041412_B_type & ex_res[0]==0 )begin
@@ -595,7 +610,7 @@ always@(posedge clk)begin
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
-            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end   
         else if(ex_opcode == `ysyx_22041412_jal | ex_opcode==`ysyx_22041412_jalr)begin
@@ -604,7 +619,7 @@ always@(posedge clk)begin
             mem_rw_type<=0;
             mem_ram_en <=0;
             mem_reg_en <=1;
-            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
         else if(ex_opcode == `ysyx_22041412_Environment & ex_csr_jar_en)begin
@@ -613,7 +628,7 @@ always@(posedge clk)begin
             mem_reg_en <=0;
             mem_rw_type<=0;
             mem_ram_en <=0;
-            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word; 
         end
         else begin
@@ -621,7 +636,7 @@ always@(posedge clk)begin
             mem_ram_en <=0;
             mem_reg_en <=1;
             if_jr_ready<=0;
-            mem_addr   <=`ysyx_22041412_zero_word;
+            mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
     end
@@ -631,23 +646,19 @@ end
 //WB
 reg wb_reg_en;
 
-reg [31:0]wb_imm;
 reg [4:0]wb_addr;
 reg [63:0]wb_imm_data;
 reg [63:0]wb_data;
 reg [PC_WIDTH-1:0]wb_pc;
 reg [63:0]wb_dnpc;
 reg [6:0]wb_opcode;
-reg wb_csr_jar_en;
 
 always@(posedge clk)begin           
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
-        wb_imm<=mem_imm;
         wb_pc<=mem_pc;
         wb_reg_en<=mem_reg_en;
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
-        wb_csr_jar_en<=mem_csr_jar_en;
         if(mem_opcode == 0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 ， 那就是取值模块有问题
             wb_data<=`ysyx_22041412_zero_word;
             wb_dnpc<=`ysyx_22041412_zero_word;
@@ -673,7 +684,6 @@ always@(posedge clk)begin
             wb_data<= mem_res;   
             wb_dnpc<= mem_pc;
         end 
-
     end
 
 end

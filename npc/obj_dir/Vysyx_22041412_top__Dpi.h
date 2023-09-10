@@ -16,10 +16,6 @@ extern "C" {
 
 
     // DPI IMPORTS
-    // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_dram.v:17:30
-    extern void mem_read(long long raddr, long long* rdata);
-    // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_dram.v:19:30
-    extern void mem_write(long long waddr, long long wdata, char wmask);
     // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_mcsr.v:25:30
     extern void set_csr_ptr(const svOpenArrayHandle a);
     // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_dff.v:17:30

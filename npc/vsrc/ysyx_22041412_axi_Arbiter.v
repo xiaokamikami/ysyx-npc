@@ -87,15 +87,21 @@ reg[1:0] wr_next_state;
                 rd_next_switch = `AXI_IDLE;
               end
         end
-        `BUSY:  begin                       //数据传输中
-          if((r_ready_o & r_last_i)|| (w_ready_o&  w_last_i) )begin    
-            if(mem_rw_valid & ~mem_rw_wen )begin  //IF结束了，检查一下有没有MEM请求
+        `BUSY:  begin  //数据传输中
+          if((r_ready_o & r_last_i))begin   //传输结束了
+            //if(mem_rw_valid & ~mem_rw_wen )begin  //IF结束了，检查一下有没有MEM请求
+            //  rd_next_state  = `BUSY;
+            // rd_next_switch = `MEMR;
+            //end else if(if_ar_valid)begin            //IF有请求就继续连接IF
+            //  rd_next_state  = `BUSY;
+            //  rd_next_switch = `IF;     
+            //end else begin
               rd_next_state  = `IDLE;
-              rd_next_switch = `MEMR;
-            end else begin            //MEM R没有请求 保持IF
-              rd_next_state  = `BUSY;
-              rd_next_switch = `IF;     
-            end
+              rd_next_switch = `AXI_IDLE;             
+            //end
+          end else if(~r_valid_i) begin//传输被取消
+              rd_next_state  = `IDLE;
+              rd_next_switch = `IF;   
           end else begin
             rd_next_state = `BUSY; //保持传输状态
             rd_next_switch= rd_switch;
@@ -107,22 +113,31 @@ reg[1:0] wr_next_state;
     end
 
 //写通道
-  always@(*)begin
-    wr_switch = `MEMW;
+  always@(posedge clk)begin
+    if(mem_rw_valid & mem_rw_wen )begin
+      wr_switch <= `MEMW ;
+    end else begin
+      wr_switch <= `AXI_IDLE ;
+    end
+
   end
 
 assign if_ar_data  =(rd_switch==`IF)   ?data_read_o: 0;
 assign if_ar_ready =(rd_switch==`IF)   ?r_ready_o  : 0;
 assign if_last_i   =(rd_switch==`IF)   ?r_last_i   : 0;
-assign mem_rw_ready=(rd_switch==`MEMR )?r_ready_o:
-                    (wr_switch==`MEMW )?w_ready_o: 0;
-
+assign mem_rw_ready=(rd_switch==`MEMR )?r_ready_o  :
+                    (wr_switch==`MEMW )?w_ready_o  : 0;
+assign mem_rw_r_data=(rd_switch==`MEMR)?data_read_o: 0;
 //读通道
-assign r_valid_i   =(rd_switch==`MEMR) ? mem_rw_valid : if_ar_valid ;  //读请求
-assign r_addr_i    =(rd_switch==`MEMR) ? mem_rw_addr  : if_ar_addr  ;  //读地址
-assign r_size_i    =(rd_switch==`MEMR) ? mem_rw_size  : 'b1111_1111 ;  //读位宽
-assign r_len_i     =(rd_switch==`MEMR) ? mem_rw_len   : if_ar_len   ;  //读长度
-
+assign r_valid_i   =(rd_switch==`MEMR) ? mem_rw_valid : 
+                    (rd_switch==`IF)   ? if_ar_valid  : 0 ;  //读请求
+assign r_addr_i    =(rd_switch==`MEMR) ? mem_rw_addr  :
+                    (rd_switch==`IF)   ? if_ar_addr   : 0 ;  //读地址
+assign r_size_i    =(rd_switch==`MEMR) ? mem_rw_size  :
+                    (rd_switch==`IF)   ? 'b1111_1111  : 0 ;  //读位宽
+assign r_len_i     =(rd_switch==`MEMR) ? mem_rw_len   :
+                    (rd_switch==`IF)   ?  if_ar_len   : 0 ;  //读长度
+ 
 //写通道
 assign w_valid_i   =(wr_switch == `MEMW)? mem_rw_valid : 0;            //写请求
 assign rw_w_data_i =(wr_switch == `MEMW)? mem_rw_w_data: 0;            //写数据

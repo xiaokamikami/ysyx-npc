@@ -147,8 +147,8 @@ module ysyx_22041412_axi # (
     wire [7:0] axi_len      =  8'b0 ;
     wire [2:0] axi_size     = AXI_SIZE[2:0];
     // 写地址通道  以下没有备注初始化信号的都可能是你需要产生和用到的
-    assign axi_aw_valid_o   = 0;
-    assign axi_aw_addr_o    = 0;
+    //assign axi_aw_valid_o   = 0;
+    assign axi_aw_addr_o    = w_addr_i;
     assign axi_aw_prot_o    = `AXI_PROT_UNPRIVILEGED_ACCESS | `AXI_PROT_SECURE_ACCESS | `AXI_PROT_DATA_ACCESS;  //初始化信号即可
     assign axi_aw_id_o      = axi_id;                                                                           //初始化信号即可
     assign axi_aw_user_o    = axi_user;                                                                         //初始化信号即可
@@ -161,14 +161,47 @@ module ysyx_22041412_axi # (
     assign axi_aw_region_o  = 4'h0;                                                                             //初始化信号即可
 
     // 写数据通道
-    //assign axi_w_valid_o    = w_state_write;
-    //assign axi_w_data_o     = rw_w_data_i ;
-    //assign axi_w_strb_o     = rw_size_i;
+    assign axi_w_data_o     = rw_w_data_i ;
+    assign axi_w_strb_o     = w_size_i;
     //assign axi_w_last_o     = 1'b0;
     assign axi_w_user_o     = axi_user;                                                                         //初始化信号即可
 
     // 写应答通道
     //assign axi_b_ready_o    = w_state_resp;
+    /* =============================写地址通道=========================== */
+    reg axi_aw_valid;  //地址传输成功标志位
+    always@(posedge clk)begin
+      if(rst)begin
+        axi_aw_valid_o <= 1'b0;
+      end else if(w_valid_i)begin
+          if(axi_aw_ready_i && axi_aw_valid_o)begin    //地址传输成功 拉低信号
+            axi_aw_valid_o <= 1'b0;
+            axi_aw_valid   <= 1'b1;
+          end else begin
+            axi_aw_valid_o <= 1'b1;
+            axi_aw_valid   <= 1'b0;
+          end
+      end else axi_aw_valid   <= 1'b0;
+    end
+
+    /* =============================写数据通道=========================== */
+    always @(posedge clk) begin
+      if (rst) begin
+        w_ready_o <= 0;
+      end else if (w_valid_i & ~w_ready_o) begin  // 从设备给出的数据有效即valid拉高
+        if (axi_w_ready_i) begin // 完成最后一次数据传输
+          w_ready_o     <= 1;
+          axi_w_valid_o <= 0;
+        end  else begin            // 等待写入
+          axi_w_valid_o<= 1'b1;
+          w_ready_o     <= 0;
+        end
+      end else begin 
+        w_ready_o     <= 0;
+        axi_w_valid_o <= 0;
+      end
+    end
+
 
 
 
@@ -211,7 +244,7 @@ module ysyx_22041412_axi # (
         axi_r_ready_o <= 1'b0;
         r_ready_o     <= 1'b0;
         data_read_o   <= 0;
-      end else if (r_valid_i) begin  // 从设备给出的数据有效即valid拉高
+      end else if (r_valid_i & ~r_last_o) begin  // 从设备给出的数据有效即valid拉高
         if (axi_r_last_i && axi_r_valid_i ) begin // 完成最后一次数据传输
           axi_r_ready_o <= 1'b1;
           r_ready_o     <= 1'b1;

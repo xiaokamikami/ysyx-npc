@@ -68,8 +68,12 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
   else begin   
     case (state)
         `IF_IDLE: begin
-          valid_o  <=0;
-          ready_o  <=0;
+          if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
+            ready_o  <=1;
+          end else begin
+            valid_o  <=0;
+            ready_o  <=0;
+          end
         end
         `IF_VAILD:begin
           if(ready_i==1'b1 && valid_i==1'b1  && ~jar) begin      //与cache握手并接收数据 刷新dnpc
@@ -79,7 +83,7 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
             ready_o  <=1;
             valid_o  <=1;
             //$display("IF Read: addr:%8h :%8h",r_addr_o,r_data_i);
-          end else if(ready_i==1'b1 && jar) begin      //与cache握手并接收数据 刷新dnpc 并暂停请求
+          end else if(ready_i==1'b1 && valid_i==1'b1 && jar) begin      //与cache握手并接收数据 刷新dnpc 并暂停请求
             imm_data <=r_data_i;
             pc[31:0] <=r_addr_o;
             ready_o  <=1;

@@ -9,6 +9,7 @@
 #include "device/debug.h"
 #include "device/io/map.h"
 #include "aix4.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -16,9 +17,12 @@
 #include <dlfcn.h>
 #include <iostream>
 #include "main.h"
+#include "fifo.h"
+
 //include END
 
 void exit_now();
+
 struct CPU_state
 {
   uint64_t gpr[32];
@@ -30,11 +34,6 @@ struct CPU_state
   uint64_t mtvec;
 }cpureg;
 
-struct SPIK_state
-{
-  uint32_t pc[7];
-  uint32_t num;
-}spik;
 //export module example;
 
 VerilatedContext *contextp = NULL;
@@ -57,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_pc=54900;  //debug的时钟地点
+uint64_t debuge_pc=0;  //debug的时钟地点
 
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -67,6 +66,11 @@ size_t get_bit(uint8_t wmask) {
   else if(wmask == 0xff)return 8;
   else return 0;
 }
+//储存等待同步NEMU的PC信息 
+Queue     dut_data; // 头节点 (非头指针)  
+Node      dut_array[MAX_NODE_LEN];
+int       dut_array_idx = 0;
+uint8_t   dut_num ;
 
 //define DPI-C
 extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
@@ -76,52 +80,33 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
 
+void device_read(uint64_t raddr, uint64_t *rdata){
+      switch (raddr)
+      {
+      case RTC_ADDR   : main_time_us=get_time(); 
+                        *rdata = (uint32_t)main_time_us;
+        break;
+      case RTC_ADDR+4 : *rdata = main_time_us>>32;
+        break;
+      case KBD_ADDR   : *rdata = serial_io_output();
+        break;
+      case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
+        printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
+        break;
+      default: printf("error mem read device  %lx\n",raddr);    assert(0);
+        break;
+      }
+      #ifdef diff_en
+      	dut_array[dut_num].data = top->pip_mem_pc;
+	      in_queue(&dut_data, &(dut_array[dut_num]));
+        printf("in_queue dut_num %d,pc %lx ",dut_num,dut_array[dut_num].data);
+        dut_num =dut_num+1;
 
-extern "C" void mem_read(long long raddr, uint64_t *rdata) { 
-  //if(raddr!=0)printf("mem_read %llx \n",raddr);
-  if(raddr >= 0x80000000 & raddr<0x88000000 ){
-    // 8字节对齐
-    *rdata = pmem_read((raddr & ~0x7ull), 8);
-    uint8_t offset = raddr-(raddr & ~0x7ull);
-    //mask
-    if (offset>0)
-    {
-      *rdata = (*rdata) >> (offset*8);
-    }
-    //printf("get ram :%llx\n",*rdata);
-  }
-  else if (DEVICE_BASE <= raddr & raddr <= DISK_ADDR )  //外设段
-  {
-    switch (raddr)
-    {
-    case RTC_ADDR   : *rdata = (uint32_t)main_time_us;
-      break;
-    case RTC_ADDR+4 : *rdata = main_time_us>>32;
-      break;
-    case KBD_ADDR   : *rdata = serial_io_output();
-      break;
-    case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
-      printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
-      break;
-    default: printf("Devices not yet implemented %llx\n",raddr);
-      break;
-    }
-    #ifdef diff_en
-      spik.num=spik.num+1;
-      spik.pc[spik.num]=top->pip_mem_pc;
-    #endif
-  }
-  else if(raddr !=0){
-    printf("error mem read addr  %llx\n",raddr);
-  }
+        //printf("Device read : pc =%lx  dut_num =%d \n",top->pip_mem_pc,dut_num);
+      #endif
 }
-
-extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
-  uint8_t bits_set = get_bit(wmask);
-  if(waddr<0x88000000 && waddr >= 0x80000000 ){
-    pmem_write((waddr), bits_set, wdata);     //写入不对齐
-  }
-  else if(waddr == SERIAL_PORT ){
+void device_write(uint64_t waddr, uint64_t wdata){
+  if(waddr == SERIAL_PORT ){
     //printf("npc-usart\n");
     serial_io_input(wdata);
   }
@@ -133,11 +118,10 @@ extern "C" void mem_write(long long waddr, long long wdata, uint8_t wmask) {
     update_vga();
   }
   else if(waddr !=0){
-    printf("error mem write addr  %llx\n",waddr);
+    printf("error mem write device  %lx\n",waddr);
+    assert(0);
   }
-}
-
-
+} 
 
 void sim_init() {                 //vcd init
   contextp = new VerilatedContext;
@@ -156,7 +140,7 @@ void updata_clk()    //刷新一次时钟与设备
   top->eval();
 
   #ifdef vcd_en
-    if(debuge_pc < main_time & main_time< debuge_pc+500){
+    if(debuge_pc < main_time & main_time< debuge_pc+1000){
       tfp->dump(main_time);
     }
     else {
@@ -174,14 +158,9 @@ void updata_clk()    //刷新一次时钟与设备
     axi_set_dut_ptr(top, axi);
   }
   main_time++; 
-  //控制帧数
-  main_time_us=get_time(); 
-  //main_time_us=main_clk_value/100;
+
   #ifdef DEVICE_ENABLE
-  //if(main_time_us-(FPS*1000)>last_us){
     device_update();
-  //  last_us=main_time_us;
-  //}  
   #endif
   if(top->clk==0){
     main_clk_value++;  
@@ -222,22 +201,22 @@ static int cmd_c()                //DIFFTEST
 { 
   static bool bubble;
   static paddr_t pc;
-  static paddr_t npc;        
+  static paddr_t npc;       
   pc = top->pip_pc;
   npc = top->pip_dnpc;
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
-      //printf("DIFFTEST : pc:%lx\n next pc=%lx time=%ld \n",pc,npc,main_time);
+      printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
-          cpureg.pc=npc;
+          cpureg.pc=pc;
         }// sp regs are used for addtion
-        if(spik.pc[spik.num] ==pc & spik.num>0 )  {
+        if(dut_num>0 && out_queue(&dut_data,pc))  {
+          printf("out_queue dut_num %d ,pc %lx ",dut_num,pc);
           difftest_skip_ref();
-          spik.pc[spik.num]=0;
-          spik.num=spik.num-1;
+          dut_num=dut_num-1;
         }
         else difftest_step(pc, npc);
         contextp->timeInc(1);
@@ -248,7 +227,7 @@ static int cmd_c()                //DIFFTEST
     }
     else {
       ++same_pc;
-      if(same_pc > 100) {
+      if(same_pc > 50) {
         printf("The pc No update many times \n");
         is_exit =true;
         //assert(0);
@@ -257,8 +236,8 @@ static int cmd_c()                //DIFFTEST
   }
   else if(pc==0){
     ++same_pc;
-    if(same_pc > 100) {
-      printf("The pc No update many times \n");
+    if(same_pc > 50) {
+      printf("The pc No update many times PC==0\n");
       is_exit =true;
       //assert(0);
     }
@@ -277,6 +256,13 @@ static int cmd_c()                //DIFFTEST
 void npc_init(void){
   sim_init();
   rct_init();
+  init_queue(&dut_data);
+  for (int i = 0; i < MAX_NODE_LEN; ++i)
+	{
+		dut_array[i].prev = 0;
+		dut_array[i].next = 0;
+		dut_array[i].data = 0;
+	}
   #ifdef DEVICE_ENABLE
     init_device();
   #endif
@@ -294,7 +280,7 @@ int main(int argc,char **argv){
     static char img[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(img);
-    init_ram(img, img_size);
+
     top->clk=0;
     top->rst=1;
     top->eval();
