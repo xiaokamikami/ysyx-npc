@@ -59,7 +59,7 @@ reg[1:0] wr_next_state;
 //`define DONE         2'b100     
 
 
-//读通道
+//------------读通道   Read transmission---------------------\\
     always@(posedge clk)begin //状态机更新
       if(rst )begin
         rd_state <= `IDLE;
@@ -112,7 +112,7 @@ reg[1:0] wr_next_state;
       end
     end
 
-//写通道
+//------------写通道   Write transmission---------------------\\
   always@(posedge clk)begin
     if(mem_rw_valid & mem_rw_wen )begin
       wr_switch <= `MEMW ;

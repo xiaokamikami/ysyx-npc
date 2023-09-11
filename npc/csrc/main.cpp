@@ -56,8 +56,8 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_pc=10500;  //debug的时钟地点
-
+uint64_t debuge_time=0;  //debug的时钟地点
+uint64_t debuge_pc  =0x80004f60; //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
@@ -129,20 +129,24 @@ void sim_init() {                 //vcd init
 
 //end
 uint64_t last_us=0;
-
-
+uint8_t star_debug;
 void updata_clk()    //刷新一次时钟与设备
 {
+
   top->clk = !(top->clk);
   top->eval();
 
   #ifdef vcd_en
-    if(debuge_pc < main_time & main_time< debuge_pc+1000){
+    if(debuge_pc != 0 && top->pip_pc==debuge_pc & ~star_debug){
+      star_debug = 1;
+      printf("start_debug \n");
+    }else if(debuge_time < main_time & main_time< debuge_time+1000){
       tfp->dump(main_time);
     }
-    else {
-      //
+    if(star_debug & (debuge_time < main_time & main_time< debuge_time+1000)){
+      tfp->dump(main_time);
     }
+
   #endif 
   axi_channel axi;
   if (top->clk == 0) {
@@ -260,7 +264,7 @@ void npc_init(void){
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
-  double ipc;
+
   for (int i = 0; i < argc; i++)
   {
     printf("arg %d: %s\n",i,argv[i]);
@@ -325,10 +329,17 @@ int main(int argc,char **argv){
   }
 
 
+//------------END NPC-----------//
+
   //printf("main_dir_value :%ld \n",main_dir_value);
   //printf("main_clk_value :%ld \n",main_clk_value);
+
+  double ipc,icache_l1_hit;
   ipc=((double)main_dir_value)/main_clk_value;
-  printf(BLUE "IPC:" NONE " %.3lf \n",ipc);
+  icache_l1_hit=((double)top->Icache_L1_hit)/(top->Icache_L1_miss+top->Icache_L1_hit);
+  printf(BLUE "Core Cache info:" NONE " icache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100);
+  printf(     "icache_l1 icache_l1 hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
+  printf(BLUE "IPC:" NONE " %.4lf \n",ipc);
 
 
   top->final();

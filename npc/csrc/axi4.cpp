@@ -121,7 +121,7 @@ static void ram_read(uint64_t raddr, uint64_t *rdata) {
     device_read(raddr, rdata);
   }
   else if(raddr !=0) {
-    printf("axi4 read no tag addr %lx \n",raddr);
+    printf("axi4 read no tag addr %16lx \n",raddr);
     exit_now();//assert(0);
   }
   else assert(raddr==0);

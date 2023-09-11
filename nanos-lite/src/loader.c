@@ -22,6 +22,10 @@
 #error Unsupported ISA
 #endif
 static uintptr_t loader(PCB *pcb, const char *filename) {
+//加载新的内存 需要刷新cache
+
+
+
   Elf_Ehdr ehdr={};
   Elf_Phdr phdr={};
   printf("[loader]:filename : %s\n", filename);

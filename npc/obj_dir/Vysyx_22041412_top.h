@@ -101,6 +101,10 @@ class Vysyx_22041412_top VL_NOT_FINAL : public VerilatedModel {
     VL_OUT64(&pip_pc,63,0);
     VL_OUT64(&pip_dnpc,63,0);
     VL_OUT64(&pip_mem_pc,63,0);
+    VL_OUT64(&Icache_L1_miss,63,0);
+    VL_OUT64(&Icache_L1_hit,63,0);
+    VL_OUT64(&Dcache_L1_miss,63,0);
+    VL_OUT64(&Dcache_L1_hit,63,0);
     VL_OUT64(&io_master_wdata,63,0);
     VL_IN64(&io_master_rdata,63,0);
     VL_OUT64(&io_slave_wdata,63,0);

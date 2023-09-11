@@ -8,6 +8,11 @@ module ysyx_22041412_top(
     output wire [63:0]pip_mem_pc,
     output Ebreak,
 
+    //performance counter
+    output [63:0]       Icache_L1_miss,
+    output [63:0]       Icache_L1_hit,
+    output [63:0]       Dcache_L1_miss,
+    output [63:0]       Dcache_L1_hit,
 
     // Advanced eXtensible Interface    AXI4总线接口
 // 写地址通道
@@ -111,8 +116,8 @@ wire         r_ready;  // 访存完成
 wire         w_valid;  // 请求有效
 wire         w_ready;  // 访存完成
 
-wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数据
-wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数据
+wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数�?
+wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数�?
 wire [AXI_ADDR_WIDTH-1:0] axi_r_addr; // 读地址
 wire [AXI_ADDR_WIDTH-1:0] axi_w_addr; // 写地址
 
@@ -128,12 +133,12 @@ ysyx_22041412_axi axi4(
     .clk(clk),
     .rst(rst),
 
-    .r_valid_i(r_valid),         //读请求
-    .w_valid_i(w_valid),         //写请求
-	.r_ready_o(r_ready),         //读数据结束
-    .w_ready_o(w_ready),         //写数据结束
+    .r_valid_i(r_valid),         //读请�?
+    .w_valid_i(w_valid),         //写请�?
+	.r_ready_o(r_ready),         //读数据结�?
+    .w_ready_o(w_ready),         //写数据结�?
     .data_read_o(axi_r_data),    //数据输出
-    .rw_w_data_i(axi_w_data),    //写数据
+    .rw_w_data_i(axi_w_data),    //写数�?
     .w_addr_i(axi_w_addr),       //地址
     .r_addr_i(axi_r_addr),       //地址
     .w_size_i(w_strb),           //掩码
@@ -152,53 +157,53 @@ ysyx_22041412_axi axi4(
     .axi_aw_len_o(io_master_awlen),    // 突发长度
     .axi_aw_size_o(io_master_awsize),   // 突发大小
     .axi_aw_burst_o(io_master_awburst),  // 突发类型
-    .axi_aw_lock_o(io_master_awlock),   // 原子锁类型
-    .axi_aw_cache_o(io_master_awcache),  // 存储器类型
+    .axi_aw_lock_o(io_master_awlock),   // 原子锁类�?
+    .axi_aw_cache_o(io_master_awcache),  // 存储器类�?
     .axi_aw_qos_o(io_master_awqos),    // 服务质量
-    .axi_aw_region_o(io_master_awregion), // 区域标识符
+    .axi_aw_region_o(io_master_awregion), // 区域标识�?
 
     // 写数据通道
-    .axi_w_ready_i(io_master_wready), // 从设备已准备好接收数据和字节选通信号
-    .axi_w_valid_o(io_master_wvalid), // 主设备给出的数据和字节选通信号有效
-    .axi_w_data_o(io_master_wdata),  // 写出的数据
-    .axi_w_strb_o(io_master_wstrb),  // 数据的字节选通信号
-    .axi_w_last_o(io_master_wlast),  // 标识是否是最后一次突发传输
+    .axi_w_ready_i(io_master_wready), // 从设备已准备好接收数据和字节选通信�?
+    .axi_w_valid_o(io_master_wvalid), // 主设备给出的数据和字节选通信号有�?
+    .axi_w_data_o(io_master_wdata),  // 写出的数�?
+    .axi_w_strb_o(io_master_wstrb),  // 数据的字节选通信�?
+    .axi_w_last_o(io_master_wlast),  // 标识是否是最后一次突发传�?
     .axi_w_user_o(io_master_wuser),  // 用户定义信号
 
     // 写响应通道
     .axi_b_ready_o(io_master_bready), // 主设备已准备好接收写响应信号
-    .axi_b_valid_i(io_master_bvalid), // 从设备给出的写响应信号有效
-    .axi_b_resp_i(io_master_bresp),  // 写传输的状态
+    .axi_b_valid_i(io_master_bvalid), // 从设备给出的写响应信号有�?
+    .axi_b_resp_i(io_master_bresp),  // 写传输的状�?
     .axi_b_id_i(io_master_bid),    // 写响应ID
     .axi_b_user_i(io_master_buser),  // 用户定义信号
 
     // 读地址通道
-    .axi_ar_ready_i(io_master_arready),  // 从设备已经准备好接收地址和相关信息
-    .axi_ar_valid_o(io_master_arvalid),  // 主设备给出的地址和相关信息有效
+    .axi_ar_ready_i(io_master_arready),  // 从设备已经准备好接收地址和相关信�?
+    .axi_ar_valid_o(io_master_arvalid),  // 主设备给出的地址和相关信息有�?
     .axi_ar_addr_o(io_master_araddr),   // 读地址
     .axi_ar_prot_o(io_master_arprot),   // 保护类型
     .axi_ar_id_o(io_master_arid),     // 读地址ID
     .axi_ar_user_o(io_master_aruser),   // 用户定义信号
     .axi_ar_len_o(io_master_arlen),    // 突发长度
-    .axi_ar_size_o(io_master_arsize),   // 突发大小（每次突发传输的大小）
+    .axi_ar_size_o(io_master_arsize),   // 突发大小（每次突发传输的大小�?
     .axi_ar_burst_o(io_master_arburst),  // 突发类型
-    .axi_ar_lock_o(io_master_arlock),   // 原子锁类型
-    .axi_ar_cache_o(io_master_arcache),  // 存储器类型
+    .axi_ar_lock_o(io_master_arlock),   // 原子锁类�?
+    .axi_ar_cache_o(io_master_arcache),  // 存储器类�?
     .axi_ar_qos_o(io_master_arqos),    // 服务质量
-    .axi_ar_region_o(io_master_arregion), // 区域标识符
+    .axi_ar_region_o(io_master_arregion), // 区域标识�?
 
     // 读数据通道
     .axi_r_ready_o(io_master_rready), // 主设备已经准备好接收读取的数据和响应信息
-    .axi_r_valid_i(io_master_rvalid), // 从设备给出的数据和响应信息有效
-    .axi_r_resp_i(io_master_rresp),  // 读传输的状态
-    .axi_r_data_i(io_master_rdata),  // 读出的数据
-    .axi_r_last_i(io_master_rlast),  // 标识是否是最后一次突发传输
+    .axi_r_valid_i(io_master_rvalid), // 从设备给出的数据和响应信息有�?
+    .axi_r_resp_i(io_master_rresp),  // 读传输的状�?
+    .axi_r_data_i(io_master_rdata),  // 读出的数�?
+    .axi_r_last_i(io_master_rlast),  // 标识是否是最后一次突发传�?
     .axi_r_id_i(io_master_rid),    // 读数据ID
     .axi_r_user_i(io_master_ruser)   // 用户定义信号
 );
 wire          if_ar_valid;                           //IF请求
 wire          if_ar_ready;
-wire   [31:0] if_ar_data;
+wire   [127:0]if_ar_data;
 wire   [31:0] if_ar_addr;
 
 wire          mem_rw_valid;                           //MEM请求
@@ -231,12 +236,12 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .mem_rw_size    (mem_rw_size),
     .mem_last_i     (),
 // axi
-    .r_valid_i(r_valid),         //读请求
-    .w_valid_i(w_valid),         //写请求
-	.r_ready_o(r_ready),         //读数据结束
-    .w_ready_o(w_ready),         //写数据结束
+    .r_valid_i(r_valid),         //读请�?
+    .w_valid_i(w_valid),         //写请�?
+	.r_ready_o(r_ready),         //读数据结�?
+    .w_ready_o(w_ready),         //写数据结�?
     .data_read_o(axi_r_data),    //数据输出
-    .rw_w_data_i(axi_w_data),    //写数据
+    .rw_w_data_i(axi_w_data),    //写数�?
     .w_addr_i(axi_w_addr),       //地址
     .r_addr_i(axi_r_addr),       //地址
     .w_size_i(w_strb),           //掩码
@@ -262,17 +267,21 @@ wire          icache_last_i;
 ysyx_22041412_Icache Icache_L1(
     .clk(clk),
     .rst(rst),
+//performance counter
+    .cache_hit      (Icache_L1_hit),
+    .cache_miss     (Icache_L1_miss),
+
 //cpu       <---> icache
     .cpu_req_addr   (if_ar_addr),
     .cpu_valid      (if_ar_valid),
     .cpu_read_data  (if_ar_data),
     .cpu_ready      (if_ar_ready),
 //icache    <---> AXI
-    .axi_ready_i    (icache_ar_ready),        // 读有效等待接收
-    .axi_valid_o    (icache_ar_valid),        // 发出读请求            
+    .axi_ready_i    (icache_ar_ready),        // 读有效等待接�?
+    .axi_valid_o    (icache_ar_valid),        // 发出读请�?            
     .axi_r_last_i   (icache_last_i),          //传输结束标识
     .axi_r_len_i    (icache_ar_len),
-    .axi_r_data_i   (icache_ar_data), 		  // 读数据
+    .axi_r_data_i   (icache_ar_data), 		  // 读数�?
     .axi_r_addr_o  	(icache_ar_addr)	      // 读地址
 );
 //IF 
@@ -292,8 +301,8 @@ ysyx_22041412_if IF_s1 (      //imm
     .jarl_rady(if_jr_ready),
 
 
-    //流水线握手信号
-    .ready_o(if_ready_o),       //准备好输出数据并更新pc值
+    //流水线握手信�?
+    .ready_o(if_ready_o),       //准备好输出数据并更新pc�?
     .valid_i(id_vaild_o),
 
     //if <------->cache
@@ -362,7 +371,7 @@ always@(posedge clk )begin //IF ID
         id_imm     <= id_imm;
         id_pc      <= id_pc;
         id_ready_o <= id_ready_o; 
-    end else if(ex_valid_o) begin//没有新指令 插入空泡
+    end else if(ex_valid_o) begin//没有新指�? 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
         id_ready_o <= 1'b1;
@@ -397,6 +406,8 @@ reg ex_csr_en;
 reg [2:0]ex_csr_id;
 
 wire ex_wait;
+wire ex_load_wait;
+wire ex_mem_load_wait;
 wire alu_ready_o;
 wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o ;
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
@@ -424,12 +435,14 @@ assign ex_rs2_in =  (id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load 
                       (id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & id_Rb!=0 & mem_reg_en)?wb_data
                       :id_rsB;
 
-//需要旁路的数据还没算出来 先暂停
-assign ex_wait = ( id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) ||
-                 ( id_Rb != ex_rw & id_Rb == mem_rw  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
-                    ?1'b1:1'b0;
 
-/*      always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
+//需要旁路的数据还没算出�? 先暂�?    都和先写再读有关
+assign ex_wait = ( (id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw )  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
+                    // || ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type)))
+                    ?1'b1:1'b0;
+assign ex_load_wait=(id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type))
+                    ?1'b1:1'b0;
+/*        always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
         if(id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )       
             $display("id_pc=%8h  ex_v1 = ex_res   -->pc=%16h",id_pc,ex_pc);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~mem_ram_en))
@@ -452,8 +465,16 @@ assign ex_wait = ( id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~sram_ready_
             $display("id_pc=%8h  ex_v2 = mem_data -->pc=%8h ex_wait",id_pc,mem_pc);
         else if(id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & wb_addr!=0 & mem_reg_en)
             $display("id_pc=%8h  ex_v2 = wb_data  -->pc=%8h ",id_pc,wb_pc);
-    end  */
 
+        if((id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw )  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type))
+            $display("id_pc=%8h ex_wait mem_load  ex_pc=%8h mem_pc=%8h ",id_pc,ex_pc,wb_pc);
+        else if ((id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type)))
+            $display("id_pc=%8h ex_wait ex_load ex_pc=%8h mem_pc=%8h ",id_pc,ex_pc,wb_pc);
+        
+
+
+    end   
+ */
 
 ysyx_22041412_mcsr csr_reg(
      .clk(clk),
@@ -506,7 +527,15 @@ always@(posedge clk)begin
         ex_csr_id  <=id_csr_id;
         ex_csr_en  <=id_csr_en;
         //if(id_pc!=0)$display("ex load PC:%8h",id_pc);
-    end else begin
+    end else if(mem_valid_o & ex_ready_o & ex_wait & ~ex_load_wait)begin
+        ex_imm_data<= 0;
+        ex_pc      <= 0;
+        ex_rw      <= 0;
+        ex_opcode  <= 0;
+        ex_func3   <= 0;
+        ex_Ra      <= 0;
+        ex_Rb      <= 0;
+
         //$display("ex stall PC:%8h",ex_pc);
     end
 
@@ -535,15 +564,6 @@ wire sram_ready_o;
 assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en);
 
 
-
-// wire          mem_rw_valid;                           //MEM请求
-// wire          mem_rw_ready;
-// wire          mem_rw_wen;
-// wire   [63:0] mem_rw_r_data;
-// wire   [63:0] mem_rw_w_data;
-// wire   [31:0] mem_rw_addr;
-// wire    [7:0] mem_rw_len;
-// wire    [7:0] mem_rw_size;
 ysyx_22041412_dram MEM_dram(        //SRAM
     .clk            (clk),
     .rst            (rst),
@@ -559,14 +579,14 @@ ysyx_22041412_dram MEM_dram(        //SRAM
     .wen            (mem_rw_type),           //1 wt  0 read
 
     //mem <---> dcache
-    .dcache_ready_i (mem_rw_ready),          // 读有效等待接收
-    .dcache_valid_o (mem_rw_valid),          // 发出读请求
+    .dcache_ready_i (mem_rw_ready),          // 读有效等待接�?
+    .dcache_valid_o (mem_rw_valid),          // 发出读请�?
        
     .rw_wen         (mem_rw_wen),
     .wmask          (mem_rw_size),
-    .w_data_o       (mem_rw_w_data),         // 写数据
+    .w_data_o       (mem_rw_w_data),         // 写数�?
     .w_addr_o       (mem_rw_addr),           // 写地址
-    .r_data_i       (mem_rw_r_data),         // 读数据
+    .r_data_i       (mem_rw_r_data),         // 读数�?
     .r_addr_o       (mem_rw_addr)            // 读地址
 );
 always@(posedge clk)begin           
@@ -659,7 +679,7 @@ always@(posedge clk)begin
         wb_reg_en<=mem_reg_en;
         wb_opcode<=mem_opcode;
         wb_imm_data<=mem_imm_data;
-        if(mem_opcode == 0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 ， 那就是取值模块有问题
+        if(mem_opcode == 0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
             wb_data<=`ysyx_22041412_zero_word;
             wb_dnpc<=`ysyx_22041412_zero_word;
             wb_addr<= 0;

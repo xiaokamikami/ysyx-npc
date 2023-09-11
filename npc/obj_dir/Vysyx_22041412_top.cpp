@@ -87,6 +87,10 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , pip_pc{vlSymsp->TOP.pip_pc}
     , pip_dnpc{vlSymsp->TOP.pip_dnpc}
     , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
+    , Icache_L1_miss{vlSymsp->TOP.Icache_L1_miss}
+    , Icache_L1_hit{vlSymsp->TOP.Icache_L1_hit}
+    , Dcache_L1_miss{vlSymsp->TOP.Dcache_L1_miss}
+    , Dcache_L1_hit{vlSymsp->TOP.Dcache_L1_hit}
     , io_master_wdata{vlSymsp->TOP.io_master_wdata}
     , io_master_rdata{vlSymsp->TOP.io_master_rdata}
     , io_slave_wdata{vlSymsp->TOP.io_slave_wdata}

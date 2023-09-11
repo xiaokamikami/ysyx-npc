@@ -13,23 +13,36 @@ module ysyx_22041412_if(
     input      ready_i,          // 读有效等待接收
     output reg valid_o,          // 发出读请求
        
-    input      [31:0]r_data_i, // 读数据
+    input      [127:0]r_data_i, // 读数据
     output reg [31:0]r_addr_o  // 读地址
 
  );
 `define IF_IDLE         3'b000  
 `define IF_VAILD        3'b001  
-`define IF_WAIT         3'b010  
-`define IF_STALL        3'b100  
+`define IF_LINE         3'b010 
+`define IF_WAIT         3'b100  
+ 
 reg [2:0] state;              //状态机 
+
+reg [127:0]read_imm_data;
+wire [31:0]r_data_4mux1;
+wire [3:0] offset;
+assign offset        = r_addr_o[3:0];
+assign r_data_4mux1  = (offset==4'b0000)?r_data_i[31:0] :
+					             (offset==4'b0100)?r_data_i[63:32] :
+					             (offset==4'b1000)?r_data_i[95:64] :
+					             (offset==4'b1100)?r_data_i[127:96] :0;
+
 
 wire jar ;
 wire jal ;
 assign jal= (r_data_i[6:0]==`ysyx_22041412_jal)?1'b1:1'b0;
-assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_jal | r_data_i[6:0]==`ysyx_22041412_B_type 
-            | (r_data_i[6:0]==`ysyx_22041412_Environment & (r_data_i[31:20]==12'b00000000000 || r_data_i[31:20]==12'b001100000010)) )? 1'b1 : 1'b0;
-
-
+assign jar= (imm_data[6:0]==`ysyx_22041412_jalr | imm_data[6:0]==`ysyx_22041412_jal | imm_data[6:0]==`ysyx_22041412_B_type 
+            | (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010)) )? 1'b1 : 1'b0;
+wire one_line;
+reg [31:0]dnpc;
+reg       dnpc_v;  //dnpc的有效符号
+assign one_line =(dnpc[31:4]==r_addr_o[31:4]) ? 1'b1:1'b0;
 
 
   always@(posedge clk)begin //状态机更新
@@ -41,16 +54,19 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
           if( valid_i) state<= `IF_VAILD;
         end
         `IF_VAILD:begin
-          if(ready_i==1'b1 && valid_i==1'b1 && ~jar)    state<= `IF_VAILD;
-          else if(ready_i==1'b1 && valid_i==1'b1 && jar)state<= `IF_WAIT;
-          else if(~valid_i)  state<= `IF_IDLE;
+          if(ready_i==1'b1 && valid_i==1'b1 && one_line && dnpc_v && ~jar)        state<= `IF_LINE;
+          else if(ready_i==1'b1 && valid_i==1'b1 && ~one_line && ~jar)  state<= `IF_VAILD;
+          else if(jar)                                                  state<= `IF_WAIT;
+          else if(~valid_i)                                             state<= `IF_IDLE;
+        end
+        `IF_LINE:begin
+          if(~one_line && ~jar) state <= `IF_VAILD;
+          else if(jar)          state <= `IF_WAIT;
         end
         `IF_WAIT:begin
           if(jarl_rady)  state <= `IF_VAILD;
-
         end
-        default: begin 
-        ;
+        default: begin ;
         end
       endcase
     end
@@ -64,8 +80,9 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
     valid_o  <=0;
     ready_o  <=0;
     r_addr_o <=32'h80000000;
+    dnpc     <=32'h80000004;
   end
-  else begin   
+  else if(valid_i)begin   
     case (state)
         `IF_IDLE: begin
           if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
@@ -73,19 +90,35 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
           end else begin
             valid_o  <=0;
             ready_o  <=0;
+            dnpc_v   <=0;
           end
         end
         `IF_VAILD:begin
-          if(ready_i==1'b1 && valid_i==1'b1  && ~jar) begin      //与cache握手并接收数据 刷新dnpc
-            imm_data <=r_data_i;
+          if(ready_i==1'b1 && valid_i==1'b1 && one_line && ~jar) begin      //与cache握手并接收数据 刷新dnpc
+            read_imm_data <=r_data_i;
+            imm_data <=r_data_4mux1;
             pc[31:0] <=r_addr_o;
             r_addr_o <=r_addr_o+4;
+            dnpc     <=dnpc+4;
+            dnpc_v   <=1;
             ready_o  <=1;
-            valid_o  <=1;
+            valid_o  <=0;
+            //$display("IF Read: addr:%8h :%8h",r_addr_o,r_data_i);
+          end else if(ready_i==1'b1 && valid_i==1'b1 && ~one_line && ~jar) begin      //与cache握手并接收数据 刷新dnpc
+            read_imm_data <=r_data_i;
+            imm_data <=r_data_4mux1;
+            pc[31:0] <=r_addr_o;
+            r_addr_o <=r_addr_o+4;
+            dnpc     <=dnpc+4;
+            dnpc_v   <=1;
+            ready_o  <=1;
+            valid_o  <=0;
             //$display("IF Read: addr:%8h :%8h",r_addr_o,r_data_i);
           end else if(ready_i==1'b1 && valid_i==1'b1 && jar) begin      //与cache握手并接收数据 刷新dnpc 并暂停请求
-            imm_data <=r_data_i;
+            read_imm_data <=r_data_i;
+            imm_data <=r_data_4mux1;
             pc[31:0] <=r_addr_o;
+            dnpc_v   <=0;
             ready_o  <=1;
             valid_o  <=0;
           end else if(~valid_i )begin  //暂停信号
@@ -96,11 +129,36 @@ assign jar= (r_data_i[6:0]==`ysyx_22041412_jalr | r_data_i[6:0]==`ysyx_22041412_
             valid_o  <=1;
           end
         end
+        `IF_LINE:begin
+          if(valid_i & one_line & ~jar )begin
+            case (r_addr_o[3:0])
+              'd0: imm_data<= read_imm_data[31:0];
+              'd4: imm_data<=	read_imm_data[63:32];
+              'd8: imm_data<= read_imm_data[95:64];
+              'd12:imm_data<= read_imm_data[127:96];
+              default:begin
+                imm_data <= 32'd0; //不应该走到这
+                $display(" %lx IF offset hit error");
+              end
+            endcase
+            pc[31:0] <=r_addr_o;
+            dnpc     <=dnpc+4;
+            r_addr_o <=r_addr_o+4;
+            ready_o  <=1;
+            valid_o  <=0;
+          end else begin
+            ready_o  <=0;
+            valid_o  <=0;
+          end
+        end
         `IF_WAIT:begin              //等待分支指令给出新地址
           if(jarl_rady) begin
             valid_o  <=0;
-            ready_o  <=1;
+            ready_o  <=0;
             r_addr_o <=mem_dnpc[31:0];
+            dnpc     <=mem_dnpc[31:0]+4;
+            dnpc_v   <=0;
+            imm_data <=0;
           end else if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
             ready_o  <=1;
           end else begin
