@@ -52,10 +52,11 @@ wire [127:0]  ram_rd_data [7:0][1:0];   //CACHE读数据
 
 assign cache_tag    = cpu_req_addr[31:11];
 assign cache_index  = cpu_req_addr[10:4];
-assign cache_offset = cpu_req_addr[3:0];
+assign cache_offset = cpu_req_addr[3:0];  //offset作为 4条指令的 选通信号
 
 reg [20:0] cache_tag_ram [127:0][7:0]; //tag 寄存器堆
 reg        cache_v_ram   [127:0][7:0]; //tag  V
+
 
 reg [127:0] write_data;
 reg [7:0]   write_en  ;
@@ -84,6 +85,7 @@ generate
 endgenerate
 
 reg[7:0] tag_v;	   //命中位置
+wire[2:0]tag_v_w;  //译码到二进制的命中位置
 
 reg bust_num;  //axi bust 计数
 
@@ -149,6 +151,14 @@ reg [2:0] next_state;
         tag_v <= 8'b00000000;
       end
     end
+    assign  tag_v_w =   (tag_v== 'b00000001) ?'d0 :
+                        (tag_v== 'b00000010) ?'d1 :
+                        (tag_v== 'b00000100) ?'d2 : 
+                        (tag_v== 'b00001000) ?'d3 :
+                        (tag_v== 'b00010000) ?'d4 : 
+                        (tag_v== 'b00100000) ?'d5 :
+                        (tag_v== 'b01000000) ?'d6 : 
+                        (tag_v== 'b10000000) ?'d7 : 'd0 ;
 
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
@@ -173,32 +183,24 @@ reg [2:0] next_state;
         end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           if(tag_v !=8'b00000000 )begin
-            case (tag_v)
-              'b00000001: cpu_read_data <= (~cache_index[6])?ram_rd_data[0][0]:ram_rd_data[0][1];
-              'b00000010: cpu_read_data <= (~cache_index[6])?ram_rd_data[1][0]:ram_rd_data[1][1];
-              'b00000100: cpu_read_data <= (~cache_index[6])?ram_rd_data[2][0]:ram_rd_data[2][1];
-              'b00001000: cpu_read_data <= (~cache_index[6])?ram_rd_data[3][0]:ram_rd_data[3][1];
-              'b00010000: cpu_read_data <= (~cache_index[6])?ram_rd_data[4][0]:ram_rd_data[4][1];
-              'b00100000: cpu_read_data <= (~cache_index[6])?ram_rd_data[5][0]:ram_rd_data[5][1];
-              'b01000000: cpu_read_data <= (~cache_index[6])?ram_rd_data[6][0]:ram_rd_data[6][1];
-              'b10000000: cpu_read_data <= (~cache_index[6])?ram_rd_data[7][0]:ram_rd_data[7][1];
-              default:begin
-                cpu_read_data <= 128'd0; //不应该走到这
-                $display("Icache %lx cache tag hit error");
-              end
-            endcase
+            cpu_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
             cpu_ready <= 1'b1;  
 
             cache_hit <=cache_hit+1;
-            //$display("Icache hit  Read cache addr:%8h ",cpu_req_addr[31:0]);
-          end else begin
-            cpu_ready <= 1'b0;  
+          end 
+
+          else begin
+            cpu_ready  <= 1'b0;  
+            cache_miss <= cache_miss+1;
+            
+            axi_valid_o   <= 1'b1;    //发起申请
+            axi_r_len_i   <= 8'd128;
+            axi_r_addr_o  <= {cpu_req_addr[31:4],4'b0000};
           end
+
         end
         `ICACHE_RD_RAM:begin	//没有命中，从AXI请求内存
-          axi_valid_o   <= 1'b1;
-          axi_r_len_i   <= 8'd128;
-          axi_r_addr_o  <= {cpu_req_addr[31:4],4'b0000};
+
           if(axi_valid_o & axi_ready_i & ~bust_num)begin
             bust_num    <= 'b1;
             write_data[63:0]          <= axi_r_data_i;  //接收第一次bust的数据
@@ -211,11 +213,8 @@ reg [2:0] next_state;
             cpu_read_data [127:64]    <= axi_r_data_i;  //更新接口数据
             write_en             [cache_write_point]          <= 1'b1;
             cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
-            cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
+            //cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
             cpu_ready                                         <= 1'b1;
-
-
-            cache_miss          <= cache_miss+1;
             //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end
 

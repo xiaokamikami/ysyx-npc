@@ -130,6 +130,7 @@ void sim_init() {                 //vcd init
 //end
 uint64_t last_us=0;
 uint8_t star_debug;
+uint64_t start_time;
 void updata_clk()    //刷新一次时钟与设备
 {
 
@@ -139,12 +140,13 @@ void updata_clk()    //刷新一次时钟与设备
   #ifdef vcd_en
     if(debuge_pc != 0 && top->pip_pc==debuge_pc & ~star_debug){
       star_debug = 1;
+      start_time = 0;
       printf("start_debug \n");
-    }else if(debuge_time < main_time & main_time< debuge_time+1000){
+    }else if(debuge_pc == 0 & debuge_time < main_time & main_time< debuge_time+1000){
       tfp->dump(main_time);
-    }
-    if(star_debug & (debuge_time < main_time & main_time< debuge_time+1000)){
+    }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+1000)){
       tfp->dump(main_time);
+      start_time++;
     }
 
   #endif 
