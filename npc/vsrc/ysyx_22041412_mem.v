@@ -13,25 +13,25 @@ module ysyx_22041412_mem#(
     input [ DATA_WIDTH-1:0] wdata,
     input                   wen,
 
-    input                   ex_ready_i,
-    input                   mem_valid_i,
-    output                  mem_ready_o,
-    output [DATA_WIDTH-1:0] r_data_o,
+    input                      ex_ready_i,
+    input                      mem_valid_i,
+    output reg                 mem_ready_o,
+    output reg[DATA_WIDTH-1:0] r_data_o,
 
     //mem <---> axi
 
     input       r_ready_i,          // 数据操作完成
-    output      r_valid_o,          // 发出读请求
-    output      r_wen,              
+    output      r_valid_o,          // 发出读请求          
     input       r_last_i,
+    output [7:0]r_len_o,
     input  [ DATA_WIDTH-1:0]r_data_i, // 读数据
     output [ ADDR_WIDTH-1:0]r_addr_o, // 读地址
 
     input       w_ready_i,          // 数据操作完成
     input       w_last_i,
     output      w_valid_o,          // 发出写请求
-    output      w_wen,    
-    output [7:0]w_size_o,
+    output [2:0]w_size_o,
+    output [7:0]w_len_o,
     output [ DATA_WIDTH-1:0]w_data_o, // 写数据
     output [ ADDR_WIDTH-1:0]w_addr_o // 写地址
 
@@ -42,12 +42,12 @@ module ysyx_22041412_mem#(
 import "DPI-C" function void mem_write(
   input longint waddr, input longint wdata, input byte wmask); */
 
-wire [7:0]wmask; 
+/* wire [7:0]wmask; 
 assign wmask =  (func3==3'b000)?8'd8:     //sb
                 (func3==3'b001)?8'd16:    //sh
                 (func3==3'b010)?8'd32:    //sw
                 (func3==3'b011)?8'd64:    //sd
-                0;   
+                0;    */
 
 wire [63:0] cache_read_data;
 wire  dcache_ready_i;
@@ -85,19 +85,18 @@ ysyx_22041412_Dcache u_ysyx_22041412_Dcache(
     .cache_miss                     ( cache_miss                     ),
     .cache_hit                      ( cache_hit                      ),
 
-    .cpu_req_addr                   ( addr                   ),
-    .cpu_rw_en;                     ( wen                      ),
-    .cpu_write_data                 ( wdata                 ),
-    .cpu_rw_size                    ( wmask                      ),
-    .cpu_read_data                  ( cache_read_data              ),
-    .cpu_valid                      ( dcache_valid_i             ),
+    .cpu_req_addr                   ( addr                       ),
+    .cpu_rw_en                      ( wen                        ),
+    .cpu_write_data                 ( wdata                      ),
+    .cpu_rw_size                    ( func3                      ),
+    .cpu_read_data                  ( cache_read_data            ),
+    .cpu_valid                      ( dcache_valid_o             ),
     .cpu_ready                      ( dcache_ready_i             ),
 
     .axi_w_ready_i                  ( w_ready_i                  ),
     .axi_w_valid_o                  ( w_valid_o                  ),
     .axi_w_last_i                   ( w_last_i                   ),
     .axi_w_len_o                    ( w_len_o                    ),
-    .axi_w_strb_i                   ( w_strb_i                   ),
     .axi_w_data_o                   ( w_data_o                   ),
     .axi_w_addr_o                   ( w_addr_o                   ),
     .axi_w_size_o                   ( w_size_o                   ),

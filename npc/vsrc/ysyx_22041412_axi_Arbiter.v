@@ -18,20 +18,17 @@ module ysyx_22041412_axi_Arbiter #(
   //READ
     input          mem_r_valid,                
     output         mem_r_ready,
-    input          mem_r_wen,
     output  [63:0] mem_r_data,
     input   [31:0] mem_r_addr,
     input    [7:0] mem_r_len,
-    input    [7:0] mem_r_size,
     output         mem_r_last_i,
   //WRIT
     input          mem_w_valid,                        
     output         mem_w_ready,
-    input          mem_w_wen,
     input   [63:0] mem_w_data,
     input   [31:0] mem_w_addr,
     input    [7:0] mem_w_len,   
-    input    [7:0] mem_w_size,
+    input    [2:0] mem_w_size,
     output         mem_w_last_i,  
 // to axi
     output                               r_valid_i,          //读请求
@@ -42,8 +39,8 @@ module ysyx_22041412_axi_Arbiter #(
     output  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
     output  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //写地址
     output  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //读地址
-    output  [7:0]                        w_size_i,           //写掩码
-    output  [7:0]                        r_size_i,           //读掩码
+    output  [2:0]                        w_size_i,           //写掩码
+    output  [2:0]                        r_size_i,           //读掩码
     output  [7:0]                        r_len_i,            //读突发长度
     output  [7:0]                        w_len_i,            //写突发长度
     input                                r_last_i,
@@ -54,6 +51,14 @@ module ysyx_22041412_axi_Arbiter #(
 `define MEMW             3'b001     //选通MEM写
 `define MEMR             3'b010     //选通MEM读
 `define IF               3'b100     //选通IF
+
+
+
+`define BUST_1           3'b000
+`define BUST_2           3'b001
+`define BUST_4           3'b010
+`define BUST_8           3'b011 
+
 reg[2:0] rd_switch;          //读通道选择器状态  
 reg[2:0] rd_next_switch;
 reg[1:0] rd_state;           //读通道状态机
@@ -84,9 +89,9 @@ reg[1:0] wr_next_state;
       end else begin
         case(rd_state) //写入状态机的控制 
         `IDLE: begin
-              if(mem_rw_valid & ~mem_r_wen )begin
+              if(mem_r_valid )begin
                 rd_next_state  = `BUSY;
-                rd_next_switch =  `MEMR;
+                rd_next_switch = `MEMR;
               end 
               else if(if_ar_valid)begin
                 rd_next_state  = `BUSY;
@@ -123,7 +128,7 @@ reg[1:0] wr_next_state;
 
 //------------写通道   Write transmission---------------------\\
   always@(posedge clk)begin
-    if(mem_w_valid & mem_w_wen )begin
+    if(mem_w_valid )begin
       wr_switch <= `MEMW ;
     end else begin
       wr_switch <= `AXI_IDLE ;
@@ -131,25 +136,32 @@ reg[1:0] wr_next_state;
 
   end
 
+
+
+
+//读通道
+assign mem_r_last_i=(rd_switch==`MEMR )?r_last_i   : 0;
+assign mem_r_ready =(rd_switch==`MEMR )?r_ready_o  : 0;
+assign mem_r_data  =(rd_switch==`MEMR) ?data_read_o: 0;
 assign if_ar_data  =(rd_switch==`IF)   ?data_read_o: 0;
 assign if_ar_ready =(rd_switch==`IF)   ?r_ready_o  : 0;
 assign if_last_i   =(rd_switch==`IF)   ?r_last_i   : 0;
-assign mem_rw_ready=(rd_switch==`MEMR )?r_ready_o  :
-                    (wr_switch==`MEMW )?w_ready_o  : 0;
-assign mem_rw_r_data=(rd_switch==`MEMR)?data_read_o: 0;
-//读通道
+
 assign r_valid_i   =(rd_switch==`MEMR) ? mem_r_valid : 
                     (rd_switch==`IF)   ? if_ar_valid  : 0 ;  //读请求
 assign r_addr_i    =(rd_switch==`MEMR) ? mem_r_addr  :
                     (rd_switch==`IF)   ? if_ar_addr   : 0 ;  //读地址
-assign r_size_i    =(rd_switch==`MEMR) ? mem_r_size  :
-                    (rd_switch==`IF)   ? 'd64         : 0 ;  //突发的长度
+assign r_size_i    =(rd_switch==`MEMR | rd_switch==`IF) ? `BUST_8  : 0 ;  //突发的长度
 assign r_len_i     =(rd_switch==`MEMR) ? mem_r_len   :
                     (rd_switch==`IF)   ?  if_ar_len   : 0 ;  //突发次数
  
 //写通道
+assign mem_w_last_i= (wr_switch == `MEMW)? w_last_i : 0;
+assign mem_w_ready = w_ready_o ;
+
+
 assign w_valid_i   =(wr_switch == `MEMW)? mem_w_valid : 0;            //写请求
-assign rw_w_data_i =(wr_switch == `MEMW)? mem_w_w_data: 0;            //写数据
+assign rw_w_data_i =(wr_switch == `MEMW)? mem_w_data  : 0;            //写数据
 assign w_size_i    =(wr_switch == `MEMW)? mem_w_size  : 0;            //掩码
 assign w_addr_i    =(wr_switch == `MEMW)? mem_w_addr  : 0;            //地址
 assign w_len_i     =(wr_switch == `MEMW)? mem_w_len   : 0;            //突发次数

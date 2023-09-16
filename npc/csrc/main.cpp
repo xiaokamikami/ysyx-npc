@@ -57,7 +57,7 @@ uint64_t main_time_us;
 
 //****************************debug*********************
 uint64_t debuge_time=0;  //debug的时钟地点
-uint64_t debuge_pc  =0x80004f60; //debug的pc地址
+uint64_t debuge_pc  =0; //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
@@ -211,7 +211,7 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
-      //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+        printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
           cpureg.pc=pc;

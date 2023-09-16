@@ -116,14 +116,14 @@ wire         r_ready;  // 访存完成
 wire         w_valid;  // 请求有效
 wire         w_ready;  // 访存完成
 
-wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数�?
-wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数�?
+wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数据
+wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数据
 wire [AXI_ADDR_WIDTH-1:0] axi_r_addr; // 读地址
 wire [AXI_ADDR_WIDTH-1:0] axi_w_addr; // 写地址
 
 
-wire  [7:0] r_strb;   // 字节掩码
-wire  [7:0] w_strb;   // 字节掩码
+wire  [2:0] r_size;   // 突发宽度
+wire  [2:0] w_size;   // 突发宽度
 wire  [7:0] r_len_i;
 wire  [7:0] w_len_i;
 wire        r_last_o;
@@ -141,8 +141,8 @@ ysyx_22041412_axi axi4(
     .rw_w_data_i(axi_w_data),    //写数�?
     .w_addr_i(axi_w_addr),       //地址
     .r_addr_i(axi_r_addr),       //地址
-    .w_size_i(w_strb),           //掩码
-    .r_size_i(r_strb),           //掩码
+    .w_size_i(w_size),           //掩码
+    .r_size_i(r_size),           //掩码
     .r_len_i(r_len_i),           //突发长度
     .w_len_i(w_len_i),           //突发长度
     .r_last_o(r_last_o),
@@ -208,21 +208,17 @@ wire   [31:0] if_ar_addr;
 
 wire          mem_r_valid;                           //MEM 读请求
 wire          mem_r_ready;
-wire          mem_r_wen;
-wire   [63:0] mem_r_r_data;
-wire   [63:0] mem_r_w_data;
+wire   [63:0] mem_r_data;
 wire   [31:0] mem_r_addr;
 wire    [7:0] mem_r_len;
-wire    [7:0] mem_r_size;
+//wire    [2:0] mem_r_size;
 wire          mem_r_last;
 wire          mem_w_valid;                           //MEM 写请求
 wire          mem_w_ready;
-wire          mem_w_wen;
-wire   [63:0] mem_w_r_data;
-wire   [63:0] mem_w_w_data;
+wire   [63:0] mem_w_data;
 wire   [31:0] mem_w_addr;
 wire    [7:0] mem_w_len;
-wire    [7:0] mem_w_size;
+wire    [2:0] mem_w_size;
 wire          mem_w_last;
 ysyx_22041412_axi_Arbiter axi_Arbiter(
     .clk(clk),
@@ -238,16 +234,13 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     //READ
     .mem_r_valid   (mem_r_valid),                         //MEM请求
     .mem_r_ready   (mem_r_ready),
-    .mem_r_wen     (mem_r_wen),
     .mem_r_data    (mem_r_data),
     .mem_r_addr    (mem_r_addr),
     .mem_r_len     (mem_r_len),
-    .mem_r_size    (mem_r_size),
     .mem_r_last_i  (mem_r_last),
     //WRIT
     .mem_w_valid   (mem_w_valid),                         //MEM请求
     .mem_w_ready   (mem_w_ready),
-    .mem_w_wen     (mem_w_wen),
     .mem_w_data    (mem_w_data),
     .mem_w_addr    (mem_w_addr),
     .mem_w_len     (mem_w_len),
@@ -262,8 +255,8 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .rw_w_data_i(axi_w_data),    //写数�?
     .w_addr_i(axi_w_addr),       //地址
     .r_addr_i(axi_r_addr),       //地址
-    .w_size_i(w_strb),           //掩码
-    .r_size_i(r_strb),           //掩码
+    .w_size_i(w_size),           //掩码
+    .r_size_i(r_size),           //掩码
     .r_len_i(r_len_i),            //突发长度
     .w_len_i(w_len_i),            //突发长度
     .r_last_i(r_last_o),
@@ -297,7 +290,7 @@ ysyx_22041412_Icache Icache_L1(
 //icache    <---> AXI
     .axi_ready_i    (icache_ar_ready),        // 读有效等待接�?
     .axi_valid_o    (icache_ar_valid),        // 发出读请�?            
-    .axi_r_last_i   (icache_last_i),          //传输结束标识
+    .axi_r_last_i   (icache_last_i),          // 传输结束标识
     .axi_r_len_i    (icache_ar_len),
     .axi_r_data_i   (icache_ar_data), 		  // 读数�?
     .axi_r_addr_o  	(icache_ar_addr)	      // 读地址
@@ -320,7 +313,7 @@ ysyx_22041412_if IF_s1 (      //imm
 
 
     //流水线握手信�?
-    .ready_o(if_ready_o),       //准备好输出数据并更新pc�?
+    .ready_o(if_ready_o),       //准备好输出数据并更新pc
     .valid_i(id_vaild_o),
 
     //if <------->cache
@@ -581,32 +574,40 @@ wire sram_ready_o;
 
 assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en);
 
+ysyx_22041412_mem u_ysyx_22041412_mem(
+    .clk         ( clk         ),
+    .rst         ( rst         ),
 
-ysyx_22041412_mem MEM_dram(        //SRAM
-    .clk            (clk),
-    .rst            (rst),
+    //cache
+    .cache_miss  ( Dcache_L1_miss  ),
+    .cache_hit   ( Dcache_L1_hit   ),
 
-    .func3          (mem_func3),
-    .addr           (mem_addr),
-    .wdata          (mem_wdata),
-    .r_data_o       (mem_rdata),
+    .func3       ( mem_func3       ),
+    .addr        ( mem_addr        ),
+    .wdata       ( mem_wdata       ),
+    .wen         ( mem_rw_type     ),     //1 wt 0 read
+    .ex_ready_i  ( ex_ready_o      ),
+    .mem_valid_i ( mem_ram_en      ),
+    .mem_ready_o ( sram_ready_o    ),
+    .r_data_o    ( mem_rdata       ),
 
-    .ex_ready_i     (ex_ready_o),
-    .mem_valid_i    (mem_ram_en),
-    .mem_ready_o    (sram_ready_o),
-    .wen            (mem_rw_type),           //1 wt  0 read
+    //axi
+    .r_ready_i   ( mem_r_ready   ),
+    .r_valid_o   ( mem_r_valid   ),
+    .r_last_i    ( mem_r_last    ),
+    .r_data_i    ( mem_r_data    ),
+    .r_addr_o    ( mem_r_addr    ),
+    .r_len_o     ( mem_r_len     ),
 
-    //mem <---> dcache
-    .dcache_ready_i (mem_rw_ready),          // 读有效
-    .dcache_valid_o (mem_rw_valid),          // 发出读请求
-       
-    .rw_wen         (mem_rw_wen),
-    .wmask          (mem_rw_size),
-    .w_data_o       (mem_rw_w_data),         // 写数据
-    .w_addr_o       (mem_rw_addr),           // 写地址
-    .r_data_i       (mem_rw_r_data),         // 读数据
-    .r_addr_o       (mem_rw_addr)            // 读地址
+    .w_ready_i   ( mem_w_ready   ),
+    .w_last_i    ( mem_w_last    ),
+    .w_valid_o   ( mem_w_valid   ),
+    .w_size_o    ( mem_w_size    ),
+    .w_len_o     ( mem_w_len     ),
+    .w_data_o    ( mem_w_data    ),
+    .w_addr_o    ( mem_w_addr    )
 );
+
 always@(posedge clk)begin           
     if(mem_valid_o & ex_ready_o)begin
         mem_pc <=ex_pc;

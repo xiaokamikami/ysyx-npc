@@ -184,14 +184,14 @@ void dramsim3_helper_rising(const axi_channel &axi) {
 }
 axi_addr_t raddr;
 axi_addr_t waddr;
-
+uint8_t  r_len_count;
+uint8_t  w_len_count;
 // 准备下降沿的处理
 void dramsim3_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
   uint64_t data;
   uint8_t  strb;
-  uint8_t  r_len_count;
-  uint8_t  w_len_count;
+
   // 初始化slave的所有握手信号避免错误握手
   axi.aw.ready = 0;
   axi.w.ready  = 0;
@@ -209,20 +209,19 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
   if (axi.r.ready==1 ) {
       //printf("ar len %ld ",axi.ar.len);
-      if(r_len_count<=axi.ar.len){
-          ram_read(raddr+(r_len_count*axi.ar.size/8),&data);
+      if(r_len_count<axi.ar.len+1){
+          ram_read(raddr+r_len_count*8,&data);
           // 利用返回的读数据设置axi总线
           memcpy(axi.r.data, &data, 8);
-          //printf("[axi ar]addr=%lx ,data=%lx ",raddr+(ar_len_count/8),data);
+          printf("[axi ar]addr=%lx ,data=%lx ",raddr+r_len_count*8,data);
           r_len_count =r_len_count+1;
           if(r_len_count==(axi.ar.len+1)){
             axi.r.valid = 1;
             axi.r.last =  1;
-            axi.r.id = 0;
+            printf("end \n");
           }else{
             axi.r.valid = 1;
             axi.r.last =  0;
-            axi.r.id = 0;
           }  
       }
 
@@ -243,20 +242,29 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // WDATA: check whether the write data can be accepted
   // 写数据，burst持续接收写数据
   if( axi.w.valid == 1){
-    strb  = axi.w.strb;
-    uint8_t len;
-    switch (strb){
-      case 0x01   :len=1;break;
-      case 0x03   :len=2;break;
-      case 0x0f   :len=4;break;
-      case 0xff   :len=8;break;
-        /* code */
-      default: printf("error axi w strb  错误的掩码\n");assert(0);break;
-    }
-    memcpy(&data, axi.w.data,len);
-    ram_write(waddr,len,data);
-    //printf("try to write data %lx to 0x%lx \n",data, waddr);
-    axi.w.ready = 1;
+      uint8_t len;
+      len = (axi.aw.len==0) ? 1 : 
+            (axi.aw.len==1) ? 2 : 
+            (axi.aw.len==2) ? 4 :    
+            (axi.aw.len==3) ? 8 : 0;      
+      assert(len == 0);
+      if(w_len_count<axi.aw.len+1){
+          memcpy(&data, axi.w.data,8);
+          ram_write(waddr,len,data);
+          // 利用返回的读数据设置axi总线
+
+          printf("[axi wr]addr=%lx ,data=%lx ",waddr+r_len_count*8,data);
+          w_len_count =w_len_count+1;
+          if(w_len_count==(axi.aw.len+1)){
+            axi.w.ready = 1;
+            axi.w.last =  1;
+            printf("end \n");
+          }else{
+            axi.w.ready = 1;
+            axi.w.last =  0;
+          }  
+      }
+
   }
 
   // WRESP: if finished, we try the next write response

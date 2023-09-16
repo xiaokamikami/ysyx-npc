@@ -33,6 +33,11 @@ module ysyx_22041412_Icache(
 `define  cache_pape_widh  'd8;
 `define  cpu_size         'd4;
 
+`define BUST_1           3'b000
+`define BUST_2           3'b001
+`define BUST_4           3'b010
+`define BUST_8           3'b011 
+
 `define ICACHE_IDLE         3'b000  
 `define ICACHE_INST         3'b001  
 `define ICACHE_RD_CACHE     3'b010  

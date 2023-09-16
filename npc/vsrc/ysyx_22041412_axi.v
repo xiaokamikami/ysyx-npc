@@ -58,6 +58,10 @@
 `define RVALID       2'b10
 
 
+`define BUST_1           3'b000
+`define BUST_2           3'b001
+`define BUST_4           3'b010
+`define BUST_8           3'b011 
 
 module ysyx_22041412_axi # (
     parameter AXI_DATA_WIDTH    = 64,
@@ -78,8 +82,8 @@ module ysyx_22041412_axi # (
     input  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
     input  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //地址
     input  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //地址
-    input  [7:0]                        w_size_i,           //突发大小
-    input  [7:0]                        r_size_i,           //突发大小
+    input  [2:0]                        w_size_i,           //突发大小   // 每次突发的大小 = 0-7   +1 字节
+    input  [2:0]                        r_size_i,           //突发大小
     input  [7:0]                        r_len_i,            //突发长度
     input  [7:0]                        w_len_i,            //突发长度
     output reg                          r_last_o,
@@ -162,8 +166,8 @@ module ysyx_22041412_axi # (
 
     // 写数据通道
     assign axi_w_data_o     = rw_w_data_i ;
-    assign axi_w_strb_o     = w_size_i;
-    //assign axi_w_last_o     = 1'b0;
+    assign axi_w_strb_o     = 8'b11111111;
+    assign axi_w_last_o     = w_last_o;
     assign axi_w_user_o     = axi_user;                                                                         //初始化信号即可
 
     // 写应答通道
@@ -183,18 +187,28 @@ module ysyx_22041412_axi # (
           end
       end else axi_aw_valid   <= 1'b0;
     end
+    reg [7:0]wd_count;
 
     /* =============================写数据通道=========================== */
     always @(posedge clk) begin
       if (rst) begin
         w_ready_o <= 0;
       end else if (w_valid_i & ~w_ready_o) begin  // 从设备给出的数据有效即valid拉高
-        if (axi_w_ready_i) begin // 完成最后一次数据传输
+        if (axi_w_ready_i & (wd_count==w_len_i+1'b1) ) begin // 完成最后一次数据传输
           w_ready_o     <= 1;
           axi_w_valid_o <= 0;
-        end  else begin            // 等待写入
-          axi_w_valid_o<= 1'b1;
+          w_last_o      <= 1'b1;
+          wd_count      <= 0;
+        end  else if(axi_w_ready_i)begin
+          w_ready_o     <= 1;
+          axi_w_valid_o <= 1;
+          w_last_o      <= 1'b0;
+          wd_count      <= wd_count+'b1;
+        end
+        else begin            // 等待写入
+          axi_w_valid_o <= 1'b1;
           w_ready_o     <= 0;
+          w_last_o      <= 1'b0;
         end
       end else if(~w_valid_i) begin 
         w_ready_o     <= 0;
