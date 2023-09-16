@@ -78,8 +78,8 @@ module ysyx_22041412_axi # (
     input  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
     input  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //地址
     input  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //地址
-    input  [7:0]                        w_size_i,           //掩码
-    input  [7:0]                        r_size_i,           //掩码
+    input  [7:0]                        w_size_i,           //突发大小
+    input  [7:0]                        r_size_i,           //突发大小
     input  [7:0]                        r_len_i,            //突发长度
     input  [7:0]                        w_len_i,            //突发长度
     output reg                          r_last_o,
@@ -152,8 +152,8 @@ module ysyx_22041412_axi # (
     assign axi_aw_prot_o    = `AXI_PROT_UNPRIVILEGED_ACCESS | `AXI_PROT_SECURE_ACCESS | `AXI_PROT_DATA_ACCESS;  //初始化信号即可
     assign axi_aw_id_o      = axi_id;                                                                           //初始化信号即可
     assign axi_aw_user_o    = axi_user;                                                                         //初始化信号即可
-    assign axi_aw_len_o     = 0;
-    assign axi_aw_size_o    = 0;
+    assign axi_aw_len_o     = w_len_i;
+    assign axi_aw_size_o    = w_size_i;
     assign axi_aw_burst_o   = `AXI_BURST_TYPE_INCR;                                                             
     assign axi_aw_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_aw_cache_o   = `AXI_AWCACHE_WRITE_BACK_READ_AND_WRITE_ALLOCATE;                                  //初始化信号即可
@@ -202,8 +202,21 @@ module ysyx_22041412_axi # (
       end
     end
 
+    /* =============================写响应通道=========================== */
 
-
+    // OKAY：一般访问成功。该信号表示一个一般访问成功，也表示一个独占访问失败。
+    // EXOKAY：独占访问成功。
+    // SLVERR：从设备错误。该信号表示向从设备的访问已成功，但从设备希望向原始主设备返回一个错误条件。
+    // DECERR：译码错误。通常由互联器生成，表示根据给定的事务地址找不到从设备。
+    always @(posedge clk) begin
+      if (rst) begin
+        axi_b_ready_o <= 1'b0;
+      end else if (axi_b_valid_i & ~axi_b_ready_o ) begin  
+        axi_b_ready_o <= 1'b1;
+      end else begin 
+        axi_b_ready_o<= 1'b0;
+      end
+    end
 
     // ------------------Read Transaction------------------
 
@@ -214,7 +227,7 @@ module ysyx_22041412_axi # (
     assign axi_ar_id_o      = axi_id;                                                                           //初始化信号即可                        
     assign axi_ar_user_o    = axi_user;                                                                         //初始化信号即可
     assign axi_ar_len_o     = r_len_i;                                                                          
-    assign axi_ar_size_o    = `AXI_SIZE_BYTES_64;
+    assign axi_ar_size_o    = r_size_i;
     assign axi_ar_burst_o   = `AXI_BURST_TYPE_INCR;
     assign axi_ar_lock_o    = 1'b0;                                                                             //初始化信号即可
     assign axi_ar_cache_o   = `AXI_ARCACHE_NORMAL_NON_CACHEABLE_NON_BUFFERABLE;                                 //初始化信号即可

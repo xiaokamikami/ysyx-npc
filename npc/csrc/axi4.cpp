@@ -184,13 +184,14 @@ void dramsim3_helper_rising(const axi_channel &axi) {
 }
 axi_addr_t raddr;
 axi_addr_t waddr;
-uint8_t   ar_len_count;  //读计数
 
 // 准备下降沿的处理
 void dramsim3_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
   uint64_t data;
   uint8_t  strb;
+  uint8_t  r_len_count;
+  uint8_t  w_len_count;
   // 初始化slave的所有握手信号避免错误握手
   axi.aw.ready = 0;
   axi.w.ready  = 0;
@@ -208,34 +209,25 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
   if (axi.r.ready==1 ) {
       //printf("ar len %ld ",axi.ar.len);
-      if(axi.ar.len <= 64){
-        ram_read(raddr,&data);
-        // 利用返回的读数据设置axi总线
-        memcpy(axi.r.data, &data, 8);
-        axi.r.valid = 1;
-        axi.r.last =  1;
-        axi.r.id = 0;
-        //printf("[axi ar]addr=%lx ,data=%lx END \n",raddr+(ar_len_count/8),data);
-      }else {
-        if(ar_len_count >= axi.ar.len){
-          axi.r.valid = 1;
-          axi.r.last =  1;
-          axi.r.id = 0;
-         //printf("[axi ar] END \n");
-        } else{
-          ram_read(raddr+(ar_len_count/8),&data);
+      if(r_len_count<=axi.ar.len){
+          ram_read(raddr+(r_len_count*axi.ar.size/8),&data);
           // 利用返回的读数据设置axi总线
           memcpy(axi.r.data, &data, 8);
           //printf("[axi ar]addr=%lx ,data=%lx ",raddr+(ar_len_count/8),data);
-          ar_len_count =ar_len_count+64;
-          axi.r.valid = 1;
-          axi.r.last =  0;
-          axi.r.id = 0;
-          //printf("[axi ar] bust \n");
-        }
+          r_len_count =r_len_count+1;
+          if(r_len_count==(axi.ar.len+1)){
+            axi.r.valid = 1;
+            axi.r.last =  1;
+            axi.r.id = 0;
+          }else{
+            axi.r.valid = 1;
+            axi.r.last =  0;
+            axi.r.id = 0;
+          }  
       }
+
   } else {
-    ar_len_count = 0;
+    r_len_count = 0;
   }
 
 

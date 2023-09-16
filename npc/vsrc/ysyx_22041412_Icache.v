@@ -194,7 +194,7 @@ reg [2:0] next_state;
             cache_miss <= cache_miss+1;
             
             axi_valid_o   <= 1'b1;    //发起申请
-            axi_r_len_i   <= 8'd128;
+            axi_r_len_i   <= 8'd1;
             axi_r_addr_o  <= {cpu_req_addr[31:4],4'b0000};
           end
 
