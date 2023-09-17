@@ -80,13 +80,27 @@ assign cache_offset = cpu_req_addr[3:0];
 reg [127:0]   write_data;
 reg [127:0]   wrtie_strb;
 reg [7:0]     write_en  ;
-wire [127:0]  rw_strb;  //写cache掩码 地址8字节对齐 只有两种情况
+reg           rw_strb_en;
+wire [127:0]  rw_strb;  //写cache掩码 
 wire          rw_offset;
 wire [127:0]  ram_rd_data [7:0][1:0];   //CACHE读数据
+//
 
-assign  rw_strb   = (cache_offset=='d0 || cache_offset=='d4 )  ?{{64{1'b0}},{64{1'b1}}} :
-                    (cache_offset=='d8 || cache_offset=='d12 ) ?{{64{1'b1}},{64{1'b0}}} : 128'b0 ;      //全为0的情况 写掩码不正确
-assign  rw_offset  =(cache_offset=='d8 || cache_offset=='d12 ) ?1'b1 : 1'b0 ;   
+// 通过掩码控制写入的数据长度                //低64位
+assign  rw_strb   =(~rw_strb_en) ? (~cache_offset[3]) ? (cpu_rw_size==3'b000)?{{120{1'b0}},{8{1'b1}}} :  //sb
+                                                        (cpu_rw_size==3'b001)?{{112{1'b0}},{16{1'b1}}}:  //sh
+                                                        (cpu_rw_size==3'b010)?{{96{1'b0}},{32{1'b1}}} :  //sw
+                                                        (cpu_rw_size==3'b011)?{{64{1'b0}},{64{1'b1}}} :  //sd
+                                                        128'b0 : 
+                                                        // 高64位
+                                                        (cpu_rw_size==3'b000)?{{8{1'b1}},{120{1'b0}}} :  //sb
+                                                        (cpu_rw_size==3'b001)?{{16{1'b1}},{112{1'b0}}}:  //sh
+                                                        (cpu_rw_size==3'b010)?{{32{1'b1}},{96{1'b0}}} :  //sw
+                                                        (cpu_rw_size==3'b011)?{{64{1'b1}},{64{1'b0}}} :  //sd
+                                                        128'b0 :
+                                   {128{1'b1}};
+
+assign  rw_offset  =(~cache_offset[3])  ?1'b0 : 1'b1 ;   
 
 
 reg [20:0] cache_tag_ram [127:0][7:0]; //tag 寄存器堆
@@ -162,11 +176,12 @@ reg [2:0] rd_next_state;
 reg [2:0] wr_state;  //cache状态机
 
 wire [63:0] cache_read_data;
-assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index[6]][63:0]} :
-                         (cache_offset== 'd4) ?{ram_rd_data[tag_v_w][cache_index[6]][95:32]} :
-                         (cache_offset== 'd8) ?{ram_rd_data[tag_v_w][cache_index[6]][127:64]} :
-                         (cache_offset== 'd12)?{32'b0,ram_rd_data[tag_v_w][cache_index[6]][127:96]} :0;
+assign cache_read_data = (~rw_offset)?ram_rd_data[tag_v_w][cache_index[6]][63:0]:ram_rd_data[tag_v_w][cache_index[6]][127:64];
 
+wire [63:0]  cache_w_data;
+assign cache_w_data = (~rw_offset) ? (rw_strb[63:0] &  cpu_write_data) : (rw_strb[127:64] &  cpu_write_data) ;//根据掩码 提取出需要的数据
+wire [127:0] cache_write_data;
+assign cache_write_data = (~rw_offset)?{64'b0,cpu_write_data}:{cpu_write_data,64'b0}; 
 
     always@(posedge clk)begin //状态机更新
       if(rst )begin
@@ -230,7 +245,7 @@ assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index
           write_data      <= 128'b0;
           cache_rd_ready  <= 1'b0;
           cpu_read_data   <= 0;  
-           
+          rw_strb_en      <= 0;
           if(cpu_valid & device & ~cpu_rw_en)begin    //读外设  直接发起AXI请求
               axi_r_valid_o <= 1'b1;
               axi_r_len_o   <= 8'd0;   //外设 不支持突发传输
@@ -241,26 +256,28 @@ assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index
         `DCACHE_INST:begin  
           cache_rd_ready   <= 1'b0;
           cpu_read_data    <= 64'b0;
+          rw_strb_en       <= 0;
         end
         `DCACHE_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           if( ~cpu_rw_en & tag_v !=8'b00000000)begin //从命中部位读取数据
-                  cpu_read_data <= cache_read_data;
+                  cpu_read_data <= (cache_read_data>> (cache_offset[2:0] *8));  //通过移位将数据对齐到合适的地址上
                   cache_rd_ready<= 1'b1;  
                   cache_hit     <= cache_hit+1;
-                  $display("DCACHE hit  Read cache addr:%8h data:%16h",cpu_req_addr[31:0],cache_read_data);
+                  $display("DCACHE hit  Read cache addr:%8h offset %h ,data:%16h ",cpu_req_addr,cache_offset,cache_read_data);
           end else if(cpu_rw_en & tag_v !=8'b00000000)begin      //写入cache 到命中的区域  同时将数据标记为dirty
                   write_en             [tag_v_w]              <= 1'b1;
-                  write_data                                  <= (~rw_offset)?{64'b0,cpu_write_data}:{cpu_write_data,64'b0};  //写回cache 8字节对齐
+                  write_data                                  <= (cache_write_data>> (cache_offset[2:0] *8));  //写回cache 8字节对齐
                   cache_tag_ram        [cache_index][tag_v_w] <= cache_tag;
                   cache_v_ram          [cache_index][tag_v_w] <= 1'b1;
                   cache_rd_ready                              <= 1'b1;   
                   cache_hit                                   <= cache_hit+1;
+                  $display("DCACHE hit  Write cache addr:%8h offset %h ,data:%16h ",cpu_req_addr,cache_offset,cpu_write_data);
           end else begin
               //没有命中，发起AXI请求
               axi_r_valid_o   <= 1'b1;
-              axi_r_len_o     <= 'd1;
+              axi_r_len_o     <= 8'd1;
               axi_r_addr_o    <= {cpu_req_addr[31:4],4'b0000};
-              
+              rw_strb_en      <= 1'b1;
               cache_rd_ready  <= 1'b0;  
               cache_miss      <= cache_miss+1;
           end
@@ -269,11 +286,14 @@ assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index
 
           if(axi_r_valid_o & axi_r_ready_i )begin
             if(axi_r_last_i )begin  //最后一次传输       //如果不是外设操作，需要根据dirty 装填需要回写的数据
-                  $display("Dcache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
+
+                  if(~device)$display("Dcache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
+                  else $display("Dcache Read Device %8h",cpu_req_addr);
+
                   axi_r_valid_o        <= 1'b0;
                   axi_r_len_o          <= 8'b0; 
-                  cpu_read_data        <= (~rw_offset)?{write_data[63:0]}:{axi_r_data_i};;  //更新接口数据
-                  cache_rd_ready                                          <= 1'b1;
+                  cpu_read_data        <= (~rw_offset & ~cpu_rw_en)?({write_data[63:0]}:{axi_r_data_i}>> (cache_offset[2:0] *8)) : 64'b0;  //更新接口数据
+                  cache_rd_ready       <= 1'b1;
                   if(~device)begin
                     write_data         <= (~rw_offset & cpu_rw_en)?{axi_r_data_i,cpu_write_data} :
                                           (rw_offset  & cpu_rw_en)?{cpu_write_data,write_data[63:0]} :{axi_r_data_i,write_data[63:0]} ;  //写回cache
@@ -332,7 +352,6 @@ assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index
           axi_w_data_o   <= 64'b0;
           axi_w_addr_o   <= 32'b0;
           axi_w_size_o   <= 3'b0;
-          cache_wr_ready <= 1'b0;
             if(cpu_valid & device & cpu_rw_en)begin  //写外设
               axi_w_valid_o<= 1'b1;
               axi_w_data_o <= cpu_write_data;
@@ -357,7 +376,7 @@ assign cache_read_data = (cache_offset== 'd0) ?{ram_rd_data[tag_v_w][cache_index
               axi_w_addr_o  <= 32'b0;
               axi_w_valid_o <= 1'b0;
               axi_w_len_o   <= 8'b0;
-              cache_wr_ready<= (device)? 1'b1 : 1'b0;
+              cache_wr_ready<= (device==1'b1)? 1'b1 : 1'b0;
               $display("Dcache wtback succful: %8h ",axi_w_addr_o);
             end else begin
               axi_w_data_o  <= write_back_data[127:64];

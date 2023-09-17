@@ -56,8 +56,8 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_time=0;  //debug的时钟地点
-uint64_t debuge_pc  =0; //debug的pc地址
+uint64_t debuge_time=22800;  //debug的时钟地点
+uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
@@ -150,6 +150,7 @@ void updata_clk()    //刷新一次时钟与设备
     }
 
   #endif 
+
   axi_channel axi;
   if (top->clk == 0) {
     axi_copy_from_dut_ptr(top, axi);
@@ -211,7 +212,7 @@ static int cmd_c()                //DIFFTEST
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
-        printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+        //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
           cpureg.pc=pc;
@@ -320,7 +321,7 @@ int main(int argc,char **argv){
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",last_pc,main_time);
       
       updata_clk();  
-
+      break;
       top->final();
       tfp->close();
       delete top;
@@ -336,11 +337,13 @@ int main(int argc,char **argv){
   //printf("main_dir_value :%ld \n",main_dir_value);
   //printf("main_clk_value :%ld \n",main_clk_value);
 
-  double ipc,icache_l1_hit;
+  double ipc,icache_l1_hit,dcache_l1_hit;
   ipc=((double)main_dir_value)/main_clk_value;
   icache_l1_hit=((double)top->Icache_L1_hit)/(top->Icache_L1_miss+top->Icache_L1_hit);
-  printf(BLUE "Core Cache info:" NONE " icache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100);
-  printf(     "icache_l1 icache_l1 hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
+  dcache_l1_hit=((double)top->Dcache_L1_hit)/(top->Dcache_L1_miss+top->Dcache_L1_hit);
+  printf(BLUE "\nCore Cache info:\n" NONE "icache_l1 hit rate  %.2lf %% dcache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
+  printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
+  printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
   printf(BLUE "IPC:" NONE " %.4lf \n",ipc);
 
 

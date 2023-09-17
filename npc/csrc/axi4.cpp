@@ -105,14 +105,15 @@ static void ram_read(uint64_t raddr, uint64_t *rdata) {
   if(raddr >= 0x80000000 & raddr<0x83000000 ){     //程序文件
     //raddr=(raddr-CONFIG_MBASE);
     //*rdata =  *(uint64_t *)(sram+(raddr & ~0x7ull));
-    *rdata = pmem_read((raddr & ~0x7ull), 8);
-    // 8字节对齐
-    uint8_t offset = raddr-(raddr & ~0x7ull);
-    //mask
-    if (offset>0)
-    {
-      *rdata = (*rdata) >> (offset*8);
-    }
+    *rdata = pmem_read(raddr , 8);
+    // *rdata = pmem_read((raddr & ~0x7ull), 8);
+    // // 8字节对齐
+    // uint8_t offset = raddr-(raddr & ~0x7ull);
+    // //mask
+    // if (offset>0)
+    // {
+    //   *rdata = (*rdata) >> (offset*8);
+    // }
   }
   else if(raddr >= 0x83000000 & raddr<0x88000000 ){ //虚拟磁盘
     *rdata = pmem_read(raddr, 8);
@@ -213,12 +214,12 @@ void dramsim3_helper_falling(axi_channel &axi) {
           ram_read(raddr+r_len_count*8,&data);
           // 利用返回的读数据设置axi总线
           memcpy(axi.r.data, &data, 8);
-          printf("[axi ar]addr=%lx ,data=%lx ",raddr+r_len_count*8,data);
+          //printf("[axi ar]addr=%lx ,data=%lx ",raddr+r_len_count*8,data);
           r_len_count =r_len_count+1;
           if(r_len_count==(axi.ar.len+1)){
             axi.r.valid = 1;
             axi.r.last =  1;
-            printf("end \n");
+            //printf("end \n");
           }else{
             axi.r.valid = 1;
             axi.r.last =  0;
@@ -246,24 +247,22 @@ void dramsim3_helper_falling(axi_channel &axi) {
       len = (axi.aw.len==0) ? 1 : 
             (axi.aw.len==1) ? 2 : 
             (axi.aw.len==2) ? 4 :    
-            (axi.aw.len==3) ? 8 : 0;      
-      assert(len == 0);
-      if(w_len_count<axi.aw.len+1){
+            (axi.aw.len==3) ? 8 : 0;     
+            
+      if(len==0 ){printf("%d ",len);exit_now();  }//assert(len == 0);
+
+      if(~axi.w.last){
           memcpy(&data, axi.w.data,8);
           ram_write(waddr,len,data);
           // 利用返回的读数据设置axi总线
-
-          printf("[axi wr]addr=%lx ,data=%lx ",waddr+r_len_count*8,data);
+          printf("[axi wr]addr=%lx ,data=%lx ",waddr+w_len_count*8,data);
           w_len_count =w_len_count+1;
-          if(w_len_count==(axi.aw.len+1)){
-            axi.w.ready = 1;
-            axi.w.last =  1;
-            printf("end \n");
-          }else{
-            axi.w.ready = 1;
-            axi.w.last =  0;
-          }  
+          axi.w.ready = 1;
+      } else {
+        axi.b.valid = 1;
+        axi.w.ready = 0;
       }
+
 
   }
 

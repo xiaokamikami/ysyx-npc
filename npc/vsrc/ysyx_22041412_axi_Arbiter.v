@@ -151,7 +151,7 @@ assign r_valid_i   =(rd_switch==`MEMR) ? mem_r_valid :
                     (rd_switch==`IF)   ? if_ar_valid  : 0 ;  //读请求
 assign r_addr_i    =(rd_switch==`MEMR) ? mem_r_addr  :
                     (rd_switch==`IF)   ? if_ar_addr   : 0 ;  //读地址
-assign r_size_i    =(rd_switch==`MEMR | rd_switch==`IF) ? `BUST_8  : 0 ;  //突发的长度
+assign r_size_i    =(rd_switch==`MEMR | rd_switch==`IF) ? `BUST_8  : 0 ;  //突发的宽度
 assign r_len_i     =(rd_switch==`MEMR) ? mem_r_len   :
                     (rd_switch==`IF)   ?  if_ar_len   : 0 ;  //突发次数
  

@@ -193,26 +193,31 @@ module ysyx_22041412_axi # (
     always @(posedge clk) begin
       if (rst) begin
         w_ready_o <= 0;
-      end else if (w_valid_i & ~w_ready_o) begin  // 从设备给出的数据有效即valid拉高
+        wd_count  <= 8'b00000000;
+      end else if (w_valid_i & ~w_last_o) begin  // 从设备给出的数据有效即valid拉高
         if (axi_w_ready_i & (wd_count==w_len_i+1'b1) ) begin // 完成最后一次数据传输
           w_ready_o     <= 1;
           axi_w_valid_o <= 0;
           w_last_o      <= 1'b1;
-          wd_count      <= 0;
+          wd_count      <= 8'b000000000;
+          $display("AXI W end");
         end  else if(axi_w_ready_i)begin
           w_ready_o     <= 1;
           axi_w_valid_o <= 1;
           w_last_o      <= 1'b0;
           wd_count      <= wd_count+'b1;
+          $display("AXI W count+1 %d",wd_count);
         end
         else begin            // 等待写入
           axi_w_valid_o <= 1'b1;
           w_ready_o     <= 0;
           w_last_o      <= 1'b0;
         end
-      end else if(~w_valid_i) begin 
-        w_ready_o     <= 0;
-        axi_w_valid_o <= 0;
+      end else begin 
+        wd_count        <= 8'b00000000;
+        w_ready_o       <= 0;
+        axi_w_valid_o   <= 0;
+        w_last_o        <= 1'b0;
       end
     end
 
@@ -225,7 +230,7 @@ module ysyx_22041412_axi # (
     always @(posedge clk) begin
       if (rst) begin
         axi_b_ready_o <= 1'b0;
-      end else if (axi_b_valid_i & ~axi_b_ready_o ) begin  
+      end else if (w_valid_i & ~axi_b_ready_o ) begin  
         axi_b_ready_o <= 1'b1;
       end else begin 
         axi_b_ready_o<= 1'b0;
