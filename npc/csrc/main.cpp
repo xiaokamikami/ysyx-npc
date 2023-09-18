@@ -321,7 +321,7 @@ int main(int argc,char **argv){
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",last_pc,main_time);
       
       updata_clk();  
-      break;
+      //break;
       top->final();
       tfp->close();
       delete top;

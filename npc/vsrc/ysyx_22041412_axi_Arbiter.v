@@ -127,12 +127,10 @@ reg[1:0] wr_next_state;
     end
 
 //------------写通道   Write transmission---------------------\\
-  always@(posedge clk)begin
-    if(mem_w_valid )begin
-      wr_switch <= `MEMW ;
-    end else begin
-      wr_switch <= `AXI_IDLE ;
-    end
+  always@( *)begin
+
+      wr_switch = `MEMW ;
+
 
   end
 

@@ -71,7 +71,7 @@ always@(posedge clk)begin
                           (func3==3'b110)?{{32{1'b0}},cache_read_data[31:0]}:          //lwu
                            `ysyx_22041412_zero_word;
            mem_ready_o    <= 1'b1;   
-           //$display("%lx Read : addr:%8h %16h",addr,r_data_i); //DEBUG    
+           $display("mem Read : addr:%8h %16h",addr,cache_read_data); //DEBUG    
     end else if(ex_ready_i & mem_ready_o)begin   
         mem_ready_o    <= 1'b0;  
     end
