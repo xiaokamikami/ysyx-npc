@@ -16,7 +16,7 @@ extern "C" {
 
 
     // DPI IMPORTS
-    // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_mcsr.v:25:30
+    // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_mcsr.v:27:30
     extern void set_csr_ptr(const svOpenArrayHandle a);
     // DPI import at /home/kami/ysyx-workbench/npc/vsrc/ysyx_22041412_dff.v:17:30
     extern void set_gpr_ptr(const svOpenArrayHandle a);

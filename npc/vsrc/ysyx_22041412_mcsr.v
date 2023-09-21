@@ -8,6 +8,8 @@ module ysyx_22041412_mcsr(
      input [2:0]func3,
      input [63:0]data_i,
      output [63:0]data_o,
+
+     input  valid_i,
      output reg ready_o
  );
 
@@ -34,28 +36,30 @@ assign data_o=data_r;
 
 
 always @(posedge clk) begin
-    if(rst) mcsr_reg[2] = 64'ha00001800;
-    else if(en& !ready_o & func3!='b000)begin
+    if(rst) begin
+        mcsr_reg[2] = 64'ha00001800;
+    end 
+    else if(en& !ready_o & func3!='b000 & valid_i)begin
         data_r<=mcsr_reg[addr];
         if(func3=='b001 | func3=='b101) data_w<=data_i;
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
         else if(func3=='b011 | func3=='b111) data_w<=data& (~data_i);
         ready_o<=1'b1;
-        //$display("PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d",pc,data_r,addr,data_i,func3);
+        $display("\033[1;36mMcsr PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d\033[0m",pc,mcsr_reg[addr],addr,data_i,func3);
     end
-    else if(en& !ready_o & addr=='b001)begin
+    else if(en& !ready_o & addr=='b001 & valid_i)begin
         mcsr_reg[4]<=pc;
         mcsr_reg[5]<='h000b;
         data_r<=mcsr_reg[3];
         ready_o<=1'b1;
         //$display("PC:%8h call %h",pc,mcsr_reg[3]);
     end
-    else if(en& !ready_o & addr=='b000)begin
+    else if(en& !ready_o & addr=='b000 & valid_i)begin
         data_r<=mcsr_reg[4];
         ready_o<=1'b1;
         //$display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
-    else if(en & func3!='b000) begin    //write csr reg
+    else if(en & func3!='b000 & valid_i) begin    //write csr reg
         mcsr_reg[addr]<=data_w;
         ready_o<=1'b1;
         data_w<=64'b0;

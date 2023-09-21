@@ -291,10 +291,11 @@ reg [2:0] wr_state;  //cache状态机
 
                   //if(~device)$display("Dcache get  AXI4  %8h offset %h : %32h",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
                   //if(cache_d_ram [cache_index][cache_write_point]==1'b1) $display("\33[1;31mDcache dirty data %8h : %32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0},ram_rd_data  [cache_write_point][cache_index[6]]);
-                  //else $display("Dcache Read Device %8h",cpu_req_addr);
+                  if(device) $display("Dcache Read Device %8h",cpu_req_addr);
                   axi_r_valid_o        <= 1'b0;
                   axi_r_len_o          <= 8'b0; 
-                  cpu_read_data        <= (~rw_offset & ~cpu_rw_en)?( write_data[63:0]>> (cache_offset[2:0] *8)) :
+                  cpu_read_data        <= (device)?axi_r_data_i:
+                                          (~rw_offset & ~cpu_rw_en)?( write_data[63:0]>> (cache_offset[2:0] *8)) :
                                           (rw_offset  & ~cpu_rw_en)?( axi_r_data_i    >> (cache_offset[2:0] *8)) : 64'b0;  //更新接口数据
                   axi_r_addr_o         <= 32'b0;
                   cache_rd_ready       <= (device || ~cpu_rw_en)?1'b1 : 1'b0;
@@ -325,17 +326,19 @@ reg [2:0] wr_state;  //cache状态机
 
 
     //针对某一个地址的调试器
-/*      wire[31:0] debug_addr = 'h8000ff20;
+      wire[31:0] debug_addr = 'h81b75f40;
     always @(posedge clk) begin
-      if({cpu_req_addr[31:4],{4{1'b0}}} == debug_addr& cpu_rw_en) 
+      if({cpu_req_addr[31:4],{4{1'b0}}} == debug_addr& cpu_rw_en & tag_v !=8'b00000000) 
         $display("\33[1;33mDcache tag  write addr: %8h data:%32h\033[0m",cpu_req_addr , cache_write_data);
-      else if({cpu_req_addr[31:4],{4{1'b0}}} ==debug_addr & ~cpu_rw_en) 
+      else if({cpu_req_addr[31:4],{4{1'b0}}} ==debug_addr & ~cpu_rw_en & tag_v !=8'b00000000) 
         $display("\33[1;33mDcache tag  read addr: %8h data:%32h\033[0m",cpu_req_addr , cache_read_data);    
+      else if({cpu_req_addr[31:4],{4{1'b0}}} ==debug_addr & axi_r_last_i )
+        $display("\33[1;31mDcache get  AXI4  %8h offset %h : %32h\033[0m",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
       else if({cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} ==debug_addr & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point])
         $display("\33[1;31mDcache tag  tihuan start addr: %8h data:%32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} , ram_rd_data  [cache_write_point][cache_index[6]]);
       else if(axi_w_addr_o ==debug_addr & axi_w_ready_i)
         $display("\33[1;31mDcache tag  tihuan succful: %8h data:%16h\033[0m",axi_w_addr_o , axi_w_data_o);
-    end  */
+    end  
 
     always@(posedge clk)begin //状态机更新
       if(rst )begin

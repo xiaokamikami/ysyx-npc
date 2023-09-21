@@ -399,7 +399,6 @@ reg [63:0]ex_v1;
 reg [63:0]ex_v2;
 reg [63:0]ex_rs2;
 reg [4:0]ex_rw;
-reg [4:0]ex_Ra,ex_Rb;
 reg [2:0]ex_func3;
 reg ex_func7;
 reg [6:0]ex_opcode;
@@ -419,7 +418,7 @@ wire ex_wait;
 wire ex_load_wait;
 wire ex_mem_load_wait;
 wire alu_ready_o;
-wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o ;
+wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o & ~ex_load_wait;
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
 
 wire csr_ready_o;
@@ -446,13 +445,12 @@ assign ex_rs2_in =  (id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load 
                       :id_rsB;
 
 
-//需要旁路的数据还没算出�? 先暂�?    都和先写再读有关
+//需要旁路的数据还没从MEM取出   先stall   
 assign ex_wait = ( (id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw )  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
-                    // || ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type)))
                     ?1'b1:1'b0;
-assign ex_load_wait=(id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type))
-                    ?1'b1:1'b0;
-/*        always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
+assign ex_load_wait=  ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
+                     ?1'b1:1'b0;
+/*   always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
         if(id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )       
             $display("id_pc=%8h  ex_v1 = ex_res   -->pc=%16h",id_pc,ex_pc);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~mem_ram_en))
@@ -478,13 +476,11 @@ assign ex_load_wait=(id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`
 
         if((id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw )  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type))
             $display("id_pc=%8h ex_wait mem_load  ex_pc=%8h mem_pc=%8h ",id_pc,ex_pc,wb_pc);
-        else if ((id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & (ex_opcode==`ysyx_22041412_load &  (~sram_ready_o & mem_ram_en & ~mem_rw_type)))
+        else if ((id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & ex_opcode==`ysyx_22041412_load)
             $display("id_pc=%8h ex_wait ex_load ex_pc=%8h mem_pc=%8h ",id_pc,ex_pc,wb_pc);
         
-
-
-    end   
- */
+    end    */
+  
 
 ysyx_22041412_mcsr csr_reg(
      .clk(clk),
@@ -495,6 +491,8 @@ ysyx_22041412_mcsr csr_reg(
      .addr(ex_csr_id),
      .data_i(csr_data_i),
      .data_o(csr_data_o),
+
+     .valid_i(mem_valid_o),
      .ready_o(csr_ready_o)
  );
 ysyx_22041412_alu EXE_alu(          //ALU
@@ -527,9 +525,6 @@ always@(posedge clk)begin
         ex_v2      <= ex_v2_in;
         ex_rs2     <= ex_rs2_in;
 
-        ex_Ra      <= id_Ra;
-        ex_Rb      <= id_Rb;
-
         ex_imm_V1Type<= id_imm_V1Type;
         ex_imm_V2Type<= id_imm_V2Type;
         ex_csr_jar_en<= csr_jar_en;
@@ -537,15 +532,12 @@ always@(posedge clk)begin
         ex_csr_id  <=id_csr_id;
         ex_csr_en  <=id_csr_en;
         //if(id_pc!=0)$display("ex load PC:%8h",id_pc);
-    end else if(mem_valid_o & ex_ready_o & ex_wait & ~ex_load_wait)begin
+    end else if(mem_valid_o & ex_ready_o & (ex_wait|ex_load_wait) )begin  //ex load 类暂停 当 mem开始执行后，清空这条指令，使旁路指向MEM read_data
         ex_imm_data<= 0;
         ex_pc      <= 0;
         ex_rw      <= 0;
         ex_opcode  <= 0;
         ex_func3   <= 0;
-        ex_Ra      <= 0;
-        ex_Rb      <= 0;
-
         //$display("ex stall PC:%8h",ex_pc);
     end
 
