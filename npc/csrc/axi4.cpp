@@ -183,10 +183,10 @@ void dramsim3_helper_rising(const axi_channel &axi) {
 
   } 
 }
-axi_addr_t raddr;
-axi_addr_t waddr;
-uint8_t  r_len_count;
-uint8_t  w_len_count;
+axi_addr_t raddr=0;
+axi_addr_t waddr=0;
+uint8_t  r_len_count=0;
+uint8_t  w_len_count=0;
 // 准备下降沿的处理
 void dramsim3_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
@@ -244,26 +244,34 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // 写数据，burst持续接收写数据
   if( axi.w.valid == 1){
       uint8_t len;
-      len = (axi.aw.len==0) ? 1 : 
-            (axi.aw.len==1) ? 2 : 
-            (axi.aw.len==2) ? 4 :    
-            (axi.aw.len==3) ? 8 : 0;     
+      len = (axi.aw.size==0) ? 1 : 
+            (axi.aw.size==1) ? 2 : 
+            (axi.aw.size==2) ? 4 :    
+            (axi.aw.size==3) ? 8 : 0;     
             
       if(len==0 ){printf("%d ",len);exit_now();  }//assert(len == 0);
 
-      if(~axi.w.last){
-          memcpy(&data, axi.w.data,8);
-          ram_write(waddr,len,data);
+      if(~axi.w.last ){
+          memcpy(&data,axi.w.data ,8);
+          ram_write(waddr+w_len_count*8,len,data);
           // 利用返回的读数据设置axi总线
-          printf("[axi wr]addr=%lx ,data=%lx ",waddr+w_len_count*8,data);
+          //if(waddr==0x8000ff28)
+          //printf("[axi wr]addr=%lx ,data=%lx len=%d",waddr+w_len_count*len,data,len);
           w_len_count =w_len_count+1;
           axi.w.ready = 1;
       } else {
-        axi.b.valid = 1;
-        axi.w.ready = 0;
+          memcpy(&data,axi.w.data ,8);
+          ram_write(waddr+w_len_count*8,len,data);
+          // 利用返回的读数据设置axi总线
+          //if(waddr==0x8000ff28)
+          //printf("[axi wr]addr=%lx ,data=%lx len=%d\n",waddr+w_len_count*len,data,len);
+          axi.b.valid = 1;
+          axi.w.ready = 1;
+          w_len_count = 0;
+          printf("\n");
       }
-
-
+  }else {
+    w_len_count = 0;
   }
 
   // WRESP: if finished, we try the next write response

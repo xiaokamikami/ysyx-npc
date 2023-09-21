@@ -117,10 +117,9 @@ wire         w_valid;  // 请求有效
 wire         w_ready;  // 访存完成
 
 wire [AXI_DATA_WIDTH-1:0] axi_r_data; // 读数据
-wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数据
 wire [AXI_ADDR_WIDTH-1:0] axi_r_addr; // 读地址
+wire [AXI_DATA_WIDTH-1:0] axi_w_data; // 写数据
 wire [AXI_ADDR_WIDTH-1:0] axi_w_addr; // 写地址
-
 
 wire  [2:0] r_size;   // 突发宽度
 wire  [2:0] w_size;   // 突发宽度
@@ -610,8 +609,8 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
 
 always@(posedge clk)begin           
     if(mem_valid_o & ex_ready_o)begin
-        mem_pc <=ex_pc;
-        mem_rw <=ex_rw;
+        mem_pc        <=ex_pc;
+        mem_rw        <=ex_rw;
         mem_func3     <=ex_func3;
         mem_imm_data  <=ex_imm_data;
         mem_opcode    <=ex_opcode;

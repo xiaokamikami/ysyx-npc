@@ -56,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_time=22800;  //debug的时钟地点
+uint64_t debuge_time=11000;  //debug的时钟地点
 uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -142,9 +142,9 @@ void updata_clk()    //刷新一次时钟与设备
       star_debug = 1;
       start_time = 0;
       printf("start_debug \n");
-    }else if(debuge_pc == 0 & debuge_time < main_time & main_time< debuge_time+1000){
+    }else if(debuge_pc == 0 & debuge_time < main_time & main_time< debuge_time+3000){
       tfp->dump(main_time);
-    }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+1000)){
+    }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
       tfp->dump(main_time);
       start_time++;
     }

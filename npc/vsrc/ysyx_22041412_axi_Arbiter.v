@@ -64,7 +64,7 @@ reg[2:0] rd_next_switch;
 reg[1:0] rd_state;           //读通道状态机
 reg[1:0] rd_next_state;
 
-reg[2:0] wr_switch;          //写通道选择器状态  
+wire[2:0] wr_switch;          //写通道选择器状态  
 reg[2:0] wr_next_switch;
 reg[1:0] wr_state;           //写通道状态机
 reg[1:0] wr_next_state;
@@ -127,12 +127,12 @@ reg[1:0] wr_next_state;
     end
 
 //------------写通道   Write transmission---------------------\\
-  always@( *)begin
+  //always@( *)begin
 
-      wr_switch = `MEMW ;
+  assign   wr_switch = `MEMW ;
 
 
-  end
+  //end
 
 
 
@@ -154,14 +154,18 @@ assign r_len_i     =(rd_switch==`MEMR) ? mem_r_len   :
                     (rd_switch==`IF)   ?  if_ar_len   : 0 ;  //突发次数
  
 //写通道
-assign mem_w_last_i= (wr_switch == `MEMW)? w_last_i : 0;
+assign mem_w_last_i= w_last_i ;
 assign mem_w_ready = w_ready_o ;
 
+assign w_valid_i   = mem_w_valid ;            //写请求
+assign rw_w_data_i = mem_w_data  ;            //写数据
+assign w_size_i    = mem_w_size  ;            //掩码
+assign w_addr_i    = mem_w_addr  ;            //地址
+assign w_len_i     = mem_w_len   ;            //突发次数
 
-assign w_valid_i   =(wr_switch == `MEMW)? mem_w_valid : 0;            //写请求
-assign rw_w_data_i =(wr_switch == `MEMW)? mem_w_data  : 0;            //写数据
-assign w_size_i    =(wr_switch == `MEMW)? mem_w_size  : 0;            //掩码
-assign w_addr_i    =(wr_switch == `MEMW)? mem_w_addr  : 0;            //地址
-assign w_len_i     =(wr_switch == `MEMW)? mem_w_len   : 0;            //突发次数
-
+        wire[31:0] debug_addr = 'h800f4fe0;
+always @(posedge clk) begin
+  if({mem_w_addr[31:4],{4{1'b0}}} == debug_addr & w_valid_i) 
+            $display("\33[1;34mDcache tag  write addr: %8h data:%32h\033[0m",mem_w_addr , mem_w_data);
+end
 endmodule

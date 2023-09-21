@@ -111,7 +111,7 @@ reg [2:0] next_state;
       end else begin
         case(state) //写入状态机的控制 
         `ICACHE_IDLE: begin
-          if(cpu_valid) begin
+          if(cpu_valid & ~cpu_ready) begin
             next_state = `ICACHE_INST;
           end 
           else next_state = `ICACHE_IDLE;
