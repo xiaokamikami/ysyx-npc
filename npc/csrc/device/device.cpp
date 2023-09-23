@@ -58,12 +58,14 @@ void device_update() {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
+     #ifdef SDL_VGA  
       case SDL_QUIT:
         sdl_exit=1;
         printf("Device :SDL_QUIT \n ");
         //exit_now();
         break;
-    #ifdef CONFIG_HAS_KEYBOARD
+    #endif
+    #ifdef SDL_KEYBOARD
       // If a key was pressed
       case SDL_KEYDOWN:
       case SDL_KEYUP: {

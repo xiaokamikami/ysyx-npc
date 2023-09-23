@@ -39,7 +39,7 @@ always @(posedge clk) begin
     if(rst) begin
         mcsr_reg[2] = 64'ha00001800;
     end 
-    else if(en& !ready_o & func3!='b000 & valid_i)begin
+    else if(en& !ready_o & func3!='b000 )begin
         data_r<=mcsr_reg[addr];
         if(func3=='b001 | func3=='b101) data_w<=data_i;
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
@@ -47,30 +47,33 @@ always @(posedge clk) begin
         ready_o<=1'b1;
         //$display("\033[1;36mMcsr PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d\033[0m",pc,mcsr_reg[addr],addr,data_i,func3);
     end
-    else if(en& !ready_o & addr=='b001 & valid_i)begin
+    else if(en& !ready_o & addr=='b001 )begin
         mcsr_reg[4]<=pc;
         mcsr_reg[5]<='h000b;
         data_r<=mcsr_reg[3];
         ready_o<=1'b1;
         //$display("PC:%8h call %h",pc,mcsr_reg[3]);
     end
-    else if(en& !ready_o & addr=='b000 & valid_i)begin
+    else if(en& !ready_o & addr=='b000 )begin
         data_r<=mcsr_reg[4];
         ready_o<=1'b1;
         //$display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
-    else if(en & func3!='b000 & valid_i) begin    //write csr reg
-        mcsr_reg[addr]<=data_w;
-        ready_o<=1'b1;
-        data_w<=64'b0;
-        //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
-    end
-    else begin
+    // else if( ) begin    //write csr reg
+
+    //     //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
+    // end
+    else if(valid_i)begin
         ready_o<=1'b0;
         data_r<=64'b0;
     end
 
 end
-
+   always @(posedge clk)begin
+     if(rst)begin
+     end else if(en & func3!='b000 & ready_o & valid_i)begin
+        mcsr_reg[addr]<=data_w;
+     end
+   end
 endmodule
 

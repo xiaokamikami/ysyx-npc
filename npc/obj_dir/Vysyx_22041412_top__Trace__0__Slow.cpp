@@ -701,7 +701,6 @@ VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_init_sub__TOP__0(Vysyx_220
     tracep->declBus(c+746,"wr_next_switch", false,-1, 2,0);
     tracep->declBus(c+747,"wr_state", false,-1, 1,0);
     tracep->declBus(c+748,"wr_next_state", false,-1, 1,0);
-    tracep->declBus(c+749,"debug_addr", false,-1, 31,0);
     tracep->popNamePrefix(1);
     tracep->pushNamePrefix("csr_reg ");
     tracep->declBit(c+627,"clk", false,-1);
@@ -785,7 +784,7 @@ VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_init_sub__TOP__0(Vysyx_220
     tracep->declBus(c+501,"cache_index", false,-1, 6,0);
     tracep->declBus(c+502,"cache_offset", false,-1, 3,0);
     tracep->declArray(c+503,"write_data", false,-1, 127,0);
-    tracep->declArray(c+750,"wrtie_strb", false,-1, 127,0);
+    tracep->declArray(c+749,"wrtie_strb", false,-1, 127,0);
     tracep->declBus(c+507,"write_en", false,-1, 3,0);
     tracep->declBit(c+508,"rw_strb_en", false,-1);
     tracep->declArray(c+509,"rw_strb", false,-1, 127,0);
@@ -813,15 +812,15 @@ VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_init_sub__TOP__0(Vysyx_220
     tracep->declArray(c+548,"cache_write_data", false,-1, 127,0);
     tracep->declBit(c+552,"device", false,-1);
     tracep->declQuad(c+553,"write_back_data", false,-1, 63,0);
-    tracep->declBus(c+754,"write_back_addr", false,-1, 27,0);
+    tracep->declBus(c+753,"write_back_addr", false,-1, 27,0);
     tracep->declBus(c+30,"tag_v", false,-1, 3,0);
     tracep->declBus(c+31,"tag_v_w", false,-1, 1,0);
-    tracep->declBit(c+755,"bust_rd", false,-1);
+    tracep->declBit(c+754,"bust_rd", false,-1);
     tracep->declBus(c+555,"rd_state", false,-1, 2,0);
     tracep->declBus(c+32,"rd_next_state", false,-1, 2,0);
     tracep->declBus(c+556,"wr_state", false,-1, 2,0);
     tracep->declBus(c+557,"cache_write_point", false,-1, 1,0);
-    tracep->declBus(c+756,"cache_write_point_l1", false,-1, 1,0);
+    tracep->declBus(c+755,"cache_write_point_l1", false,-1, 1,0);
     tracep->declBus(c+557,"cache_rodom_cnt", false,-1, 1,0);
     tracep->pushNamePrefix("paper[0] ");
     tracep->pushNamePrefix("cache_ram1 ");
@@ -2099,9 +2098,8 @@ VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_full_sub_0(Vysyx_22041412_
     bufp->fullCData(oldp+746,(vlSelf->ysyx_22041412_top__DOT__axi_Arbiter__DOT__wr_next_switch),3);
     bufp->fullCData(oldp+747,(vlSelf->ysyx_22041412_top__DOT__axi_Arbiter__DOT__wr_state),2);
     bufp->fullCData(oldp+748,(vlSelf->ysyx_22041412_top__DOT__axi_Arbiter__DOT__wr_next_state),2);
-    bufp->fullIData(oldp+749,(0x800f4fe0U),32);
-    bufp->fullWData(oldp+750,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__wrtie_strb),128);
-    bufp->fullIData(oldp+754,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__write_back_addr),28);
-    bufp->fullBit(oldp+755,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__bust_rd));
-    bufp->fullCData(oldp+756,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__cache_write_point_l1),2);
+    bufp->fullWData(oldp+749,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__wrtie_strb),128);
+    bufp->fullIData(oldp+753,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__write_back_addr),28);
+    bufp->fullBit(oldp+754,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__bust_rd));
+    bufp->fullCData(oldp+755,(vlSelf->ysyx_22041412_top__DOT__u_ysyx_22041412_mem__DOT__u_ysyx_22041412_Dcache__DOT__cache_write_point_l1),2);
 }

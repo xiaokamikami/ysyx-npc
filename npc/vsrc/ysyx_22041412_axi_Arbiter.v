@@ -163,9 +163,14 @@ assign w_size_i    = mem_w_size  ;            //掩码
 assign w_addr_i    = mem_w_addr  ;            //地址
 assign w_len_i     = mem_w_len   ;            //突发次数
 
-        wire[31:0] debug_addr = 'h800f4fe0;
+
+/*        
+        wire[31:0] debug_addr = 'h800f4fe0; 
+//内存回写的检测
 always @(posedge clk) begin
   if({mem_w_addr[31:4],{4{1'b0}}} == debug_addr & w_valid_i) 
             $display("\33[1;34mDcache tag  write addr: %8h data:%32h\033[0m",mem_w_addr , mem_w_data);
 end
-endmodule
+ */
+
+ endmodule

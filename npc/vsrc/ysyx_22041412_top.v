@@ -454,7 +454,7 @@ assign ex_rs2_in =  (id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load 
 
 
 //需要旁路的数据还没从MEM取出   先stall   
-assign ex_wait = ( (id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw )  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
+assign ex_wait = ( ((id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb == mem_rw ))  & mem_rw!=0 & (~sram_ready_o & mem_ram_en & ~mem_rw_type)) 
                     ?1'b1:1'b0;
 assign ex_load_wait=  ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
                      ?1'b1:1'b0;
@@ -677,6 +677,17 @@ always@(posedge clk)begin
             mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
+    end else if(sram_ready_o & mem_ram_en & ~ex_ready_o) begin
+            if_jr_ready   <=0;
+            mem_rw_type   <=0;
+            mem_ram_en    <=0;
+            mem_reg_en    <=0;
+            mem_pc        <=0;
+            mem_rw        <=0;
+            mem_func3     <=0;
+            mem_imm_data  <=0;
+            mem_opcode    <=0;
+            mem_res       <=0;
     end
 
 end
