@@ -3,6 +3,8 @@
 // cache 大小为16kb  能容纳 1024个块  块大小为16B
 // index位宽= 2log(64) =  6
 // 每个cache块都可放到组号为(tag % 组数)中的任意行
+
+//2023/9/23  为了满足五期要求，从16KB减为8KB
 module ysyx_22041412_Dcache(
     input                   clk,
     input                   rst,
@@ -77,14 +79,15 @@ assign cache_index  = cpu_req_addr[10:4];
 assign cache_offset = cpu_req_addr[3:0];
 
 // sram接口
-reg [127:0]   write_data;
-reg [127:0]   wrtie_strb;
-reg [7:0]     write_en  ;
+reg  [127:0]  write_data;
+reg  [127:0]  wrtie_strb;
+reg  [3:0]    write_en  ;
+
 reg           rw_strb_en;
 wire [127:0]  rw_strb;  //写cache掩码 
 wire [63:0]   rw_strb_64; //8字节对齐的掩码
 wire          rw_offset;
-wire [127:0]  ram_rd_data [7:0][1:0];   //CACHE读数据
+wire [127:0]  ram_rd_data [3:0][1:0];   //CACHE读数据
 
 //掩码计算
 assign  rw_offset  =cache_offset[3];   
@@ -108,9 +111,9 @@ assign cache_write_data = (~rw_offset)?{{64{1'b0}},cpu_write_data}:{cpu_write_da
 
 
 // TAG + V + D 
-reg [20:0] cache_tag_ram [127:0][7:0]; //tag 寄存器堆
-reg        cache_v_ram   [127:0][7:0]; //tag  V  标识数据是否有效
-reg        cache_d_ram   [127:0][7:0]; //tag  D  标识数据是否为dirty的
+reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
+reg        cache_v_ram   [127:0][3:0]; //tag  V  标识数据是否有效
+reg        cache_d_ram   [127:0][3:0]; //tag  D  标识数据是否为dirty的
 wire        device    ;     //指示本次地址访问的是否为外设
 assign      device    =  (cache_tag[20:16]>'b10001)?1'b1 :1'b0;   // 80000000---87FFFFFF  为访问程序内存     device 为1时 视为访问外设
 
@@ -122,7 +125,7 @@ reg [27:0] write_back_addr;
 
 genvar index; //生成存储器    与ICACHE不同的是 需要加入写掩码引脚
 generate
-    for(index=0; index<8; index=index+1) //例化16个1k ram模块    
+    for(index=0; index<4; index=index+1) //例化16个1k ram模块    
     begin: paper
         ysyx_22041412_S011HD1P_X32Y2D128_BW cache_ram1(
             .CLK (clk),
@@ -145,29 +148,23 @@ generate
     end
 endgenerate
 
-reg[7:0] tag_v;	   //命中位置
-wire[2:0]tag_v_w;  //译码到二进制的命中位置
+reg [3:0] tag_v;	 //命中位置
+wire[1:0]tag_v_w;  //译码到二进制的命中位置
 
     always @(*) begin  //命中判断
       if(rst)begin
-        tag_v = 8'b00000000;
+        tag_v = 4'b0000;
       end else if(cpu_valid)begin
-        tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd5]==cache_tag ),(cache_tag_ram[cache_index][3'd4]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd3]==cache_tag ),(cache_tag_ram[cache_index][3'd2]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd1]==cache_tag ),(cache_tag_ram[cache_index][3'd0]==cache_tag )};
+        tag_v = { (cache_tag_ram[cache_index][2'd3]==cache_tag ),(cache_tag_ram[cache_index][2'd2]==cache_tag ),
+                  (cache_tag_ram[cache_index][2'd1]==cache_tag ),(cache_tag_ram[cache_index][2'd0]==cache_tag )};
       end else begin
-        tag_v = 8'b00000000;
+        tag_v = 4'b0000;
       end
     end
-    assign  tag_v_w =   (tag_v== 'b00000001) ?'d0 :
-                        (tag_v== 'b00000010) ?'d1 :
-                        (tag_v== 'b00000100) ?'d2 : 
-                        (tag_v== 'b00001000) ?'d3 :
-                        (tag_v== 'b00010000) ?'d4 : 
-                        (tag_v== 'b00100000) ?'d5 :
-                        (tag_v== 'b01000000) ?'d6 : 
-                        (tag_v== 'b10000000) ?'d7 : 'd0 ;
+    assign  tag_v_w =   (tag_v== 'b0001) ?'d0 :
+                        (tag_v== 'b0010) ?'d1 :
+                        (tag_v== 'b0100) ?'d2 : 
+                        (tag_v== 'b1000) ?'d3 : 'd0 ;
 
 
 
@@ -209,7 +206,7 @@ reg [2:0] wr_state;  //cache状态机
         //     rd_next_state = `DCACHE_IDLE;
         // end
         `DCACHE_CACHE:begin
-			    if(tag_v != 8'b00000000 ) //命中了就不用再读axi了
+			    if(tag_v != 4'b0000 ) //命中了就不用再读axi了
 				    rd_next_state = `DCACHE_IDLE;
 			    else if(~axi_w_valid_o)
 				    rd_next_state = `DCACHE_RAM;
@@ -244,7 +241,7 @@ reg [2:0] wr_state;  //cache状态机
         case(rd_state) 
         `DCACHE_IDLE: begin
           axi_r_valid_o   <= 1'b0;
-          write_en        <= 8'b00000000;  //清空cache的写入开关
+          write_en        <= 4'b0000;  //清空cache的写入开关
           write_data      <= 128'b0;
           cache_rd_ready  <= 1'b0;
           cpu_read_data   <= 0;  
@@ -262,12 +259,12 @@ reg [2:0] wr_state;  //cache状态机
         //   rw_strb_en       <= 0;
         // end
         `DCACHE_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
-          if( ~cpu_rw_en & tag_v !=8'b00000000)begin //从命中部位读取数据
+          if( ~cpu_rw_en & tag_v !=4'b0000)begin //从命中部位读取数据
                   cpu_read_data <= (cache_read_data>> (cache_offset[2:0] *8));  //通过移位将数据对齐到合适的地址上
                   cache_rd_ready<= 1'b1;  
                   cache_hit     <= cache_hit+1;
                   //$display("\033[1;34mDCACHE hit  Read  addr:%8h offset %h size %h ,data:%16h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_read_data);
-          end else if(cpu_rw_en & tag_v !=8'b00000000)begin      //写入cache 到命中的区域  同时将数据标记为dirty
+          end else if(cpu_rw_en & tag_v !=4'b0000)begin      //写入cache 到命中的区域  同时将数据标记为dirty
                   write_en             [tag_v_w]              <= 1'b1;
                   write_data                                  <= (cache_write_data<< (cache_offset[2:0] *8));  //写回cache 8字节对齐
                   cache_d_ram          [cache_index][tag_v_w] <= 1'b1;
@@ -436,9 +433,9 @@ reg [2:0] wr_state;  //cache状态机
 
 
 
-wire [2:0] cache_write_point;
-reg  [2:0] cache_write_point_l1;
-reg  [2:0] cache_rodom_cnt;
+wire [1:0] cache_write_point;
+reg  [1:0] cache_write_point_l1;
+reg  [1:0] cache_rodom_cnt;
 assign cache_write_point = cache_rodom_cnt;
 // //没存满数据的话，先存空的line
 // assign cache_write_point  = (~cache_v_ram[cache_index][0]) ? 3'd0 :

@@ -3,6 +3,9 @@
 // cache 大小为16kb  能容纳 1024个块  块大小为16B
 // index位宽= 2log(64) =  6
 // 每个cache块都可放到组号为(tag % 组数)中的任意行
+
+
+//2023/9/23  为了满足五期要求，从16KB
 module ysyx_22041412_Icache(
     input                   clk,
     input                   rst,
@@ -57,22 +60,22 @@ wire [20:0] cache_tag;
 wire [6:0]  cache_index;
 wire [3:0]  cache_offset;
 
-wire [127:0]  ram_rd_data [7:0][1:0];   //CACHE读数据
+wire [127:0]  ram_rd_data [3:0][1:0];   //CACHE读数据
 
 assign cache_tag    = cpu_req_addr[31:11];
 assign cache_index  = cpu_req_addr[10:4];
 assign cache_offset = cpu_req_addr[3:0];  //offset作为 4条指令的 选通信号
 
-reg [20:0] cache_tag_ram [127:0][7:0]; //tag 寄存器堆
-reg        cache_v_ram   [127:0][7:0]; //tag  V
+reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
+reg        cache_v_ram   [127:0][3:0]; //tag  V
 
 
 reg [127:0] write_data;
-reg [7:0]   write_en  ;
+reg [3:0]   write_en  ;
 
 genvar index; //生成存储器
 generate
-    for(index=0; index<8; index=index+1) //例化16个1k ram模块
+    for(index=0; index<4; index=index+1) //例化8个1k ram模块
     begin: paper
         ysyx_22041412_S011HD1P_X32Y2D128 cache_ram1(
             .CLK (clk),
@@ -93,8 +96,8 @@ generate
     end
 endgenerate
 
-reg[7:0] tag_v;	   //命中位置
-wire[2:0]tag_v_w;  //译码到二进制的命中位置
+reg [3:0]tag_v;	   //命中位置
+wire[1:0]tag_v_w;  //译码到二进制的命中位置
 
 reg bust_num;  //axi bust 计数
 
@@ -124,7 +127,7 @@ reg [2:0] next_state;
         //     next_state = (cpu_read_clean | ~cpu_valid) ?`ICACHE_IDLE : `ICACHE_RD_CACHE;
         // end
         `ICACHE_RD_CACHE:begin
-			    if(tag_v != 8'b00000000 ) 
+			    if(tag_v != 4'b0000 ) 
 				    next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
 			    else 
 				    next_state = cpu_read_clean?`ICACHE_IDLE:`ICACHE_RD_RAM;
@@ -147,24 +150,18 @@ reg [2:0] next_state;
     
     always @( *) begin  //命中判断
       if(rst)begin
-        tag_v = 8'b00000000;
+        tag_v = 4'b0000;
       end else if(cpu_valid)begin
-        tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd5]==cache_tag ),(cache_tag_ram[cache_index][3'd4]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd3]==cache_tag ),(cache_tag_ram[cache_index][3'd2]==cache_tag ),
-                  (cache_tag_ram[cache_index][3'd1]==cache_tag ),(cache_tag_ram[cache_index][3'd0]==cache_tag )};
+        tag_v = { (cache_tag_ram[cache_index][2'd3]==cache_tag ),(cache_tag_ram[cache_index][2'd2]==cache_tag ),
+                  (cache_tag_ram[cache_index][2'd1]==cache_tag ),(cache_tag_ram[cache_index][2'd0]==cache_tag )};
       end else begin
-        tag_v = 8'b00000000;
+        tag_v = 4'b0000;
       end
     end
-    assign  tag_v_w =   (tag_v== 'b00000001) ?'d0 :
-                        (tag_v== 'b00000010) ?'d1 :
-                        (tag_v== 'b00000100) ?'d2 : 
-                        (tag_v== 'b00001000) ?'d3 :
-                        (tag_v== 'b00010000) ?'d4 : 
-                        (tag_v== 'b00100000) ?'d5 :
-                        (tag_v== 'b01000000) ?'d6 : 
-                        (tag_v== 'b10000000) ?'d7 : 'd0 ;
+    assign  tag_v_w =   (tag_v== 'b0001) ?'d0 :
+                        (tag_v== 'b0010) ?'d1 :
+                        (tag_v== 'b0100) ?'d2 : 
+                        (tag_v== 'b1000) ?'d3 : 'd0 ;
 
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
@@ -177,7 +174,7 @@ reg [2:0] next_state;
         case(state) 
         `ICACHE_IDLE: begin
           axi_valid_o <= 1'b0;
-          write_en    <= 8'b00000000;
+          write_en    <= 4'b0000;
           write_data  <= 128'b0;
           cpu_ready   <= 1'b0;
           cpu_read_data   <= 0;
@@ -191,7 +188,7 @@ reg [2:0] next_state;
         // end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           cache_clear      <= 1'b0;
-          if(tag_v !=8'b00000000 )begin
+          if(tag_v !=4'b0000 )begin
             cpu_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
             cpu_ready     <= ~cpu_read_clean; 
             cache_hit     <= cache_hit+1;
@@ -225,7 +222,7 @@ reg [2:0] next_state;
           end 
 		    end
         `ICACHE_READY:begin
-          write_en    <= 8'b00000000;
+          write_en    <= 4'b0000;
           write_data  <= 128'b0;
           cpu_ready       <= ~(cpu_read_clean|cpu_read_vaild);
           cpu_read_data   <= cpu_read_data;
@@ -237,7 +234,7 @@ reg [2:0] next_state;
 
 
 //伪随机替换计数器
-reg [2:0] cache_write_point;
+reg [1:0] cache_write_point;
 always @(posedge clk) begin
   if(rst)begin
     cache_write_point <= 0;

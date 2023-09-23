@@ -341,11 +341,12 @@ int main(int argc,char **argv){
   ipc=((double)main_dir_value)/main_clk_value;
   icache_l1_hit=((double)top->Icache_L1_hit)/(top->Icache_L1_miss+top->Icache_L1_hit);
   dcache_l1_hit=((double)top->Dcache_L1_hit)/(top->Dcache_L1_miss+top->Dcache_L1_hit);
-  printf(BLUE "\nCore Cache info:\n" NONE "icache_l1 hit rate  %.2lf %% dcache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
+  printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% dcache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
-  printf(BLUE "IPC:" NONE " %.4lf \n",ipc);
 
+  printf(BLUE "IPC:" NONE " %.4lf \t",ipc);
+  printf("Difftest : imm count:%ld \n",main_dir_value);
 
   top->final();
   tfp->close();
