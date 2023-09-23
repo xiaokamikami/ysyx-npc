@@ -148,16 +148,16 @@ endgenerate
 reg[7:0] tag_v;	   //命中位置
 wire[2:0]tag_v_w;  //译码到二进制的命中位置
 
-    always @(posedge clk) begin  //命中判断
+    always @(*) begin  //命中判断
       if(rst)begin
-        tag_v <= 8'b00000000;
+        tag_v = 8'b00000000;
       end else if(cpu_valid)begin
-        tag_v <= {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
+        tag_v = {(cache_tag_ram[cache_index][3'd7]==cache_tag ),(cache_tag_ram[cache_index][3'd6]==cache_tag ),
                   (cache_tag_ram[cache_index][3'd5]==cache_tag ),(cache_tag_ram[cache_index][3'd4]==cache_tag ),
                   (cache_tag_ram[cache_index][3'd3]==cache_tag ),(cache_tag_ram[cache_index][3'd2]==cache_tag ),
                   (cache_tag_ram[cache_index][3'd1]==cache_tag ),(cache_tag_ram[cache_index][3'd0]==cache_tag )};
       end else begin
-        tag_v <= 8'b00000000;
+        tag_v = 8'b00000000;
       end
     end
     assign  tag_v_w =   (tag_v== 'b00000001) ?'d0 :
@@ -196,18 +196,18 @@ reg [2:0] wr_state;  //cache状态机
         case(rd_state) //状态机的控制 
         `DCACHE_IDLE: begin
           if(cpu_valid   & ~device & ~cache_rd_ready) //读写内存
-            rd_next_state = `DCACHE_INST;
+            rd_next_state = `DCACHE_CACHE;
           else if(cpu_valid  & (device & ~cpu_rw_en) & ~cache_rd_ready )  //读外设 不用等命中了直接访问AXI
             rd_next_state = `DCACHE_RAM;
           else 
             rd_next_state = `DCACHE_IDLE;
         end
-        `DCACHE_INST:begin
-          if(cpu_valid)
-            rd_next_state = `DCACHE_CACHE;
-          else
-            rd_next_state = `DCACHE_IDLE;
-        end
+        // `DCACHE_INST:begin
+        //   if(cpu_valid)
+        //     rd_next_state = `DCACHE_CACHE;
+        //   else
+        //     rd_next_state = `DCACHE_IDLE;
+        // end
         `DCACHE_CACHE:begin
 			    if(tag_v != 8'b00000000 ) //命中了就不用再读axi了
 				    rd_next_state = `DCACHE_IDLE;
@@ -256,11 +256,11 @@ reg [2:0] wr_state;  //cache状态机
           end 
           
         end
-        `DCACHE_INST:begin  
-          cache_rd_ready   <= 1'b0;
-          cpu_read_data    <= 64'b0;
-          rw_strb_en       <= 0;
-        end
+        // `DCACHE_INST:begin  
+        //   cache_rd_ready   <= 1'b0;
+        //   cpu_read_data    <= 64'b0;
+        //   rw_strb_en       <= 0;
+        // end
         `DCACHE_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           if( ~cpu_rw_en & tag_v !=8'b00000000)begin //从命中部位读取数据
                   cpu_read_data <= (cache_read_data>> (cache_offset[2:0] *8));  //通过移位将数据对齐到合适的地址上
@@ -291,7 +291,7 @@ reg [2:0] wr_state;  //cache状态机
 
                   //if(~device)$display("Dcache get  AXI4  %8h offset %h : %32h",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
                   //if(cache_d_ram [cache_index][cache_write_point]==1'b1) $display("\33[1;31mDcache dirty data %8h : %32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0},ram_rd_data  [cache_write_point][cache_index[6]]);
-                  if(device) $display("Dcache Read Device %8h",cpu_req_addr);
+                  //if(device) $display("Dcache Read Device %8h",cpu_req_addr);
                   axi_r_valid_o        <= 1'b0;
                   axi_r_len_o          <= 8'b0; 
                   cpu_read_data        <= (device)?axi_r_data_i:
@@ -326,7 +326,7 @@ reg [2:0] wr_state;  //cache状态机
 
 
     //针对某一个地址的调试器
-      wire[31:0] debug_addr = 'h81b75f40;
+/*       wire[31:0] debug_addr = 'h81b75f40;
     always @(posedge clk) begin
       if({cpu_req_addr[31:4],{4{1'b0}}} == debug_addr& cpu_rw_en & tag_v !=8'b00000000) 
         $display("\33[1;33mDcache tag  write addr: %8h data:%32h\033[0m",cpu_req_addr , cache_write_data);
@@ -339,7 +339,7 @@ reg [2:0] wr_state;  //cache状态机
       else if(axi_w_addr_o ==debug_addr & axi_w_ready_i)
         $display("\33[1;31mDcache tag  tihuan succful: %8h data:%16h\033[0m",axi_w_addr_o , axi_w_data_o);
     end  
-
+ */
     always@(posedge clk)begin //状态机更新
       if(rst )begin
         wr_state <= `DCACHE_IDLE;

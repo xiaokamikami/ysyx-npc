@@ -204,6 +204,8 @@ wire          if_ar_valid;                           //IF请求
 wire          if_ar_ready;
 wire   [127:0]if_ar_data;
 wire   [31:0] if_ar_addr;
+wire          if_read_vaild;
+wire          if_read_clean;
 
 wire          mem_r_valid;                           //MEM 读请求
 wire          mem_r_ready;
@@ -274,6 +276,7 @@ wire   [63:0] icache_ar_data;
 wire   [31:0] icache_ar_addr;
 wire    [7:0] icache_ar_len;
 wire          icache_last_i;
+wire          Icache_clear ;
 ysyx_22041412_Icache Icache_L1(
     .clk(clk),
     .rst(rst),
@@ -286,6 +289,9 @@ ysyx_22041412_Icache Icache_L1(
     .cpu_valid      (if_ar_valid),
     .cpu_read_data  (if_ar_data),
     .cpu_ready      (if_ar_ready),
+    .cpu_read_vaild (if_read_vaild),
+    .cpu_read_clean (if_read_clean),
+    .cache_clear    (Icache_clear), 
 //icache    <---> AXI
     .axi_ready_i    (icache_ar_ready),        // 读有效等待接�?
     .axi_valid_o    (icache_ar_valid),        // 发出读请�?            
@@ -312,15 +318,17 @@ ysyx_22041412_if IF_s1 (      //imm
 
 
     //流水线握手信�?
-    .ready_o(if_ready_o),       //准备好输出数据并更新pc
-    .valid_i(id_vaild_o),
+    .ready_o       (if_ready_o),       //准备好输出数据并更新pc
+    .valid_i       (id_vaild_o),
 
     //if <------->cache
-    .ready_i(if_ar_ready),
-    .valid_o(if_ar_valid),
-    .r_data_i(if_ar_data),
-    .r_addr_o(if_ar_addr)
-
+    .ready_i       (if_ar_ready),
+    .valid_o       (if_ar_valid),
+    .r_data_i      (if_ar_data),
+    .r_addr_o      (if_ar_addr),
+    .if_read_vaild (if_read_vaild),
+    .if_read_clean (if_read_clean),
+    .cache_clear   (Icache_clear)
   );
 
 

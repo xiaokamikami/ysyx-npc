@@ -45,7 +45,7 @@ always @(posedge clk) begin
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
         else if(func3=='b011 | func3=='b111) data_w<=data& (~data_i);
         ready_o<=1'b1;
-        $display("\033[1;36mMcsr PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d\033[0m",pc,mcsr_reg[addr],addr,data_i,func3);
+        //$display("\033[1;36mMcsr PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d\033[0m",pc,mcsr_reg[addr],addr,data_i,func3);
     end
     else if(en& !ready_o & addr=='b001 & valid_i)begin
         mcsr_reg[4]<=pc;

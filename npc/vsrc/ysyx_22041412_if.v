@@ -14,16 +14,26 @@ module ysyx_22041412_if(
     output reg valid_o,          // 发出读请求
        
     input      [127:0]r_data_i, // 读数据
-    output reg [31:0]r_addr_o  // 读地址
+    output reg [31:0]r_addr_o,  // 读地址
 
+    output reg if_read_vaild,
+    output reg if_read_clean,   //令已发出的cache请求作废
+    input      cache_clear      //作废成功cache进入IDLE
  );
 `define IF_IDLE         3'b000  
 `define IF_VAILD        3'b001  
 `define IF_LINE         3'b010 
 `define IF_WAIT         3'b100  
- 
-reg [2:0] state;              //状态机 
+`define FENCE           3'b101 
 
+
+`define CACHE_IDLE      2'b00
+`define CACHE_VAILD     2'b01
+`define CACHE_WAIT      2'b10
+`define CACHE_CLEAN     2'b11
+
+reg [2:0] state;              //状态机 
+reg [1:0] cache_state;
 reg [127:0]read_imm_data;
 wire [31:0]r_data_4mux1;
 wire [31:0]imm_data_4mux1;
@@ -51,121 +61,144 @@ reg [31:0]dnpc;
 reg       dnpc_v;  //dnpc的有效符号
 reg [27:0]get_pc;  //指令流目前存放的基地址
 
-assign one_line =(dnpc[31:4]==get_pc) ? 1'b1:1'b0;
+assign one_line =(dnpc[31:4]==get_pc & dnpc_v) ? 1'b1:1'b0;
+
+reg imm_ready;
 
 
-  always@(posedge clk)begin //状态机更新
+  always@(posedge clk)begin   //Cache取值流状态机
+    if(rst)begin
+      cache_state<=`CACHE_IDLE;
+    end
+    case (cache_state)
+    `CACHE_IDLE:begin
+      cache_state <= valid_o?`CACHE_VAILD :`CACHE_IDLE;   //只有启动时会处在这个阶段
+      end
+    `CACHE_VAILD:begin
+      cache_state <= jar?`CACHE_WAIT : `CACHE_VAILD;
+    end
+    `CACHE_WAIT:begin
+      cache_state <= valid_o?`CACHE_VAILD : `CACHE_WAIT;  
+    end
+    `CACHE_CLEAN:begin        //fence.i 
+    end
+    default:;
+    endcase
+  end
+  reg wait_ok;
+    always@(posedge clk)begin     //为IFU预取下一个指令槽 128bit
+    if(rst)begin
+        get_pc   <= {28{1'b0}};
+    end
+    case (cache_state)
+    `CACHE_IDLE:begin //只有启动时会处在这个阶段
+        valid_o   <=valid_i;
+        r_addr_o  <=dnpc;
+        imm_ready <=0;
+        wait_ok   <= 0;
+      end
+    `CACHE_VAILD:begin
+      wait_ok       <= 0;
+      if_read_clean <= jar;
+      if(ready_i==1'b1 & ~imm_ready & ~one_line)begin
+        valid_o  <= 0 ;
+        imm_ready<= 1 ;
+        read_imm_data  <=r_data_i;
+        if_read_vaild  <= 1;
+        dnpc_v         <= 1;
+        get_pc         <= r_addr_o[31:4];
+        //$display("IF get Cache pc %8h  %32h",r_addr_o,r_data_i);
+      end  else if(~valid_o & imm_ready & ~jar)begin
+        valid_o  <= 1 ;
+        imm_ready<= 0 ;     
+        r_addr_o <= {get_pc+1'b1,4'b0000};
+        if_read_vaild  <= 0;
+      end  
+    end
+    `CACHE_WAIT:begin   //CPU在等跳转指令
+      imm_ready <= 1'b0;
+      dnpc_v    <= 0;
+      get_pc    <= 0;
+      if_read_clean  <= ~cache_clear;
+      valid_o   <= (wait_ok && cache_clear);
+      r_addr_o  <= (wait_ok && cache_clear) ? mem_dnpc[31:0] : r_addr_o;
+      if(jarl_rady )begin
+        wait_ok <= 1;
+      end 
+
+    end
+    `CACHE_CLEAN:begin        //fence.i 
+    end
+    default:;
+    endcase
+  end
+  // always @(posedge clk) begin
+  //    $display("IF clk 1 oneline=%d state=%b jar %b",one_line,state,jar);
+  // end  
+
+
+  always@(posedge clk)begin //IFU状态机
     if(rst )begin
       state <= `IF_IDLE;
     end else begin
       case (state)
         `IF_IDLE: begin
-          if( valid_i) state<= `IF_VAILD;
+          state<= valid_i ? `IF_VAILD : `IF_IDLE;
         end
         `IF_VAILD:begin
-          if( valid_i==1'b1 && one_line && dnpc_v && ~jar)        state<= `IF_LINE;
-          else if(ready_i==1'b1 && valid_i==1'b1 && ~one_line && ~jar)            state<= `IF_VAILD;
-          else if(jar)                                                            state<= `IF_WAIT;
-          else if(~valid_i)                                                       state<= `IF_IDLE;
+          state<= cache_clear ? `IF_LINE :`IF_VAILD;
         end
         `IF_LINE:begin
-          if(~one_line && ~jar) state <= `IF_VAILD;
-          else if(jar)          state <= `IF_WAIT;
+          state <=jar? `IF_WAIT : `IF_LINE;
         end
         `IF_WAIT:begin
-          if(jarl_rady)  state <= `IF_VAILD;
+          state <= jarl_rady & cache_clear ? `IF_LINE :
+                   jarl_rady & ~cache_clear? `IF_VAILD :`IF_WAIT;
         end
-        default: begin ;
-        end
+        default: ;
+        
       endcase
     end
   end
 
-
-/* always @(posedge clk) begin
-    $display("IF clk 1 oneline=%d state=%b jar %b",one_line,state,jar);
-end  */
-
-
-
- always @(posedge clk) begin
+ always @(posedge clk) begin   //IFU ---> ID
   if(rst)begin
-    valid_o  <=0;
     ready_o  <=0;
     dnpc     <=32'h80000000;
-  end
-  else if(valid_i)begin   
+  end  else if(valid_i)begin   
     case (state)
         `IF_IDLE: begin
-          if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
-            ready_o  <=1;
-          end else begin
-            valid_o  <=0;
-            ready_o  <=0;
-            dnpc_v   <=0;
-          end
+          ready_o       <=0;
+          imm_data      <= 0;
+
         end
         `IF_VAILD:begin
-          if(ready_i==1'b1 && valid_i==1'b1 && ~jar) begin      //与cache握手并接收数据 刷新dnpc
-            read_imm_data <=r_data_i;
-            imm_data <=r_data_4mux1;
-            pc[31:0] <=dnpc;
-            get_pc   <=dnpc[31:4];
-            dnpc     <=dnpc+4;
-            dnpc_v   <=1'b1;
-            ready_o  <=1;
-            valid_o  <=0;
-            //$display("IF Read get line : addr:%8h :%8h ",r_addr_o,r_data_i);
-          end else if(ready_i==1'b1 && valid_i==1'b1 && jar) begin      //与cache握手并接收数据 刷新dnpc 并暂停请求
-            read_imm_data <=r_data_i;
-            imm_data <=r_data_4mux1;
-            pc[31:0] <=dnpc;
-            get_pc   <=dnpc[31:4];
-            dnpc_v   <=0;
-            ready_o  <=1;
-            valid_o  <=0;
-          end else if(~valid_i )begin  //暂停信号
-            ready_o  <=ready_o;   
-            valid_o  <=0;        
-          end else  begin     //第一次进入时，打开请求
-            ready_o  <=0; 
-            valid_o  <=1;
-            r_addr_o <= dnpc;
-          end
+
         end
         `IF_LINE:begin
+
           if(valid_i & one_line & ~jar )begin
             imm_data <=imm_data_4mux1;
             pc[31:0] <=dnpc;
             dnpc     <=dnpc+4;
             ready_o  <=1;
-            valid_o  <=0;
             //$display("IF Read one line : addr:%8h :%8h",dnpc,imm_data_4mux1);           
-          end else begin
-            ready_o  <=0;
-            valid_o  <=0;
-            dnpc_v   <=1'b0;
+          end  else  begin
+            ready_o        <=0;
           end
         end
         `IF_WAIT:begin              //等待分支指令给出新地址
           if(jarl_rady) begin
-            valid_o  <=0;
-            ready_o  <=0;
-            r_addr_o <=mem_dnpc[31:0];
-            dnpc     <=mem_dnpc[31:0];
-            dnpc_v   <=0;
-            imm_data <=0;
-            get_pc   <=0;
-          end else if(ready_o && valid_i==1'b0)begin //上一条指令还没被取走，继续ready
-            ready_o  <=1;
-          end else begin
-            valid_o  <=0;
-            ready_o  <=0;             
+            ready_o        <= 0;
+            r_addr_o       <= mem_dnpc[31:0];
+            dnpc           <= mem_dnpc[31:0];
+
+            imm_data       <= {32{1'b0}};
+          end  else begin
+            ready_o        <= 0;            
           end
         end
-        default: begin 
-        ;
-        end    
+        default: ;  
     endcase
 
   end

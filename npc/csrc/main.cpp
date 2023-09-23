@@ -56,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-uint64_t debuge_time=4030000;  //debug的时钟地点
+uint64_t debuge_time=0;  //debug的时钟地点
 uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -96,10 +96,10 @@ void device_read(uint64_t raddr, uint64_t *rdata){
       }
       #ifdef diff_en
 	      Push(&dut_data, top->pip_mem_pc);
-        printf(GREEN "in_queue  dut_num %d,pc %lx \n" NONE,dut_data.m_size,dut_data.m_array[dut_data.m_front]);
+        //printf(GREEN "in_queue  dut_num %d,pc %lx \n" NONE,dut_data.m_size,dut_data.m_array[dut_data.m_front]);
 
 
-        printf("Device read : pc =%lx  dut_num =%d main_time =%d \n",top->pip_mem_pc,dut_num,main_time);
+        //printf("Device read : pc =%lx  dut_num =%d main_time =%d \n",top->pip_mem_pc,dut_num,main_time);
       #endif
 }
 void device_write(uint64_t waddr, uint64_t wdata){
@@ -218,7 +218,7 @@ static int cmd_c()                //DIFFTEST
           cpureg.pc=pc;
         }// sp regs are used for addtion
         if(dut_data.m_size>0 && Pop(&dut_data,pc))  {
-          printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
+          //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
           difftest_skip_ref();
           dut_num=dut_num-1;
         }
