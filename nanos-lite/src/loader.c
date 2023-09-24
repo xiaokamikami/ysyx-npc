@@ -28,6 +28,7 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
 
   Elf_Ehdr ehdr={};
   Elf_Phdr phdr={};
+  assert(filename!=NULL);
   printf("[loader]:filename : %s\n", filename);
   int fd=fs_open(filename,0,0);
 

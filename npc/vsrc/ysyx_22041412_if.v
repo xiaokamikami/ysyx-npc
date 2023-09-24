@@ -21,7 +21,7 @@ module ysyx_22041412_if(
     input      cache_clear      //作废成功cache进入IDLE
  );
 `define IF_IDLE         3'b000  
-`define IF_VAILD        3'b001  
+//`define IF_VAILD        3'b001  
 `define IF_LINE         3'b010 
 `define IF_WAIT         3'b100  
 `define FENCE           3'b101 
@@ -97,7 +97,7 @@ reg imm_ready;
         imm_ready <=0;
         wait_ok   <= 0;
       end
-    `CACHE_VAILD:begin
+    `CACHE_VAILD:begin   //等待接收新的指令
       wait_ok       <= 0;
       if_read_clean <= jar;
       if(ready_i==1'b1 & ~imm_ready & ~one_line)begin
@@ -143,17 +143,13 @@ reg imm_ready;
     end else begin
       case (state)
         `IF_IDLE: begin
-          state<= valid_i ? `IF_VAILD : `IF_IDLE;
-        end
-        `IF_VAILD:begin
-          state<= cache_clear ? `IF_LINE :`IF_VAILD;
+          state<= valid_i ? `IF_LINE : `IF_IDLE;
         end
         `IF_LINE:begin
           state <=jar? `IF_WAIT : `IF_LINE;
         end
         `IF_WAIT:begin
-          state <= jarl_rady & cache_clear ? `IF_LINE :
-                   jarl_rady & ~cache_clear? `IF_VAILD :`IF_WAIT;
+          state <= jarl_rady ? `IF_LINE :`IF_WAIT;
         end
         default: ;
         
@@ -172,11 +168,7 @@ reg imm_ready;
           imm_data      <= 0;
 
         end
-        `IF_VAILD:begin
-
-        end
         `IF_LINE:begin
-
           if(valid_i & one_line & ~jar )begin
             imm_data <=imm_data_4mux1;
             pc[31:0] <=dnpc;

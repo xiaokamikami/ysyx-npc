@@ -13,3 +13,4 @@
 /fceux-am
 /am-kernels
 /nvboard
+!*.sh

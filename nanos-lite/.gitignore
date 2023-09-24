@@ -6,4 +6,4 @@
 !.gitignore
 !README.md
 !resources/logo.txt
-!.sh
+!*.sh

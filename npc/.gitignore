@@ -8,6 +8,7 @@
 !*.cc
 !*.cpp
 !*.py
+!*.sh
 !.gitignore
 !README.md
 
