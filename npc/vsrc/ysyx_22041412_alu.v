@@ -53,6 +53,7 @@ module ysyx_22041412_alu(
     .rv64_en(rv64r_en),
     .ready_i(ready_i),
     .ready_o(mul_ready_o),
+    .valid_i(valid_i),
     .result(mul_result)
   );
 

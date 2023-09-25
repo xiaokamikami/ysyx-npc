@@ -57,6 +57,17 @@
 `define     ysyx_22041412_False         1'b0
 
 
+`define     ysyx_22041412_j_idle          2'b00
+`define     ysyx_22041412_j_jalr          2'b01
+`define     ysyx_22041412_j_jal           2'b10
+`define     ysyx_22041412_j_B             2'b11
+
+
+`define     ysyx_22041412_mem_idle        2'b00
+`define     ysyx_22041412_mem_load        2'b01
+`define     ysyx_22041412_mem_stor        2'b10
+
+
 
 `define ANSI_FG_BLACK   "\33[1;30m"
 `define ANSI_FG_RED     "\33[1;31m"

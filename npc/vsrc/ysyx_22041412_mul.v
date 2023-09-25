@@ -6,6 +6,7 @@ module ysyx_22041412_mul(
     input [2:0]func3,
     input rv64_en,
     input ready_i,
+    input valid_i,
     output reg ready_o,
     output [63:0]result
  );
@@ -49,7 +50,7 @@ always@(posedge clk)begin
 
         ready_o   <=1'b1;
     end
-    else begin
+    else if(valid_i)begin
         ready_o <=1'b0;
         data    <=`ysyx_22041412_zero_word;
     end

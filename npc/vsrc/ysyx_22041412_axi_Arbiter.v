@@ -85,7 +85,7 @@ reg[1:0] wr_next_state;
     always@(*)begin //next state
       if(rst )begin
         rd_next_state  = `IDLE;
-        rd_next_switch = 'b0000;
+        rd_next_switch = `AXI_IDLE;
       end else begin
         case(rd_state) //写入状态机的控制 
         `IDLE: begin

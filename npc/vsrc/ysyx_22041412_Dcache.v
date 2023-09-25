@@ -50,12 +50,12 @@ module ysyx_22041412_Dcache(
 
 
 `define DCACHE_IDLE         3'b000 
-`define DCACHE_INST         3'b001  
+`define DCACHE_CACHE        3'b001
 
 `define DCACHE_WTBACK       3'b010
-`define DCACHE_CACHE        3'b010  
+ 
 
-`define DCACHE_RAM          3'b100  
+`define DCACHE_RAM          3'b010  
 `define DCACHE_DEVICE       3'b100
 
 `define DCACHE_W_CACHE      3'b101  
@@ -112,6 +112,7 @@ assign cache_write_data = (~rw_offset)?{{64{1'b0}},cpu_write_data}:{cpu_write_da
 
 // TAG + V + D 
 reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
+reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
 reg        cache_v_ram   [127:0][3:0]; //tag  V  标识数据是否有效
 reg        cache_d_ram   [127:0][3:0]; //tag  D  标识数据是否为dirty的
 wire        device    ;     //指示本次地址访问的是否为外设
@@ -253,24 +254,19 @@ reg [2:0] wr_state;  //cache状态机
           end 
           
         end
-        // `DCACHE_INST:begin  
-        //   cache_rd_ready   <= 1'b0;
-        //   cpu_read_data    <= 64'b0;
-        //   rw_strb_en       <= 0;
-        // end
         `DCACHE_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
-          if( ~cpu_rw_en & tag_v !=4'b0000)begin //从命中部位读取数据
-                  cpu_read_data <= (cache_read_data>> (cache_offset[2:0] *8));  //通过移位将数据对齐到合适的地址上
-                  cache_rd_ready<= 1'b1;  
-                  cache_hit     <= cache_hit+1;
-                  //$display("\033[1;34mDCACHE hit  Read  addr:%8h offset %h size %h ,data:%16h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_read_data);
-          end else if(cpu_rw_en & tag_v !=4'b0000)begin      //写入cache 到命中的区域  同时将数据标记为dirty
-                  write_en             [tag_v_w]              <= 1'b1;
-                  write_data                                  <= (cache_write_data<< (cache_offset[2:0] *8));  //写回cache 8字节对齐
-                  cache_d_ram          [cache_index][tag_v_w] <= 1'b1;
+          if(tag_v !=4'b0000)begin      //操作命中的区域  如写则将数据标记为dirty
+                  cpu_read_data                               <= (~cpu_rw_en)?(cache_read_data >> (cache_offset[2:0] *8)) :0;  //通过移位将数据对齐到合适的地址上
+                  write_en             [tag_v_w]              <= cpu_rw_en;
+                  write_data                                  <= cpu_rw_en   ?(cache_write_data<< (cache_offset[2:0] *8)) :0;  //写回cache 8字节对齐
+                  cache_d_ram          [cache_index][tag_v_w] <= cpu_rw_en ? 1'b1 : cache_d_ram          [cache_index][tag_v_w];
                   cache_rd_ready                              <= 1'b1;   
                   cache_hit                                   <= cache_hit+1;
-                  //$display("\033[1;35mDCACHE hit  Write addr:%8h offset %h size %h ,data:%32h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_write_data<< (cache_offset[2:0] *8));
+
+
+
+                  //if(~cpu_rw_en)$display("\033[1;34mDCACHE hit  Read  addr:%8h offset %h size %h ,data:%16h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_read_data);         
+                  //else$display("\033[1;35mDCACHE hit  Write addr:%8h offset %h size %h ,data:%32h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_write_data<< (cache_offset[2:0] *8));
           end else if(~axi_w_valid_o)begin
               //没有命中且数据返回完毕，发起AXI请求
               axi_r_valid_o   <= 1'b1;
@@ -437,7 +433,7 @@ wire [1:0] cache_write_point;
 reg  [1:0] cache_write_point_l1;
 reg  [1:0] cache_rodom_cnt;
 assign cache_write_point = cache_rodom_cnt;
-// //没存满数据的话，先存空的line
+// //没存满数据的话，先存空的line  评价为没啥用
 // assign cache_write_point  = (~cache_v_ram[cache_index][0]) ? 3'd0 :
 //                             (~cache_v_ram[cache_index][1]) ? 3'd1 :
 //                             (~cache_v_ram[cache_index][2]) ? 3'd2 :

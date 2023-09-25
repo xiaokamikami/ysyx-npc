@@ -16,7 +16,7 @@ module ysyx_22041412_mem#(
     input                      ex_ready_i,
     input                      mem_valid_i,
     output                     mem_ready_o,
-    output reg[DATA_WIDTH-1:0] r_data_o,
+    output [DATA_WIDTH-1:0]    r_data_o,
 
     //mem <---> axi
 
@@ -53,36 +53,17 @@ wire [63:0] cache_read_data;
 wire  dcache_ready_i;
 wire  dcache_valid_o;
 assign dcache_valid_o = mem_valid_i & ~mem_ready_o;
-reg  mem_r_ready_o;
-wire mem_w_ready_o;
-assign mem_w_ready_o = dcache_ready_i;
 
-assign mem_ready_o = (mem_w_ready_o & wen)  | mem_r_ready_o;
+assign mem_ready_o = dcache_ready_i;
 
-always@(posedge clk)begin
-    if(rst)begin
-        mem_r_ready_o    <= 1'b0;    
-    end
-    //  else if(mem_valid_i & wen & ~mem_ready_o & dcache_ready_i)begin 
-    //     mem_ready_o    <= 1'b1;  
-    //        //$display("%lx Write: addr:%8h %16h",addr,wdata);    //DEBUG      
-    // end 
-    else if(mem_valid_i & ~wen & ~mem_ready_o & dcache_ready_i)begin  
-        r_data_o       <= (func3==3'b000)?{{56{cache_read_data[7]}},cache_read_data[7:0]}:    //lb
-                          (func3==3'b001)?{{48{cache_read_data[15]}},cache_read_data[15:0]}:  //lh
-                          (func3==3'b010)?{{32{cache_read_data[31]}},cache_read_data[31:0]}:  //lw
-                          (func3==3'b011)?{cache_read_data[63:0]}:                            //ld
-                          (func3==3'b100)?{{56{1'b0}},cache_read_data[7:0]}:                  //lbu
-                          (func3==3'b101)?{{48{1'b0}},cache_read_data[15:0]}:                 //lhu
-                          (func3==3'b110)?{{32{1'b0}},cache_read_data[31:0]}:                 //lwu
-                           `ysyx_22041412_zero_word;
-        mem_r_ready_o    <= 1'b1;   
-        //$display("mem Read : addr:%8h %16h",addr,cache_read_data); //DEBUG    
-    end else if( mem_r_ready_o)begin   
-        mem_r_ready_o    <= 1'b0;  
-    end
-end
-
+assign        r_data_o  =(~wen && mem_valid_i) ? (func3==3'b000)?{{56{cache_read_data[7]}},cache_read_data[7:0]}:    //lb
+                                                 (func3==3'b001)?{{48{cache_read_data[15]}},cache_read_data[15:0]}:  //lh
+                                                 (func3==3'b010)?{{32{cache_read_data[31]}},cache_read_data[31:0]}:  //lw
+                                                 (func3==3'b011)?{cache_read_data[63:0]}:                            //ld
+                                                 (func3==3'b100)?{{56{1'b0}},cache_read_data[7:0]}:                  //lbu
+                                                 (func3==3'b101)?{{48{1'b0}},cache_read_data[15:0]}:                 //lhu
+                                                 (func3==3'b110)?{{32{1'b0}},cache_read_data[31:0]}:                 //lwu
+                                                 `ysyx_22041412_zero_word: `ysyx_22041412_zero_word;
 
 ysyx_22041412_Dcache u_ysyx_22041412_Dcache(
     .clk                            ( clk                            ),

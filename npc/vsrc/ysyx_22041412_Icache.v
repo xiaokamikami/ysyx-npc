@@ -67,6 +67,7 @@ assign cache_index  = cpu_req_addr[10:4];
 assign cache_offset = cpu_req_addr[3:0];  //offset作为 4条指令的 选通信号
 
 reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
+reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
 reg        cache_v_ram   [127:0][3:0]; //tag  V
 
 
@@ -130,7 +131,7 @@ reg [2:0] next_state;
 			    if(tag_v != 4'b0000 ) 
 				    next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
 			    else 
-				    next_state = cpu_read_clean?`ICACHE_IDLE:`ICACHE_RD_RAM;
+				    next_state = (~cpu_valid    |cpu_read_clean)?`ICACHE_IDLE:`ICACHE_RD_RAM;
         end
         `ICACHE_RD_RAM:begin
           if(axi_r_last_i )
@@ -192,6 +193,20 @@ reg [2:0] next_state;
             cpu_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
             cpu_ready     <= ~cpu_read_clean; 
             cache_hit     <= cache_hit+1;
+
+//近期最少使用计数
+            cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
+                                            (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
+
+            cache_fwen_ct[cache_index][1] <=(tag_v_w=='d1 && cache_fwen_ct[cache_index][1]!='b00) ?cache_fwen_ct[cache_index][1]-1'b1:
+                                            (tag_v_w!='d1 && cache_fwen_ct[cache_index][1]!='b11) ?cache_fwen_ct[cache_index][1]+1'b1:cache_fwen_ct[cache_index][1];
+                                            
+            cache_fwen_ct[cache_index][2] <=(tag_v_w=='d2 && cache_fwen_ct[cache_index][2]!='b00) ?cache_fwen_ct[cache_index][2]-1'b1:
+                                            (tag_v_w!='d2 && cache_fwen_ct[cache_index][2]!='b11) ?cache_fwen_ct[cache_index][2]+1'b1:cache_fwen_ct[cache_index][2];
+                                            
+            cache_fwen_ct[cache_index][3] <=(tag_v_w=='d3 && cache_fwen_ct[cache_index][3]!='b00) ?cache_fwen_ct[cache_index][3]-1'b1:
+                                            (tag_v_w!='d3 && cache_fwen_ct[cache_index][3]!='b11) ?cache_fwen_ct[cache_index][3]+1'b1:cache_fwen_ct[cache_index][3]; 
+                                                      
           end else begin
             cpu_ready  <= 1'b0;  
             cache_miss <= cache_miss+1;
@@ -214,9 +229,10 @@ reg [2:0] next_state;
             axi_r_len_i          <= 8'b0;
             write_data[127:64]        <= axi_r_data_i;  //写回cache
             cpu_read_data [127:64]    <= axi_r_data_i;  //更新接口数据
-            write_en             [cache_write_point]              <= 1'b1;
-            cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
-            cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
+            write_en             [cache_write_point]              <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
+            cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;//(cpu_read_clean)?cache_tag_ram        [cache_index][cache_write_point]:cache_tag;
+            cache_v_ram          [cache_index][cache_write_point] <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
+            cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
             cpu_ready                                             <= (cpu_read_clean)?1'b0:1'b1;
             //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end 
@@ -232,14 +248,30 @@ reg [2:0] next_state;
       end
     end
 
+wire [1:0] cache_write_point;
+reg  [1:0] cache_write_point_l1;
+//assign cache_write_point = cache_rodom_cnt;  //纯随机
+
+// //没存满数据的话，先存空的line  评价为没啥用  可能对经常切换线程的任务有用
+// assign cache_write_point  = (~cache_v_ram[cache_index][0]) ? 2'd0 :
+//                             (~cache_v_ram[cache_index][1]) ? 2'd1 :
+//                             (~cache_v_ram[cache_index][2]) ? 2'd2 :
+//                             (~cache_v_ram[cache_index][3]) ? 2'd3 : cache_rodom_cnt;
+
+// 替换最近不常用数据，如果没有，那就随机替换   在循环跑分测试中效果不好  对真实任务有效
+assign cache_write_point  = (cache_fwen_ct[cache_index][0] > (cache_fwen_ct[cache_index][1] & cache_fwen_ct[cache_index][2]  & 
+                                                              cache_fwen_ct[cache_index][3] )) ? 2'd0  :
+                            (cache_fwen_ct[cache_index][1] > (cache_fwen_ct[cache_index][2] & cache_fwen_ct[cache_index][3] ) ) ? 2'd1  :
+                            (cache_fwen_ct[cache_index][2] > cache_fwen_ct[cache_index][3] ) ? 2'd2  : 2'd3  ;
+
 
 //伪随机替换计数器
-reg [1:0] cache_write_point;
+reg [1:0] cache_rodom_cnt;
 always @(posedge clk) begin
   if(rst)begin
-    cache_write_point <= 0;
+    cache_rodom_cnt <= 0;
   end else begin
-    cache_write_point <= cache_write_point+1;
+    cache_rodom_cnt <= cache_rodom_cnt+1;
   end 
 end
 endmodule

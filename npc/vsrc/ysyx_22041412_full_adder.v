@@ -1,3 +1,4 @@
+//全加器
 module ysyx_22041412_full_adder(
     input a,
     input b,
