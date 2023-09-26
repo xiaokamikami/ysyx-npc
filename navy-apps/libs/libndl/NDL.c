@@ -57,16 +57,17 @@ void NDL_OpenCanvas(int *w, int *h) {
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
-    //printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
-    x+=(screen_w -canvas_x )/2;
+
+    //居中画布  
+    x+=(screen_w -canvas_x )/2;  
     y+=(screen_h -canvas_y )/2;
-    //lseek(Fb_fp, w*screen_w+ x, SEEK_SET);
-    //write(Fb_fp, pixels, h*screen_h+ y);
-    for (int i = 0; i < h; ++ i) {
 
-    lseek(Fb_fp, ((y + i) * screen_w + x) * sizeof(uint32_t), SEEK_SET);
-
-    write(Fb_fp, pixels + i * w, w * sizeof(uint32_t));
+    //printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
+    
+    //一次绘制一行
+    for (int i = 0; i < h; ++ i) {    
+      lseek(Fb_fp, ((y + i) * screen_w + x) , SEEK_SET);//设置偏移量
+      write(Fb_fp, pixels + i * w, w );                 //写入一行的像素
   }
 
 }

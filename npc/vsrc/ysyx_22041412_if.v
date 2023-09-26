@@ -130,12 +130,22 @@ reg imm_ready;
         dnpc_v    <= 0;
         get_pc    <= 0;
         if_read_clean  <= ~cache_clear;
-        valid_o   <= (wait_ok   && cache_clear)?1'b1: 1'b0;
-        r_addr_o  <= (wait_ok   && cache_clear)?jump_pc : r_addr_o;
-        if((jarl_rady ) || ( jal_ok) )begin
-          wait_ok <= 1'b1;
-          jump_pc <= jarl_rady?mem_dnpc[31:0] : jal_pc;
+
+        if(((jarl_rady ) || ( jal_ok))  && cache_clear)begin
+          wait_ok  <= 1'b1;
+          valid_o  <= 1'b1;
+          r_addr_o <= jarl_rady  ? mem_dnpc[31:0] : jal_pc;
+          jump_pc  <= jarl_rady  ? mem_dnpc[31:0] : jal_pc;
+        end else if((((jarl_rady ) || ( jal_ok))  && ~cache_clear))begin
+          wait_ok  <= 1'b1;
+          valid_o  <= 1'b0; 
+          r_addr_o <= r_addr_o;     
+          jump_pc  <= jarl_rady  ? mem_dnpc[31:0] : jal_pc;
+        end else begin
+          valid_o  <= (wait_ok   && cache_clear)?1'b1: 1'b0;
+          r_addr_o <= (wait_ok   && cache_clear)?jump_pc : r_addr_o;
         end
+
 
       end
       `CACHE_CLEAN:begin        //fence.i 

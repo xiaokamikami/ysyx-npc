@@ -150,7 +150,7 @@ static int wait_resp_r = 0;
 static int wait_resp_b = 0;
 static int wait_req_w = 0;
 // 准备上升沿的处理
-void dramsim3_helper_rising(const axi_channel &axi) {
+void axi4_helper_rising(const axi_channel &axi) {
   // ticks DRAMsim3 according to CPU_FREQ:DRAM_FREQ
 
   // read data fire: check the last read request
@@ -188,7 +188,7 @@ axi_addr_t waddr=0;
 uint8_t  r_len_count=0;
 uint8_t  w_len_count=0;
 // 准备下降沿的处理
-void dramsim3_helper_falling(axi_channel &axi) {
+void axi4_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
   uint64_t data;
   uint8_t  strb;

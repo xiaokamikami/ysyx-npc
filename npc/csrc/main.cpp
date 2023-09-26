@@ -56,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-const uint64_t debuge_time=138319020;  //debug的时钟地点
+const uint64_t debuge_time=0;  //debug的时钟地点
 const uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -134,8 +134,8 @@ uint64_t start_time;
 void updata_clk()    //刷新一次时钟与设备
 {
 
-  top->clk = !(top->clk);
-  top->eval();
+  top->clk = !(top->clk);  //取反时钟
+  top->eval();             //为仿真核更新数据
 
   #ifdef vcd_en
     if(debuge_pc != 0 && top->pip_pc==debuge_pc & ~star_debug){
@@ -152,20 +152,17 @@ void updata_clk()    //刷新一次时钟与设备
   #endif 
 
   axi_channel axi;
-  if (top->clk == 0) {
-    axi_copy_from_dut_ptr(top, axi);
-    dramsim3_helper_rising(axi);
-  }
-  else {
-    axi_copy_from_dut_ptr(top, axi);
-    dramsim3_helper_falling(axi);
-    axi_set_dut_ptr(top, axi);
+  if (top->clk == 1){ 
+    axi_copy_from_dut_ptr(top, axi);  //从 NPC引脚拷贝出数据
+    axi4_helper_falling(axi);         //模拟从机工作
+    axi_set_dut_ptr(top, axi);        //复制结果到 NPC引脚
   }
   main_time++; 
 
   #ifdef DEVICE_ENABLE
     device_update();
   #endif
+  
   if(top->clk==0){
     main_clk_value++;  
     cmd_c();//记录指令的变化 并验证正确性
@@ -203,15 +200,15 @@ void isa_reg_print(uint8_t num) {
 
 static int cmd_c()                //DIFFTEST
 { 
-  static bool bubble;
-  static paddr_t pc;
-  static paddr_t npc;       
-  pc = top->pip_pc;
-  npc = top->pip_dnpc;
+  bool bubble;
+      
+  paddr_t pc = top->pip_pc;
+
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
       #ifdef diff_en
+        paddr_t npc;  = top->pip_dnpc;
         //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
         for(int i = 0; i < 32; i++) {
           cpureg.gpr[i] = cpu_gpr[i];
@@ -279,7 +276,7 @@ int main(int argc,char **argv){
     static long img_size = load_image(img);
 
     top->clk=0;
-    top->rst=1;
+    top->rst=1;  //复位CPU的状态
     top->eval();
     printf("init cpu\n");
     updata_clk();
@@ -290,7 +287,7 @@ int main(int argc,char **argv){
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);  
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
-    init_difftest(diff_so_file, img_size, 1024);
+    init_difftest(diff_so_file, img_size, 1024);           // 为ref初始化bin文件
   #endif
 
 

@@ -98,15 +98,15 @@ size_t fs_write(int fd, const void *buf, size_t len){
   #endif // DEBUG
   assert(fd>=0);
   size_t ret_len = 0;
-  if(fd==FD_STDOUT||fd==FD_STDERR){        //stdout
+  if(fd==FD_FB ){
+    ret_len=fb_write(buf,file_table[fd].read_offset,len);//写文件
+  }
+  else if(fd==FD_STDOUT||fd==FD_STDERR){        //stdout
     for (uint16_t i=0;i<len;++i)
     {
       putch(((char *)buf)[i]);
     }
     return len;
-  }
-  else if(fd==FD_FB ){
-    ret_len=fb_write(buf,file_table[fd].read_offset,len);//写文件
   }
   else{
     assert(file_table[fd].read_offset + len <= file_table[fd].size);

@@ -48,16 +48,11 @@ size_t dispinfo_read(void *buf, size_t offset, size_t len) {
 }
 
 size_t fb_write(const void *buf, size_t offset, size_t len) {   
-  offset /= sizeof(uint32_t);
-  len /= sizeof(uint32_t);
-  int x = offset % Canvas_x;
+
+  int x = offset % Canvas_x;  //计算起点
   int y = offset / Canvas_x;
-
-
-  //printf("[fb write]x:%d y:%d w %d,h %d \n",x,y,w,h);
+  //printf("[fb write]x:%d y:%d \n",x,y);
   io_write(AM_GPU_FBDRAW,x,y, (uint32_t *)buf, len , 1, true);
-
-
   return len;
 }
 

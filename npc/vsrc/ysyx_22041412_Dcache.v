@@ -51,14 +51,11 @@ module ysyx_22041412_Dcache(
 
 `define DCACHE_IDLE         3'b000 
 `define DCACHE_CACHE        3'b001
+`define DCACHE_WTBACK       3'b001
 
-`define DCACHE_WTBACK       3'b010
- 
-
+`define DCACHE_DEVICE       3'b010
 `define DCACHE_RAM          3'b010  
-`define DCACHE_DEVICE       3'b100
-
-`define DCACHE_W_CACHE      3'b101  
+`define DCACHE_W_CACHE      3'b100
 
 
 reg cache_rd_ready;
@@ -263,7 +260,18 @@ reg [2:0] wr_state;  //cache状态机
                   cache_rd_ready                              <= 1'b1;   
                   cache_hit                                   <= cache_hit+1;
 
+//近期最少使用计数
+            cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
+                                            (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
 
+            cache_fwen_ct[cache_index][1] <=(tag_v_w=='d1 && cache_fwen_ct[cache_index][1]!='b00) ?cache_fwen_ct[cache_index][1]-1'b1:
+                                            (tag_v_w!='d1 && cache_fwen_ct[cache_index][1]!='b11) ?cache_fwen_ct[cache_index][1]+1'b1:cache_fwen_ct[cache_index][1];
+                                            
+            cache_fwen_ct[cache_index][2] <=(tag_v_w=='d2 && cache_fwen_ct[cache_index][2]!='b00) ?cache_fwen_ct[cache_index][2]-1'b1:
+                                            (tag_v_w!='d2 && cache_fwen_ct[cache_index][2]!='b11) ?cache_fwen_ct[cache_index][2]+1'b1:cache_fwen_ct[cache_index][2];
+                                            
+            cache_fwen_ct[cache_index][3] <=(tag_v_w=='d3 && cache_fwen_ct[cache_index][3]!='b00) ?cache_fwen_ct[cache_index][3]-1'b1:
+                                            (tag_v_w!='d3 && cache_fwen_ct[cache_index][3]!='b11) ?cache_fwen_ct[cache_index][3]+1'b1:cache_fwen_ct[cache_index][3]; 
 
                   //if(~cpu_rw_en)$display("\033[1;34mDCACHE hit  Read  addr:%8h offset %h size %h ,data:%16h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_read_data);         
                   //else$display("\033[1;35mDCACHE hit  Write addr:%8h offset %h size %h ,data:%32h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_write_data<< (cache_offset[2:0] *8));
@@ -285,6 +293,7 @@ reg [2:0] wr_state;  //cache状态机
                   //if(~device)$display("Dcache get  AXI4  %8h offset %h : %32h",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
                   //if(cache_d_ram [cache_index][cache_write_point]==1'b1) $display("\33[1;31mDcache dirty data %8h : %32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0},ram_rd_data  [cache_write_point][cache_index[6]]);
                   //if(device) $display("Dcache Read Device %8h",cpu_req_addr);
+
                   axi_r_valid_o        <= 1'b0;
                   axi_r_len_o          <= 8'b0; 
                   cpu_read_data        <= (device)?axi_r_data_i:
@@ -292,6 +301,7 @@ reg [2:0] wr_state;  //cache状态机
                                           (rw_offset  & ~cpu_rw_en)?( axi_r_data_i    >> (cache_offset[2:0] *8)) : 64'b0;  //更新接口数据
                   axi_r_addr_o         <= 32'b0;
                   cache_rd_ready       <= (device || ~cpu_rw_en)?1'b1 : 1'b0;
+                  cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
                   if(~device)begin
                     write_data         <= {axi_r_data_i,write_data[63:0]} ;  //写回cache
                     write_en             [cache_write_point]              <= 1'b1;
@@ -382,7 +392,7 @@ reg [2:0] wr_state;  //cache状态机
               axi_w_size_o <= cpu_rw_size;
               //$display("\33[1;33mDcache waite device \033[0m" );
             end
-            else if(cpu_valid & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point])begin  //有需要回写的数据
+            else if(cpu_valid & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point])begin  //有需要回写的数据   在发起AXI读请求时就决定了替换对象，所以提前写回数据
               axi_w_valid_o    <= 1'b1;
               //write_back_addr  <={cache_tag_ram[cache_index][cache_write_point],cache_index};
               {write_back_data,axi_w_data_o}     <= ram_rd_data[cache_write_point][cache_index[6]] ;
@@ -432,7 +442,8 @@ reg [2:0] wr_state;  //cache状态机
 wire [1:0] cache_write_point;
 reg  [1:0] cache_write_point_l1;
 reg  [1:0] cache_rodom_cnt;
-assign cache_write_point = cache_rodom_cnt;
+//assign cache_write_point = cache_rodom_cnt;
+
 // //没存满数据的话，先存空的line  评价为没啥用
 // assign cache_write_point  = (~cache_v_ram[cache_index][0]) ? 3'd0 :
 //                             (~cache_v_ram[cache_index][1]) ? 3'd1 :
@@ -443,6 +454,11 @@ assign cache_write_point = cache_rodom_cnt;
 //                             (~cache_v_ram[cache_index][6]) ? 3'd6 :
 //                             (~cache_v_ram[cache_index][7]) ? 3'd7 : cache_rodom_cnt;
 
+// 替换最近不常用数据，如果没有，那就随机替换   在循环跑分测试中效果不好  对真实任务有效
+assign cache_write_point  = (cache_fwen_ct[cache_index][0] > (cache_fwen_ct[cache_index][1] & cache_fwen_ct[cache_index][2]  & 
+                                                              cache_fwen_ct[cache_index][3] )) ? 2'd0  :
+                            (cache_fwen_ct[cache_index][1] > (cache_fwen_ct[cache_index][2] & cache_fwen_ct[cache_index][3] ) ) ? 2'd1  :
+                            (cache_fwen_ct[cache_index][2] > cache_fwen_ct[cache_index][3] ) ? 2'd2  : 2'd3  ;
 //伪随机替换计数器
 always @(posedge clk) begin
   if(rst)begin
