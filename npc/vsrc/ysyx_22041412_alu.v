@@ -40,7 +40,7 @@ module ysyx_22041412_alu(
   assign AY = ({scr1[63],~{scr1[62:0]}})+1;
   assign BY = ({scr2[63],~{scr2[62:0]}})+1;
 
-
+  wire      mul_mode;
   wire      div_mode;
   wire [1:0]mul_signed;		//2’b11（signed x signed）；2’b10（signed x unsigned）；2’b00（unsigned x unsigned）；
   wire      div_signed;
@@ -52,6 +52,8 @@ module ysyx_22041412_alu(
   assign mul_signed = (func3==3'b000 || func3==3'b001) ? 2'b11:
                       (func3==3'b010 )                 ? 2'b10: 2'b00;
   assign mul_vaild  =  mul_en & ready_i;
+  assign mul_mode   =  func3[0];
+
   assign div_signed = (func3==3'b100 || func3==3'b110) ? 1'b1 : 1'b0;
   assign div_valid  =  div_en & ready_i;
   assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;
@@ -183,8 +185,8 @@ always @(*) begin
                                         {{32{mux_result[31]}},mux_result[31:0]      };
     end
     else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
-      Alusu = (mul_en & mul_ready_o) ?  mul_result_lo :
-              (div_en & div_ready_o) ?  div_result    : 0;
+      Alusu = (mul_en & mul_ready_o) ? mul_mode ? mul_result_hi : mul_result_lo :
+              (div_en & div_ready_o) ? div_result    : 0;
     end
     else if(opcode==`ysyx_22041412_Environment)begin
       Alusu=0; 
