@@ -12,7 +12,11 @@ module ysyx_22041412_decode(
 	output [63:0]imme,
 	output [1:0]V1Type,
 	output [1:0]V2Type,
+
+	///
 	output Mul_en,
+	output Div_en,
+	output [1:0]RV64_en,
 	//output Ram_en,
 	
 	output reg[63:0] jal_pc,  //直接跳转命令 结果
@@ -55,8 +59,11 @@ module ysyx_22041412_decode(
 					B_type?`ysyx_22041412_v2rsb:
 				 	`ysyx_22041412_v2imm;
 
-	assign Mul_en= R_type&(instr[25]=='b1)?`ysyx_22041412_mulen:1'b0;
+	assign Mul_en = R_type&(instr[25]=='b1) & (func3[2]==0)?`ysyx_22041412_mulen:1'b0;//func3==3'b000 | func3==3'b001 | func3==3'b010 | func3==3'b011
+	assign Div_en = R_type&(instr[25]=='b1) & (func3[2]==1)?`ysyx_22041412_mulen:1'b0;
 
+	assign RV64_en = (instr[6:0]==`ysyx_22041412_RV64_R)?2'b10 :
+					 (instr[6:0]==`ysyx_22041412_RV64_I)?2'b01 : 2'b00;
 
 	assign imme= I_type?{{52{instr[31]}},instr[31:20]} :
 				 U_type?{{32{instr[31]}},instr[31:12],{12{1'b0}}} :

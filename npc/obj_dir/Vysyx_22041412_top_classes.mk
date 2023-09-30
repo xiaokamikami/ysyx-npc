@@ -12,7 +12,7 @@ VM_TIMING = 0
 # Coverage output mode?  0/1 (from --coverage)
 VM_COVERAGE = 0
 # Parallel builds?  0/1 (from --output-split)
-VM_PARALLEL_BUILDS = 0
+VM_PARALLEL_BUILDS = 1
 # Tracing output mode?  0/1 (from --trace/--trace-fst)
 VM_TRACE = 1
 # Tracing output mode in VCD format?  0/1 (from --trace)
@@ -26,6 +26,16 @@ VM_CLASSES_FAST += \
 	Vysyx_22041412_top \
 	Vysyx_22041412_top___024root__DepSet_ha7cb4ecf__0 \
 	Vysyx_22041412_top___024root__DepSet_h2f0f227f__0 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__1 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__2 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__3 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__4 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__5 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__6 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__7 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__8 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__9 \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__10 \
 
 # Generated module classes, non-fast-path, compile with low/medium optimization
 VM_CLASSES_SLOW += \
@@ -33,16 +43,34 @@ VM_CLASSES_SLOW += \
 	Vysyx_22041412_top___024root__Slow \
 	Vysyx_22041412_top___024root__DepSet_ha7cb4ecf__0__Slow \
 	Vysyx_22041412_top___024root__DepSet_h2f0f227f__0__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__1__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__2__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__3__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__4__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__5__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__6__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__7__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__8__Slow \
+	Vysyx_22041412_top___024root__DepSet_h2f0f227f__9__Slow \
 
 # Generated support classes, fast-path, compile with highest optimization
 VM_SUPPORT_FAST += \
 	Vysyx_22041412_top__Dpi \
 	Vysyx_22041412_top__Trace__0 \
+	Vysyx_22041412_top__Trace__1 \
+	Vysyx_22041412_top__Trace__2 \
+	Vysyx_22041412_top__Trace__3 \
+	Vysyx_22041412_top__Trace__4 \
 
 # Generated support classes, non-fast-path, compile with low/medium optimization
 VM_SUPPORT_SLOW += \
 	Vysyx_22041412_top__Syms \
 	Vysyx_22041412_top__Trace__0__Slow \
+	Vysyx_22041412_top__Trace__1__Slow \
+	Vysyx_22041412_top__Trace__2__Slow \
+	Vysyx_22041412_top__Trace__3__Slow \
+	Vysyx_22041412_top__Trace__4__Slow \
+	Vysyx_22041412_top__Trace__5__Slow \
 
 # Global classes, need linked once per executable, fast-path, compile with highest optimization
 VM_GLOBAL_FAST += \

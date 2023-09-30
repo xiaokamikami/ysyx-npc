@@ -1,14 +1,17 @@
 `include "vsrc/ysyx_22041412_define.v"
 module ysyx_22041412_alu(
   input clk,
+  input rst,
   input [63:0]scr1,
   input [63:0]scr2,
   input [63:0]imm,
   input [6:0]opcode,
   input [2:0]func3,
   input func7,
-  input mul_en,
 
+  input mul_en,
+  input div_en,
+  input [1:0]rv64_en, // 00 无 //01 RVI //10 RVR 
   //input [4:0]Mode,
 
   input ready_i,
@@ -23,10 +26,13 @@ module ysyx_22041412_alu(
 
   
   wire mul_ready_o;
+  wire div_ready_o;
+  assign ready_o = (((mul_ready_o&mul_en) | (div_ready_o&div_en)) | (~mul_en & ~div_en ) )?1:0;  //ready o 握手
 
-  assign ready_o = ((mul_ready_o&mul_en) | ~mul_en )?1:0;
   wire [63:0]mux_result;
-  wire [63:0]mul_result;
+  wire [63:0]mul_result_hi;
+  wire [63:0]mul_result_lo;
+  wire [63:0]div_result;
   reg  [63:0]Alusu;
   assign result =Alusu;
   assign AU = scr1;
@@ -34,31 +40,52 @@ module ysyx_22041412_alu(
   assign AY = ({scr1[63],~{scr1[62:0]}})+1;
   assign BY = ({scr2[63],~{scr2[62:0]}})+1;
 
-  wire rv64i_en;
-  wire rv64r_en;
-  assign rv64r_en = (opcode==`ysyx_22041412_RV64_R)?1'b1:1'b0;
-  assign rv64i_en = (opcode==`ysyx_22041412_RV64_I)?1'b1:1'b0;
- 
-  wire [63:0]mul_rsa;
-  wire [63:0]mul_rsb;
-  assign mul_rsa = scr1;
-  assign mul_rsb = scr2; 
 
+  wire      div_mode;
+  wire [1:0]mul_signed;		//2’b11（signed x signed）；2’b10（signed x unsigned）；2’b00（unsigned x unsigned）；
+  wire      div_signed;
+  wire      mul_vaild;
+  wire      div_valid;
+
+
+
+  assign mul_signed = (func3==3'b000 || func3==3'b001) ? 2'b11:
+                      (func3==3'b010 )                 ? 2'b10: 2'b00;
+  assign mul_vaild  =  mul_en & ready_i;
+  assign div_signed = (func3==3'b100 || func3==3'b110) ? 1'b1 : 1'b0;
+  assign div_valid  =  div_en & ready_i;
+  assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;
   ysyx_22041412_mul mul (        //mul
-    .clk(clk),
-    .en(mul_en),
-    .rsA(mul_rsa),
-    .rsB(mul_rsb),
-    .func3(func3),
-    .rv64_en(rv64r_en),
-    .ready_i(ready_i),
-    .ready_o(mul_ready_o),
-    .valid_i(valid_i),
-    .result(mul_result)
+    .clk  (clk),
+    .rst  (rst),
+    .flush(1'b0),   //暂时不用
+
+    .mul_vaild_i   (mul_en),
+    .multiplicand_i(AU),
+    .multiplier_i  (BU),
+    .mulw_i        (rv64_en[1]),
+    .mul_signed    (mul_signed),
+
+    .mul_valid_o   (mul_ready_o),
+    .result_hi_o   (mul_result_hi),
+    .result_lo_o   (mul_result_lo)
   );
 
+ysyx_22041412_div div(
+    .clk  (clk),
+    .rst  (rst),
 
+    .dividend      (AU),  //被除数（ xlen 表示要实现的位数，ysyx 中是 64）
+    .divisor       (BU),   //除数
 
+    .div_valid     (div_en), //为高表示输入的数据有效，如果没有新的除法输入，在除法被接受的下一个周期要置低
+    .divw          (rv64_en[1]), //为高表示为32位计算
+    .div_signed    (0),//表示是不是有符号除法，为高表示是有符号除法
+    .div_mode      (div_mode),  //为0 的话本次取商，为1取余
+     
+    .out_valid     (div_ready_o),//为高表示除法器输出了有效结果
+    .div_result    (div_result)
+);
 
 
   //ALU mode  
@@ -92,7 +119,7 @@ module ysyx_22041412_alu(
                 (opcode==`ysyx_22041412_load|opcode==`ysyx_22041412_store|opcode==`ysyx_22041412_jal|opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
                 0;
 
-  //��������
+  //基本运算
   ysyx_22041412_MuxKeyWithDefault #(17, 5, 64)Mux_ALU (mux_result,Mode,`ysyx_22041412_zero_word,{
     `ysyx_22041412_UADD,(AU + BU),
     `ysyx_22041412_ADD,(AY + BY),
@@ -106,7 +133,7 @@ module ysyx_22041412_alu(
     `ysyx_22041412_sra,($signed(AU) >>> BU[5:0]),
     `ysyx_22041412_sllw,{{32{1'b0}},(AU[31:0] << BU[4:0])},
     `ysyx_22041412_srlw,{{32{1'b0}},(AU[31:0] >> BU[4:0])},
-    `ysyx_22041412_sraw,{{32{1'b0}},($signed(AU[31:0]) >>> BU[4:0])},//{{32{1'b0}},$signed(AU[31:0] >>> BU[4:0])},                   //����������
+    `ysyx_22041412_sraw,{{32{1'b0}},($signed(AU[31:0]) >>> BU[4:0])},//{{32{1'b0}},$signed(AU[31:0] >>> BU[4:0])},                   //可能有问题
     `ysyx_22041412_srliw,(BU[5]==0)?{{32{1'b0}},(AU[31:0] >> BU[4:0])}:AU,
     `ysyx_22041412_slliw,(BU[5]==0)?{{32{1'b0}},(AU[31:0] << BU[4:0])}:AU,
     `ysyx_22041412_sraiw,(BU[5]==0)?{{32{1'b0}},($signed(AU[31:0]) >>> BU[4:0])}:AU,
@@ -131,7 +158,7 @@ always @(*) begin
       end
       else  Alusu=0;
     end
-    else if(opcode==`ysyx_22041412_B_type)begin
+    else if(opcode==`ysyx_22041412_B_type)begin     //条件分支
       if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
       else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
       else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
@@ -145,20 +172,19 @@ always @(*) begin
       Alusu = mux_result&(~64'h00000001);
       //$display("jarl =%h",Alusu);
     end
-    else if(rv64i_en & !mul_en) begin
+    else if(rv64_en[0]==1'b1) begin
       if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
       else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
       //$display("bu5=%d , result=%h",BU[5],Alusu);
     end
-    else if(rv64r_en & !mul_en) begin
-      Alusu = {{32{mux_result[31]}},mux_result[31:0]};
-      //$display("shift=%d  zext=%d, result=%h",BU[4:0],mux_result[31],mux_result);
+    else if(rv64_en[1]==1'b1) begin
+      Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
+              (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
+                                        {{32{mux_result[31]}},mux_result[31:0]      };
     end
-    else if(rv64r_en & mul_en & mul_ready_o)begin
-      Alusu = {{32{mul_result[31]}},mul_result[31:0]};
-    end
-    else if(!rv64r_en & mul_en & mul_ready_o)begin
-      Alusu = mul_result;
+    else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
+      Alusu = (mul_en & mul_ready_o) ?  mul_result_lo :
+              (div_en & div_ready_o) ?  div_result    : 0;
     end
     else if(opcode==`ysyx_22041412_Environment)begin
       Alusu=0; 

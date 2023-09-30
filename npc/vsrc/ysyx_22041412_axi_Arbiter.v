@@ -64,10 +64,10 @@ reg[2:0] rd_next_switch;
 reg[1:0] rd_state;           //读通道状态机
 reg[1:0] rd_next_state;
 
-wire[2:0] wr_switch;          //写通道选择器状态  
-reg[2:0] wr_next_switch;
-reg[1:0] wr_state;           //写通道状态机
-reg[1:0] wr_next_state;
+// reg[2:0] wr_switch;          //写通道选择器状态  
+// reg[2:0] wr_next_switch;
+// reg[1:0] wr_state;           //写通道状态机
+// reg[1:0] wr_next_state;
 `define IDLE         2'b00  
 `define BUSY         2'b01     
 //`define DONE         2'b100     
@@ -129,7 +129,6 @@ reg[1:0] wr_next_state;
 //------------写通道   Write transmission---------------------\\
   //always@( *)begin
 
-  assign   wr_switch = `MEMW ;
 
 
   //end

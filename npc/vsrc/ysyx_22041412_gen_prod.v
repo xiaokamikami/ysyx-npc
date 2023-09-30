@@ -10,9 +10,9 @@ module ysyx_22041412_gen_prod (
 reg [127:0] prod_pre;
 
 always @ (*) begin
-	prod_pre = 32'd0;
+	prod_pre = 128'd0;
 	if (zero)
-		prod_pre = 32'd0;
+		prod_pre = 128'd0;
 	else if (one)
 		prod_pre = { { 64{A[63]} }, A};
 	else if (two)

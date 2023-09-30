@@ -340,7 +340,6 @@ reg [PC_WIDTH-1:0]id_pc;
 
 wire [1:0]id_imm_V1Type;
 wire [1:0]id_imm_V2Type;
-wire id_mul_en;
 wire [63:0]id_imm_data;
 wire [2:0]id_func3;
 wire id_func7;
@@ -350,6 +349,10 @@ wire [63:0]id_rsA;
 wire [63:0]id_rsB;
 wire [1:0] id_jump_mode;
 wire [1:0] id_mem_mode;
+
+wire id_mul_en;
+wire id_div_en;
+wire [1:0]id_rv64_en;
 
 wire [63:0]jal_pc;
 wire       jal_ok;
@@ -388,7 +391,11 @@ ysyx_22041412_decode ID_decode( //opcode
 	.imme(id_imm_data),
     .V1Type(id_imm_V1Type),
     .V2Type(id_imm_V2Type),
+
+
     .Mul_en(id_mul_en),
+    .Div_en(id_div_en),
+    .RV64_en(id_rv64_en),
 
     .jal_pc (jal_pc),
     .jal_ok (jal_ok),
@@ -423,7 +430,6 @@ end
 reg [1:0]ex_imm_V1Type;
 reg [1:0]ex_imm_V2Type;
 reg [63:0]ex_imm_data;
-reg ex_mul_en;
 reg [63:0]ex_v1;
 reg [63:0]ex_v2;
 reg [63:0]ex_rs2;
@@ -435,6 +441,9 @@ reg [PC_WIDTH-1:0]ex_pc;
 reg [1:0] ex_jump_mode;
 reg [1:0] ex_mem_mode;
 
+reg ex_mul_en;
+reg ex_div_en;
+reg [1:0]ex_rv64_en;
 
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
@@ -530,13 +539,17 @@ ysyx_22041412_mcsr csr_reg(
  );
 ysyx_22041412_alu EXE_alu(          //ALU
     .clk(clk),
+    .rst(rst),
     .scr1(ex_v1),
     .scr2(ex_v2),
     .imm(ex_imm_data),
     .func3(ex_func3),
     .func7(ex_func7),
     .opcode(ex_opcode),
+
     .mul_en(ex_mul_en),
+    .div_en(ex_div_en),
+    .rv64_en(ex_rv64_en),
 
     .valid_i(ex_valid_o),
     .ready_i(id_ready_o),
@@ -553,13 +566,16 @@ always@(posedge clk)begin
         ex_imm_data<= id_imm_data;
 
         ex_pc      <= id_pc;
-        ex_mul_en  <= id_mul_en;
         ex_v1      <= ex_v1_in;
         ex_v2      <= ex_v2_in;
         ex_rs2     <= ex_rs2_in;
 
         ex_imm_V1Type<= id_imm_V1Type;
         ex_imm_V2Type<= id_imm_V2Type;
+
+        ex_mul_en  <= id_mul_en;
+        ex_div_en  <= id_div_en;
+        ex_rv64_en <= id_rv64_en;
 
         ex_csr_jar_en<= csr_jar_en;
         ex_csr_id    <=id_csr_id;
