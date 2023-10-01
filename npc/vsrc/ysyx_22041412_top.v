@@ -657,6 +657,23 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     .w_data_o    ( mem_w_data    ),
     .w_addr_o    ( mem_w_addr    )
 );
+always @(*)begin
+    if(ex_jump_mode == `ysyx_22041412_j_B | ex_csr_jar_en )begin //条件分支  与 ECALL
+        mem_dnpc   = (~ex_csr_jar_en & ex_res[0])? (ex_imm_data+ex_pc) : 
+                     ex_csr_jar_en ? csr_data_o       :ex_pc+4 ;
+        if_jr_ready=1'b1;
+        if_jr_hit  = ex_csr_jar_en ? 1'b1 : ex_res[0] ; //1 hit   0 not
+    end else if(ex_jump_mode==`ysyx_22041412_j_jalr)begin
+        mem_dnpc   = ex_res;
+        if_jr_ready=1'b1 ;
+        if_jr_hit  =1'b1;
+    end else begin
+        mem_dnpc   =64'b0;
+        if_jr_ready=1'b0 ;
+        if_jr_hit  =1'b0;
+    end
+end
+
 
 always@(posedge clk)begin           
     if(mem_valid_o & ex_ready_o)begin
@@ -670,37 +687,25 @@ always@(posedge clk)begin
         mem_rw_type   <= (ex_mem_mode ==`ysyx_22041412_mem_stor)  ? 1'b1 : 1'b0;
         mem_ram_en    <= (ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load) ? 1'b1 :1'b0;
         if(ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load)begin //mem  dram
-            if_jr_ready<=0;
-            if_jr_hit  <=0;
             mem_reg_en <=(ex_mem_mode == `ysyx_22041412_mem_load)?1'b1 : 1'b0;
             mem_addr   <=ex_res[31:0];
             mem_wdata  <=(ex_mem_mode ==`ysyx_22041412_mem_stor)?ex_rs2:`ysyx_22041412_zero_word;
         end
         else if(ex_jump_mode == `ysyx_22041412_j_B | ex_csr_jar_en )begin //条件分支  与 ECALL
-            mem_dnpc   <= (~ex_csr_jar_en & ex_res[0])? (ex_imm_data+ex_pc) : 
-                          ex_csr_jar_en ? csr_data_o       :ex_pc+4 ;
-            if_jr_ready<=1'b1;
-            if_jr_hit  <= ex_csr_jar_en ? 1'b1 : ex_res[0] ; //1 hit   0 not
             mem_reg_en <=0;
             mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end     
         else if( ex_jump_mode==`ysyx_22041412_j_jalr)begin
-            mem_dnpc   <= ex_res;
-            if_jr_ready<=1'b1 ;
-            if_jr_hit  <=1'b1;
             mem_reg_en <=1;
             mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end else begin
             mem_reg_en <=1;
-            if_jr_ready<=0;
-            if_jr_hit  <=0;
             mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end
     end else if(sram_ready_o & mem_ram_en & ~ex_ready_o) begin
-            if_jr_ready   <=0;
             mem_rw_type   <=0;
             mem_ram_en    <=0;
             mem_reg_en    <=0;

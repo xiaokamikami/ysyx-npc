@@ -24,6 +24,7 @@ reg 		  	  mul_mulvalid_r;
 reg 	[63:0]    result_hio_r;
 reg 	[63:0]    result_loo_r;
 
+reg       		  mul_doing;      //表示乘法器正在计算 
 
 always @(posedge clk ) begin
 	if (rst | flush) begin
@@ -37,6 +38,8 @@ always @(posedge clk ) begin
 		mul_valid_o	    <= 	mul_mulvalid_r;
 	end
 end
+
+
 //----------------------------计算部分------------------------------------//
 		//启动计算
 		always @(posedge clk ) begin
@@ -44,14 +47,26 @@ end
 				multiplicand_r				<= 0;
 				multiplier_r				<= 0;
 				mul_datavaild_r[0]			<= 0;
-			end else  begin
+			end else if(~mul_doing)  begin
 				multiplicand_r				<= (~mulw_i) ? multiplicand_i : {{32{1'b0}},multiplicand_i[31:0]} ;
 				multiplier_r				<= (~mulw_i) ? multiplier_i   : {{32{1'b0}},multiplier_i  [31:0]} ;
 				mul_datavaild_r[0]			<= mul_vaild_i;
+			end else begin
+				mul_datavaild_r[0]			<= 0;			
 			end
 		end
 
-
+		//自锁部分
+		always @(posedge clk)begin
+			if(mul_vaild_i & ~mul_doing)begin
+				mul_doing<=  1'b1;
+			end else if(mul_doing & mul_valid_o)begin
+				mul_doing<=  1'b0;      
+			end
+			else begin
+				mul_doing<=  mul_doing;   
+			end
+		end
 wire [31:0] neg;
 wire [31:0] zero;
 wire [31:0] one;

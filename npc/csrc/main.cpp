@@ -56,7 +56,7 @@ uint64_t main_clk_value= 0;
 uint64_t main_time_us;
 
 //****************************debug*********************
-const uint64_t debuge_time=723400;  //debug的时钟地点
+const uint64_t debuge_time=0;  //debug的时钟地点
 const uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {

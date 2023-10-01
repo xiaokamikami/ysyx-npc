@@ -48,4 +48,6 @@ all:
 	make build -s -j
 	make compile -s -j
 	make run -s
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
+	$(call git_commit, "sim RTL") 
+	# verilator END 
+# DO NOT REMOVE THIS LINE!!!

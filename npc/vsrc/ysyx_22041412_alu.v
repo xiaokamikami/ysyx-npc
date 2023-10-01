@@ -14,9 +14,9 @@ module ysyx_22041412_alu(
   input [1:0]rv64_en, // 00 无 //01 RVI //10 RVR 
   //input [4:0]Mode,
 
-  input ready_i,
+  input  ready_i,
   
-  input valid_i,
+  input  valid_i,
   output ready_o,
   output [63:0]result
 
@@ -27,7 +27,9 @@ module ysyx_22041412_alu(
   
   wire mul_ready_o;
   wire div_ready_o;
-  assign ready_o = (((mul_ready_o&mul_en) | (div_ready_o&div_en)) | (~mul_en & ~div_en ) )?1:0;  //ready o 握手
+  assign ready_o = (mul_en)? mul_ready_o : 
+                   (div_en)? div_ready_o : 
+                   (~mul_en & ~div_en )  ? 1'b1 : 1'b0;  //ready o 握手
 
   wire [63:0]mux_result;
   wire [63:0]mul_result_hi;
@@ -54,7 +56,7 @@ module ysyx_22041412_alu(
   assign mul_vaild  =  mul_en & ready_i;
   assign mul_mode   =  func3[0];
 
-  assign div_signed = (func3==3'b100 || func3==3'b110) ? 1'b1 : 1'b0;
+  assign div_signed = (func3==3'b100 || func3==3'b110|| func3==3'b101) ? 1'b1 : 1'b0;
   assign div_valid  =  div_en & ready_i;
   assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;
   ysyx_22041412_mul mul (        //mul
@@ -82,7 +84,7 @@ ysyx_22041412_div div(
 
     .div_valid     (div_en), //为高表示输入的数据有效，如果没有新的除法输入，在除法被接受的下一个周期要置低
     .divw          (rv64_en[1]), //为高表示为32位计算
-    .div_signed    (0),//表示是不是有符号除法，为高表示是有符号除法
+    .div_signed    (div_signed),//表示是不是有符号除法，为高表示是有符号除法
     .div_mode      (div_mode),  //为0 的话本次取商，为1取余
      
     .out_valid     (div_ready_o),//为高表示除法器输出了有效结果
@@ -145,18 +147,10 @@ ysyx_22041412_div div(
 always @(*) begin
     if(Mode == `ysyx_22041412_slt)begin
       if(func3 ==3'b010)begin
-        if($signed(AU-BU)<0) Alusu=1;
-        else Alusu=0;    
+        Alusu= ($signed(AU-BU)<0) ? 64'b1 :64'b0;
       end
       else if(func3 ==3'b011) begin //sltu
-        if((AU<BU))begin 
-          Alusu=1;
-          //$display("STLU 1 ");
-        end
-        else begin 
-          Alusu=0;
-          //$display("STLU 0 ");
-        end
+        Alusu=(AU<BU) ? 64'b1 : 64'b0;
       end
       else  Alusu=0;
     end
