@@ -22,8 +22,8 @@ module ysyx_22041412_Icache(
     output  reg [127:0]     cpu_read_data,
     output  reg             cpu_ready,
 
-    input                   cpu_read_vaild,
-    input                   cpu_read_clean,
+    input                   cpu_read_vaild,     // 数据请求
+    input                   cpu_read_clean,     // 数据废弃请求
     output                  cache_clear,        // 表明废弃数据已丢弃
 //icache    <---> AXI
     input  					        axi_ready_i,        // 读有效等待接收
@@ -188,12 +188,12 @@ reg [2:0] next_state;
         //   cache_clear      <= 1'b0;
         // end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
-          cache_clear      <= 1'b0;
+          cache_clear   <= cpu_read_clean;
           if(tag_v !=4'b0000 )begin
             cpu_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
             cpu_ready     <= ~cpu_read_clean; 
+ 
             cache_hit     <= cache_hit+1;
-
 //近期最少使用计数
             cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
                                             (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
@@ -234,6 +234,7 @@ reg [2:0] next_state;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
             cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
             cpu_ready                                             <= (cpu_read_clean)?1'b0:1'b1;
+            cache_clear   <= cpu_read_clean; 
             //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end 
 		    end
@@ -242,6 +243,7 @@ reg [2:0] next_state;
           write_data  <= 128'b0;
           cpu_ready       <= ~(cpu_read_clean|cpu_read_vaild);
           cpu_read_data   <= cpu_read_data;
+          cache_clear     <= cpu_read_clean; 
         end
         default: ;
         endcase

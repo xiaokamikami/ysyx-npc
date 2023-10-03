@@ -51,9 +51,13 @@ static int cmd_c();
 
 using namespace std;
 vluint64_t main_time = 0;
-uint64_t main_dir_value= 0;
-uint64_t main_clk_value= 0;
-uint64_t main_time_us;
+static uint64_t main_dir_value= 0;
+static uint64_t main_clk_value= 0;
+static uint64_t main_time_us;
+
+static uint32_t boot_time = 0;
+static uint32_t end_time  = 0;
+struct timespec sys_time;  //记录仿真的运行时间
 
 //****************************debug*********************
 const uint64_t debuge_time=0;  //debug的时钟地点
@@ -125,6 +129,8 @@ void sim_init() {                 //vcd init
   contextp->traceEverOn(true);
   top->trace(tfp,0);
   tfp->open("wave.vcd");
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
+  boot_time=  sys_time.tv_sec;
 }
 
 //end
@@ -331,18 +337,21 @@ int main(int argc,char **argv){
 
 //------------END NPC-----------//
 
-  //printf("main_dir_value :%ld \n",main_dir_value);
-  //printf("main_clk_value :%ld \n",main_clk_value);
-
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
+  end_time =  sys_time.tv_sec;
   double ipc,icache_l1_hit,dcache_l1_hit;
   ipc=((double)main_dir_value)/main_clk_value;
   icache_l1_hit=((double)top->Icache_L1_hit)/(top->Icache_L1_miss+top->Icache_L1_hit);
   dcache_l1_hit=((double)top->Dcache_L1_hit)/(top->Dcache_L1_miss+top->Dcache_L1_hit);
-  printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% dcache_l1 hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
+
+  printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
 
-  printf(BLUE "IPC:" NONE " %.4lf \t",ipc);
+  printf(BLUE "freq :" NONE " %d HZ\n",main_clk_value/(end_time-boot_time));
+  printf(BLUE "inst :" NONE " %d /S\n",main_dir_value/(end_time-boot_time));
+  printf(BLUE "IPC  :" NONE " %.4lf \n",ipc);
+
   printf("Difftest : imm count:%ld \n",main_dir_value);
 
   top->final();

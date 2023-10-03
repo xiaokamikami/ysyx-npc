@@ -2,17 +2,12 @@
 #define _DEBUG_H_
 #include "../color.h"
 //*************debug**************//
-#define diff_en 1        //difftest开关
-#define vcd_en  1        //波形记录
+//#define diff_en 1        //difftest开关
+//#define vcd_en  1        //波形记录
 //#define end_time 200
 //*************device*************//
 #define SDL_VGA 1
 #define SDL_KEYBOARD 1 
-
-
-
-
-
 
 #define DEVICE_ENABLE 1
 #define CONFIG_HAS_KEYBOARD 1

@@ -26,44 +26,55 @@ module ysyx_22041412_if(
     input      cache_clear      //作废成功cache进入IDLE
  );
 `define IF_IDLE         3'b000  
-//`define IF_VAILD        3'b001  
-`define IF_LINE         3'b010 
-`define IF_WAIT         3'b100  
-`define FENCE           3'b101 
+`define IF_LINE         3'b001 
+`define IF_WAIT         3'b010  
+`define FENCE           3'b100 
 
 
-`define CACHE_IDLE      2'b00
-`define CACHE_VAILD     2'b01
-`define CACHE_WAIT      2'b10
-`define CACHE_CLEAN     2'b11
+`define CACHE_IDLE      3'b000
+`define CACHE_VAILD     3'b001 //正常预取
+`define CACHE_WAIT      3'b010 //等jarl结果
+`define CACHE_BRENCH    3'b100 //条件分支的处理
+`define CACHE_CLEAN     3'b101 //FENCE I
 
-reg [2:0] state;              //状态机 
-reg [1:0] cache_state;
-reg [127:0]read_imm_data;
-wire [31:0]r_data_4mux1;
-wire [31:0]imm_data_4mux1;
-wire [3:0] offset;
-wire [3:0] pc_offset;
-assign pc_offset     = dnpc[3:0];
-assign r_data_4mux1  = (pc_offset==4'b0000)?r_data_i[31:0] :
-					             (pc_offset==4'b0100)?r_data_i[63:32] :
-					             (pc_offset==4'b1000)?r_data_i[95:64] :
-					             (pc_offset==4'b1100)?r_data_i[127:96] :0;
+reg  [2:0]   state;              //状态机 
+reg  [2:0]   cache_state;
+reg  [127:0] read_imm_data;
+wire [31:0]  imm_data_4mux1;
+wire [3:0]   pc_offset;
+assign pc_offset = dnpc[3:0];
 assign imm_data_4mux1  = (pc_offset==4'b0000)?read_imm_data[31:0] :
 					               (pc_offset==4'b0100)?read_imm_data[63:32] :
 					               (pc_offset==4'b1000)?read_imm_data[95:64] :
 					               (pc_offset==4'b1100)?read_imm_data[127:96] :0;
 
-
+//-------------快速解码部分 BEGIN----------------------
 wire jump ;
+wire jump_b;
 wire jal ;
-assign jal= ( imm_data[6:0]==`ysyx_22041412_jal)?1'b1:1'b0;  //直接跳转命令  可以直接出结果 由 译码部分计算
-assign jump= (jal | imm_data[6:0]==`ysyx_22041412_B_type  | imm_data[6:0]==`ysyx_22041412_jalr |
-              (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010)) )? 1'b1 : 1'b0;
+wire jarl;
+wire ecall ;
 
-reg jump_mode;  //1为直接跳  0为计算后跳
-
-
+assign jal  = ( imm_data[6:0]==`ysyx_22041412_jal) ?1'b1:1'b0;  //直接跳转命令  可以直接出结果 由 译码部分计算
+assign jarl = ( imm_data[6:0]==`ysyx_22041412_jalr)?1'b1:1'b0;  //直接跳转  但是需要等读取寄存器
+assign ecall= (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010))? 1'b1 : 1'b0;
+              //ECALL MRET
+assign jump_b =(imm_data[6:0]==`ysyx_22041412_B_type) ?1'b1 :1'b0 ;           //这段可以用分支预测
+assign jump= (jal | jump_b  | jarl | ecall ) ? 1'b1 :1'b0;
+  //针对循环的预测
+    wire [31:0]B_pc  ;
+    wire jump_mode   ;
+    reg jump_mode_l  ;  //暂存的本次预测结果  1为直接跳  0为不跳
+    assign B_pc		=	jump_b?{{20{imm_data[31]}},imm_data[7],imm_data[30:25],imm_data[11:8],1'b0} : 32'b0;  //B类指令的目标地址
+    /* 
+      一条for翻译成汇编是
+      xxx：
+      ....
+      bne loopnnum , xxx:
+      如果xxx地址比当前pc小就可以认为跳，只有最后一次循环退出才会预测错一次
+     */
+    assign jump_mode = jump_b? (B_pc < pc[31:0]) ?1'b1 :1'b0:1'b0;
+//-------------快速解码部分 END ----------------------
 
 wire one_line;
 reg [31:0]dnpc;
@@ -89,6 +100,8 @@ reg imm_ready;
     `CACHE_WAIT:begin
       cache_state <= valid_o?`CACHE_VAILD : `CACHE_WAIT;  
     end
+    `CACHE_BRENCH:begin        //B
+    end
     `CACHE_CLEAN:begin        //fence.i 
     end
     default:;
@@ -104,16 +117,16 @@ reg imm_ready;
       `CACHE_IDLE:begin //只有启动时会处在这个阶段
           valid_o   <=valid_i;
           r_addr_o  <=dnpc;
-          imm_ready <=0;
+          imm_ready <= 0;
           wait_ok   <= 0;
         end
       `CACHE_VAILD:begin   //等待接收新的指令
         wait_ok       <= 0;
-        if_read_clean <= jump;
+        if_read_clean <= (jal | jarl | ecall |jump_b );//遇到直接跳转指令必须清掉预取指令
         if(ready_i==1'b1 & ~imm_ready & ~one_line)begin
           valid_o  <= 0 ;
           imm_ready<= 1 ;
-          read_imm_data  <=r_data_i;
+          read_imm_data  <= r_data_i;
           if_read_vaild  <= 1;
           dnpc_v         <= 1;
           get_pc         <= r_addr_o[31:4];
@@ -123,14 +136,17 @@ reg imm_ready;
           imm_ready<= 0 ;     
           r_addr_o <= {get_pc+1'b1,4'b0000};
           if_read_vaild  <= 0;
-        end  else if(jump)valid_o<= 1'b0;
+        end  
+        if(jump) begin 
+          valid_o   <= 1'b0;
+          imm_ready <= 1'b0;
+        end
       end
-      `CACHE_WAIT:begin   //CPU在等跳转指令
-        imm_ready <= 1'b0;
+      `CACHE_WAIT:begin   //等待ICACHE结束废弃的指令预取
         dnpc_v    <= 0;
         get_pc    <= 0;
         if_read_clean  <= ~cache_clear;
-
+        //imm_ready <= 1'b0;
         if(((jarl_rady ) || ( jal_ok))  && cache_clear)begin
           wait_ok  <= 1'b1;
           valid_o  <= 1'b1;
@@ -145,8 +161,8 @@ reg imm_ready;
           valid_o  <= (wait_ok   && cache_clear)?1'b1: 1'b0;
           r_addr_o <= (wait_ok   && cache_clear)?jump_pc : r_addr_o;
         end
-
-
+      end
+      `CACHE_BRENCH:begin        //条件分支的预测
       end
       `CACHE_CLEAN:begin        //fence.i 
       end
@@ -188,7 +204,6 @@ reg imm_ready;
         `IF_IDLE: begin
           ready_o       <=0;
           imm_data      <= 0;
-
         end
         `IF_LINE:begin
           if(valid_i & one_line & ~jump )begin
