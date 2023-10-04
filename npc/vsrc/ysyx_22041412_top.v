@@ -662,7 +662,7 @@ always @(*)begin
         mem_dnpc   = (~ex_csr_jar_en & ex_res[0])? (ex_imm_data+ex_pc) : 
                      ex_csr_jar_en ? csr_data_o       :ex_pc+4 ;
         if_jr_ready=1'b1;
-        if_jr_hit  = ex_csr_jar_en ? 1'b1 : ex_res[0] ; //1 hit   0 not
+        if_jr_hit  = ex_csr_jar_en ? 1'b0 : ex_res[0] ; //1 hit   0 not
     end else if(ex_jump_mode==`ysyx_22041412_j_jalr)begin
         mem_dnpc   = ex_res;
         if_jr_ready=1'b1 ;
@@ -691,17 +691,8 @@ always@(posedge clk)begin
             mem_addr   <=ex_res[31:0];
             mem_wdata  <=(ex_mem_mode ==`ysyx_22041412_mem_stor)?ex_rs2:`ysyx_22041412_zero_word;
         end
-        else if(ex_jump_mode == `ysyx_22041412_j_B | ex_csr_jar_en )begin //条件分支  与 ECALL
-            mem_reg_en <=0;
-            mem_addr   <=32'b0;
-            mem_wdata  <=`ysyx_22041412_zero_word;
-        end     
-        else if( ex_jump_mode==`ysyx_22041412_j_jalr)begin
-            mem_reg_en <=1;
-            mem_addr   <=32'b0;
-            mem_wdata  <=`ysyx_22041412_zero_word;
-        end else begin
-            mem_reg_en <=1;
+        else begin
+            mem_reg_en <= (ex_jump_mode == `ysyx_22041412_j_B | ex_csr_jar_en)?1'b0 :1'b1;
             mem_addr   <=32'b0;
             mem_wdata  <=`ysyx_22041412_zero_word;
         end

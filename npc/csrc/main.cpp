@@ -60,8 +60,8 @@ static uint32_t end_time  = 0;
 struct timespec sys_time;  //记录仿真的运行时间
 
 //****************************debug*********************
-const uint64_t debuge_time=0;  //debug的时钟地点
-const uint64_t debuge_pc  =0;  //debug的pc地址
+static const uint64_t debuge_time=4000;  //debug的时钟地点
+static const uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
   if(wmask == 1)return 1;
@@ -234,7 +234,7 @@ static int cmd_c()                //DIFFTEST
     }
     else {
       ++same_pc;
-      if(same_pc > 50) {
+      if(same_pc > 100) {
         printf("The pc No update many times \n");
         is_exit =true;
         //assert(0);
@@ -243,7 +243,7 @@ static int cmd_c()                //DIFFTEST
   }
   else if(pc==0){
     ++same_pc;
-    if(same_pc > 50) {
+    if(same_pc > 100) {
       printf("The pc No update many times PC==0\n");
       is_exit =true;
       //assert(0);
@@ -347,10 +347,14 @@ int main(int argc,char **argv){
   printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
+  printf(BLUE "NPC-IPC  :" NONE " %.4lf \n",ipc);
+  
+  double freq,inst;
+  freq = (double)main_clk_value/(end_time-boot_time);
+  inst = (double)main_dir_value/(end_time-boot_time);
+  printf(BLUE "Verilator-freq :" NONE " %.0lf HZ\n",freq);
+  printf(BLUE "Verilator-inst :" NONE " %.0lf inst/s\n",inst);
 
-  printf(BLUE "freq :" NONE " %d HZ\n",main_clk_value/(end_time-boot_time));
-  printf(BLUE "inst :" NONE " %d /S\n",main_dir_value/(end_time-boot_time));
-  printf(BLUE "IPC  :" NONE " %.4lf \n",ipc);
 
   printf("Difftest : imm count:%ld \n",main_dir_value);
 

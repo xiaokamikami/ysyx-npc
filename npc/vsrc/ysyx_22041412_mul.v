@@ -1,3 +1,4 @@
+//华莱士树乘法器 使用3-2压缩器 拆为四拍
 module ysyx_22041412_mul(
 	input						clk,
 	input						rst,
