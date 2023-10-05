@@ -35,8 +35,8 @@ reg [5:0] div_count;             // 循环计数器
 reg       div_end;
 
 //如果是有符号数且为负数的话，需要转为绝对值
-assign dividend_b = (divw) ? (div_signed&dividend[31] )?  ~dividend[31:0] +1'b1 :  dividend[31:0] : 32'b0;
-assign divisor_b  = (divw) ? (div_signed&divisor[31]  )?  ~divisor [31:0] +1'b1 :  divisor [31:0] : 32'b0;
+assign dividend_b = (divw) ? (div_signed & dividend[31] )?  ~dividend[31:0] +1'b1 :  dividend[31:0] : 32'b0;
+assign divisor_b  = (divw) ? (div_signed & divisor[31]  )?  ~divisor [31:0] +1'b1 :  divisor [31:0] : 32'b0;
 
 assign dividend_abs = (div_signed & dividend[63])? ~dividend[63:0] +1'b1 :  dividend;
 assign divisor_abs =  (div_signed & divisor[63]) ? ~divisor [63:0] +1'b1 :  divisor;
@@ -60,10 +60,15 @@ always @(posedge clk)begin
     end
 end
 
-
-always@(posedge clk)begin
-    if(out_valid)$display("DIV quotient %16h , remainder %16h",quotient,dividend_r);
-end
+reg dividend_signed;
+reg divisor_signed;
+wire quotient_signed;
+wire remainder_signed;
+assign quotient_signed  = ((dividend_signed & ~divisor_signed) || (~dividend_signed & divisor_signed)) ? 1'b1 :1'b0;
+assign remainder_signed = dividend_signed;
+//  always@(posedge clk)begin
+//      if(out_valid)$display("DIV quotient %16h , remainder %16h",quotient,dividend_r);
+//  end
 always @(posedge clk)begin
 
     if(div_valid & ~div_doing & divisor==64'b1)begin
@@ -76,6 +81,8 @@ always @(posedge clk)begin
         dividend_r <=  (~divw) ? {{64{1'b0}},dividend_abs} : {{64{1'b0}},dividend_b,{32{1'b0}}};
         divisor_r  <=  (~divw) ? divisor_abs  : {{32{1'b0}},divisor_b };
         div_valid_r<=  1'b1;
+        dividend_signed  <= divw ?  dividend[31] : dividend[63];
+        divisor_signed   <= divw ?  divisor[31]  : divisor[63] ;
     end
     else if(div_valid_r & ~div_end & ~out_valid)begin //循环计算不同位置
         case (divw)
@@ -109,11 +116,11 @@ always @(posedge clk)begin
     end else if(div_end)begin
         out_valid  <= 1'b1;
         div_end    <= 1'b0;
-        div_result <=  div_mode ? divw ? {{32{1'b0}},dividend_r[95:64]} : dividend_r[127:64]:
-                                  divw ? {{32{1'b0}},quotient[31:0]}  : quotient;
+        div_result <=  div_mode ? (div_signed & remainder_signed  ) ? ((~dividend_r[127:64]) +1'b1): dividend_r[127:64]:
+                                  (div_signed & quotient_signed   ) ? ((~quotient) +1'b1) : quotient;
         div_count  <= 6'd0;
     end 
-     else begin
+    else if(~div_doing)begin
         out_valid<= 1'b0;
         div_count<= 6'd0;
         dividend_r <=  128'b0;

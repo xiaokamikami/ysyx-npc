@@ -60,7 +60,7 @@ static uint32_t end_time  = 0;
 struct timespec sys_time;  //记录仿真的运行时间
 
 //****************************debug*********************
-static const uint64_t debuge_time=4000;  //debug的时钟地点
+static const uint64_t debuge_time=1500;  //debug的时钟地点
 static const uint64_t debuge_pc  =0;  //debug的pc地址
 //dram wmask
 size_t get_bit(uint8_t wmask) {
@@ -228,6 +228,7 @@ static int cmd_c()                //DIFFTEST
         else difftest_step(pc, npc);
         contextp->timeInc(1);
       #endif
+    //isa_reg_display();
     last_pc=top->pip_pc;
     main_dir_value++;
     same_pc = 0; 
