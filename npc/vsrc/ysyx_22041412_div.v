@@ -44,7 +44,7 @@ assign divisor_abs =  (div_signed & divisor[63]) ? ~divisor [63:0] +1'b1 :  divi
 
 
 wire [64:0] dividend_sub;
-assign dividend_sub  = dividend_r[127:64] - {{1'b0},divisor_r};
+assign dividend_sub  = dividend_r[127:63] - {{1'b0},divisor_r};
 wire [32:0] dividend_sub_32;
 assign dividend_sub_32 = dividend_r[95:63] - {{1'b0},divisor_r[31:0]};
 
@@ -71,12 +71,13 @@ assign remainder_signed = dividend_signed;
 //  end
 always @(posedge clk)begin
 
-    if(div_valid & ~div_doing & divisor==64'b1)begin
-        out_valid  <= 1'b1;
-        div_result <=  div_mode ? 64'b0:
-                                 divw ? {{32{1'b0}},dividend_b}  : dividend;
-    end
-    else if(div_valid & ~div_doing)begin   //初始化计算
+    // if(div_valid & ~div_doing & divisor==64'b1)begin //除1的话直接给结果
+    //     out_valid  <= 1'b1;
+    //     div_result <=  div_mode ? 64'b0:
+    //                              divw ? {{32{1'b0}},dividend_b}  : dividend;
+    // end
+    // else 
+    if(div_valid & ~div_doing)begin   //初始化计算
         div_count  <= divw ? 'd31 : 'd63;
         dividend_r <=  (~divw) ? {{64{1'b0}},dividend_abs} : {{64{1'b0}},dividend_b,{32{1'b0}}};
         divisor_r  <=  (~divw) ? divisor_abs  : {{32{1'b0}},divisor_b };
@@ -120,7 +121,7 @@ always @(posedge clk)begin
                                   (div_signed & quotient_signed   ) ? ((~quotient) +1'b1) : quotient;
         div_count  <= 6'd0;
     end 
-    else if(~div_doing)begin
+    else if(out_valid)begin
         out_valid<= 1'b0;
         div_count<= 6'd0;
         dividend_r <=  128'b0;
