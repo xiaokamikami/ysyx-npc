@@ -58,18 +58,8 @@ static uint64_t main_time_us;
 static uint32_t boot_time = 0;
 static uint32_t end_time  = 0;
 struct timespec sys_time;  //记录仿真的运行时间
+static const uint32_t reg32_size =  sizeof(uint64_t)*32;   //32个寄存器占用的内存大小
 
-//****************************debug*********************
-static const uint64_t debuge_time=4000;  //debug的时钟地点
-static const uint64_t debuge_pc  =0;  //debug的pc地址
-//dram wmask
-size_t get_bit(uint8_t wmask) {
-  if(wmask == 1)return 1;
-  else if(wmask == 3)return 2;
-  else if(wmask == 0xf)return 4;
-  else if(wmask == 0xff)return 8;
-  else return 0;
-}
 //储存等待同步NEMU的PC信息 
 Queue     dut_data; // 需要跳过的PC情况缓存
 uint8_t   dut_num =0;
@@ -85,15 +75,15 @@ extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
 void device_read(uint64_t raddr, uint64_t *rdata){
       switch (raddr)
       {
+      case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
+        printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
+        break;
+      case KBD_ADDR   : *rdata = serial_io_output();
+        break;  
       case RTC_ADDR   : main_time_us=get_time(); 
                         *rdata = (uint32_t)main_time_us;
         break;
       case RTC_ADDR+4 : *rdata = main_time_us>>32;
-        break;
-      case KBD_ADDR   : *rdata = serial_io_output();
-        break;
-      case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
-        printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
         break;
       default: printf("error mem read device  %lx\n",raddr);    assert(0);
         break;
@@ -107,13 +97,13 @@ void device_read(uint64_t raddr, uint64_t *rdata){
       #endif
 }
 void device_write(uint64_t waddr, uint64_t wdata){
-  if(waddr == SERIAL_PORT ){
-    //printf("npc-usart\n");
-    serial_io_input(wdata);
-  }
-  else if( FB_ADDR <=waddr & waddr <= FB_ADDR+0xf00000){
+  if( FB_ADDR <=waddr & waddr <= FB_ADDR+0xf00000){
     mmio_write(waddr,4,(uint32_t)wdata);
     //printf("mmio addr %lx \n",waddr);
+  } 
+  else if(waddr == SERIAL_PORT ){
+    //printf("npc-usart\n");
+    serial_io_input(wdata);
   }
   else if( waddr == SYNC_ADDR ){
     update_vga();
@@ -130,31 +120,37 @@ void sim_init() {                 //vcd init
   top->trace(tfp,0);
   tfp->open("wave.vcd");
   clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
-  boot_time=  sys_time.tv_sec;
+  boot_time =  sys_time.tv_sec;
 }
 
 //end
-uint64_t last_us=0;
-uint8_t star_debug;
-uint64_t start_time;
+static uint8_t star_debug;
+static uint64_t start_time;
 void updata_clk()    //刷新一次时钟与设备
 {
 
   top->clk = !(top->clk);  //取反时钟
   top->eval();             //为仿真核更新数据
 
-  #ifdef vcd_en
-    if(debuge_pc != 0 && top->pip_pc==debuge_pc & ~star_debug){
-      star_debug = 1;
-      start_time = 0;
-      printf("start_debug \n");
-    }else if(debuge_pc == 0 & debuge_time < main_time & main_time< debuge_time+3000){
-      tfp->dump(main_time);
-    }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
-      tfp->dump(main_time);
-      start_time++;
-    }
-
+  #ifdef vcd_en    //一个是根据PC地址输出调试波形，一个是根据运行时间输出调试波形
+      #ifdef debuge_pc
+        if(top->pip_pc==debuge_pc & ~star_debug){
+          star_debug = 1;
+          start_time = 0;
+          printf("start_debug \n");
+        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
+          tfp->dump(main_time);
+          start_time++;
+        }else{ star_debug = 0;}
+      #elif debuge_time
+        star_debug = 1;
+        if( debuge_time < main_time & main_time< debuge_time+3000){
+          tfp->dump(main_time);
+        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
+          tfp->dump(main_time);
+          start_time++;
+        }
+      #endif 
   #endif 
 
   axi_channel axi;
@@ -213,48 +209,58 @@ static int cmd_c()                //DIFFTEST
   cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
-      #ifdef diff_en
-        paddr_t npc  = top->pip_dnpc;
-        //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
-        for(int i = 0; i < 32; i++) {
-          cpureg.gpr[i] = cpu_gpr[i];
-          cpureg.pc=pc;
-        }// sp regs are used for addtion
-        if(dut_data.m_size>0 && Pop(&dut_data,pc))  {
-          //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
-          difftest_skip_ref();
-          dut_num=dut_num-1;
-        }
-        else difftest_step(pc, npc);
-        contextp->timeInc(1);
-      #endif
-    //isa_reg_display();
-    last_pc=top->pip_pc;
-    main_dir_value++;
-    same_pc = 0; 
+        #ifdef diff_en      //正确性检查
+            //paddr_t npc  = top->pip_dnpc;
+            //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+            // for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
+            //   cpureg.gpr[i] = cpu_gpr[i];
+            // } // sp regs are used for addtion
+            memcpy(&cpureg.gpr,cpu_gpr,reg32_size); //准备需要被检查的寄存器数据 
+            cpureg.pc=pc;
+
+            if(dut_data.m_size>0 && Pop(&dut_data,pc))  {   //有访问外设的情况
+              //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
+              difftest_skip_ref();
+              dut_num=dut_num-1;
+            }
+            else difftest_step(pc, pc);
+
+            contextp->timeInc(1);
+
+        #endif
+      //isa_reg_display();
+      last_pc=top->pip_pc;    
+      main_dir_value+=1;     //统计运行的指令量
+      #ifdef diff_pc
+        same_pc = 0; 
+      #endif 
     }
-    else {
+    #ifdef diff_pc
+      else {      //PC长时间无变化，视为卡死
+        ++same_pc;
+        if(same_pc > 100) {
+          printf("The pc No update many times \n");
+          is_exit =true;
+          //assert(0);
+        }
+      }
+    #endif
+  }
+  #ifdef diff_pc
+    else if(pc==0){       //PC长时间为0  说明IFU有问题或跳转后流水线堵塞没有解除
       ++same_pc;
-      if(same_pc > 100) {
-        printf("The pc No update many times \n");
+      if(same_pc > 100) {   
+        printf("The pc No update many times PC==0\n");
         is_exit =true;
         //assert(0);
       }
+    } 
+    else if((pc < CONFIG_MBASE) && (pc > (CONFIG_MBASE + CONFIG_MSIZE))){
+      
+      printf("IF越界 %lx \n", pc);
+      assert(0);
     }
-  }
-  else if(pc==0){
-    ++same_pc;
-    if(same_pc > 100) {
-      printf("The pc No update many times PC==0\n");
-      is_exit =true;
-      //assert(0);
-    }
-  } 
-  else if((pc < CONFIG_MBASE) && (pc > (CONFIG_MBASE + CONFIG_MSIZE))){
-    
-    printf("IF越界 %lx \n", pc);
-    assert(0);
-  }
+  #endif
   //else if((imm>0) && (pc < CONFIG_MBASE) && (pc >0)){
   //  is_exit=true;
   //}
@@ -264,9 +270,8 @@ static int cmd_c()                //DIFFTEST
 void npc_init(void){
   sim_init();
   rct_init();
-  #ifdef DEVICE_ENABLE
-    init_device();
-  #endif
+  init_device();
+
 }
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
@@ -290,19 +295,23 @@ int main(int argc,char **argv){
     top->rst=0;
     
     //rst_cpu();
-  #ifdef diff_en
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);  
+  #ifdef diff_en
+
+    printf(BLUE "\033[1;31mDifftest  ENABLE \033[0m\n" NONE);
     for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
     init_difftest(diff_so_file, img_size, 1024);           // 为ref初始化bin文件
+  #else
+    printf(RED "\033[1;31mDifftest  DISABLE \033[0m\n" NONE);
   #endif
 
 
   printf(BLUE "Run verilog\n" NONE);
+  //-------------BEGIN WHILE-----------------//
   while (1)               //主循环
   {
-    updata_clk();  
-    //Imm=top->CP_Imm;
+    updata_clk();  //刷新时钟，最耗时的部分
 
     #ifdef end_time
       if(main_clk_value>end_time){
@@ -312,15 +321,12 @@ int main(int argc,char **argv){
       }
     #endif
 
-
-
-
-    if(top->Ebreak==true | sdl_exit==true ){  //ebreak
+    if(top->Ebreak==true | sdl_exit==true ){  //ebreak   或人为关闭窗口
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,last_pc);
       updata_clk();  
       break;
     }
-    else if(is_exit ==true){
+    else if(is_exit ==true){            //遇到错误，停止运行
       //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",last_pc,main_time);
       
@@ -334,9 +340,13 @@ int main(int argc,char **argv){
     }
  
   }
+  //-------------END WHILE-----------------//
+
 
 
 //------------END NPC-----------//
+
+  //输出一些性能统计
 
   clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
   end_time =  sys_time.tv_sec;
@@ -348,7 +358,7 @@ int main(int argc,char **argv){
   printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
-  printf(BLUE "NPC-IPC  :" NONE " %.4lf \n",ipc);
+  printf(BLUE "NPC-IPC  :" NONE " %.4lf \n\n",ipc);
   
   double freq,inst;
   freq = (double)main_clk_value/(end_time-boot_time);

@@ -2,14 +2,18 @@
 #define _DEBUG_H_
 #include "../color.h"
 //*************debug**************//
-#define diff_en 1        //difftest����
-#define vcd_en  1        //���μ�¼
-//#define end_time 200
+#define diff_en 1             //difftest开关
+#define vcd_en  1             //波形记录
+#define diff_pc 1           //检查PC值的各种异常
+//#define end_time    200     //限制运行时间
+//#define debuge_time 4000;   //debug的时钟地点
+//#define debuge_pc   0;      //debug的pc地址
+
 //*************device*************//
 #define SDL_VGA 1
 #define SDL_KEYBOARD 1 
 
-#define DEVICE_ENABLE 1
+//#define DEVICE_ENABLE 1
 #define CONFIG_HAS_KEYBOARD 1
 #define CONFIG_HAS_VGA 1
 #define CONFIG_HAS_TIMER 1
