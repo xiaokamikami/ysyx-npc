@@ -3,7 +3,7 @@
 
 #include "Vysyx_22041412_top.h"
 #include "Vysyx_22041412_top__Syms.h"
-#include "verilated_vcd_c.h"
+#include "verilated_fst_c.h"
 #include "verilated_dpi.h"
 
 //============================================================
@@ -12,47 +12,58 @@
 Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const char* _vcname__)
     : VerilatedModel{*_vcontextp__}
     , vlSymsp{new Vysyx_22041412_top__Syms(contextp(), _vcname__, this)}
-    , clk{vlSymsp->TOP.clk}
     , rst{vlSymsp->TOP.rst}
-    , Ebreak{vlSymsp->TOP.Ebreak}
     , io_master_awready{vlSymsp->TOP.io_master_awready}
     , io_master_awvalid{vlSymsp->TOP.io_master_awvalid}
+    , io_master_awsize{vlSymsp->TOP.io_master_awsize}
+    , io_master_wready{vlSymsp->TOP.io_master_wready}
+    , io_master_wvalid{vlSymsp->TOP.io_master_wvalid}
+    , io_master_bready{vlSymsp->TOP.io_master_bready}
+    , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
+    , pip_pc{vlSymsp->TOP.pip_pc}
+    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
+    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
+    , Icache_L1_miss{vlSymsp->TOP.Icache_L1_miss}
+    , Icache_L1_hit{vlSymsp->TOP.Icache_L1_hit}
+    , Dcache_L1_miss{vlSymsp->TOP.Dcache_L1_miss}
+    , Dcache_L1_hit{vlSymsp->TOP.Dcache_L1_hit}
+    , io_master_wdata{vlSymsp->TOP.io_master_wdata}
+    , io_master_wlast{vlSymsp->TOP.io_master_wlast}
+    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
+    , Ebreak{vlSymsp->TOP.Ebreak}
+    , io_master_awlen{vlSymsp->TOP.io_master_awlen}
+    , io_master_arready{vlSymsp->TOP.io_master_arready}
+    , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
+    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
+    , io_master_arsize{vlSymsp->TOP.io_master_arsize}
+    , io_master_rready{vlSymsp->TOP.io_master_rready}
+    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
+    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
+    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
+    , clk{vlSymsp->TOP.clk}
     , io_master_awprot{vlSymsp->TOP.io_master_awprot}
     , io_master_awid{vlSymsp->TOP.io_master_awid}
     , io_master_awuser{vlSymsp->TOP.io_master_awuser}
-    , io_master_awlen{vlSymsp->TOP.io_master_awlen}
-    , io_master_awsize{vlSymsp->TOP.io_master_awsize}
     , io_master_awburst{vlSymsp->TOP.io_master_awburst}
     , io_master_awlock{vlSymsp->TOP.io_master_awlock}
     , io_master_awcache{vlSymsp->TOP.io_master_awcache}
     , io_master_awqos{vlSymsp->TOP.io_master_awqos}
     , io_master_awregion{vlSymsp->TOP.io_master_awregion}
-    , io_master_wready{vlSymsp->TOP.io_master_wready}
-    , io_master_wvalid{vlSymsp->TOP.io_master_wvalid}
     , io_master_wstrb{vlSymsp->TOP.io_master_wstrb}
-    , io_master_wlast{vlSymsp->TOP.io_master_wlast}
     , io_master_wuser{vlSymsp->TOP.io_master_wuser}
-    , io_master_bready{vlSymsp->TOP.io_master_bready}
     , io_master_bvalid{vlSymsp->TOP.io_master_bvalid}
     , io_master_bresp{vlSymsp->TOP.io_master_bresp}
     , io_master_bid{vlSymsp->TOP.io_master_bid}
     , io_master_buser{vlSymsp->TOP.io_master_buser}
-    , io_master_arready{vlSymsp->TOP.io_master_arready}
-    , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
     , io_master_arprot{vlSymsp->TOP.io_master_arprot}
     , io_master_arid{vlSymsp->TOP.io_master_arid}
     , io_master_aruser{vlSymsp->TOP.io_master_aruser}
-    , io_master_arlen{vlSymsp->TOP.io_master_arlen}
-    , io_master_arsize{vlSymsp->TOP.io_master_arsize}
     , io_master_arburst{vlSymsp->TOP.io_master_arburst}
     , io_master_arlock{vlSymsp->TOP.io_master_arlock}
     , io_master_arcache{vlSymsp->TOP.io_master_arcache}
     , io_master_arqos{vlSymsp->TOP.io_master_arqos}
     , io_master_arregion{vlSymsp->TOP.io_master_arregion}
-    , io_master_rready{vlSymsp->TOP.io_master_rready}
-    , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
     , io_master_rresp{vlSymsp->TOP.io_master_rresp}
-    , io_master_rlast{vlSymsp->TOP.io_master_rlast}
     , io_master_rid{vlSymsp->TOP.io_master_rid}
     , io_master_ruser{vlSymsp->TOP.io_master_ruser}
     , io_slave_awready{vlSymsp->TOP.io_slave_awready}
@@ -80,19 +91,8 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , io_slave_rresp{vlSymsp->TOP.io_slave_rresp}
     , io_slave_rlast{vlSymsp->TOP.io_slave_rlast}
     , io_slave_rid{vlSymsp->TOP.io_slave_rid}
-    , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
-    , io_master_araddr{vlSymsp->TOP.io_master_araddr}
     , io_slave_awaddr{vlSymsp->TOP.io_slave_awaddr}
     , io_slave_araddr{vlSymsp->TOP.io_slave_araddr}
-    , pip_pc{vlSymsp->TOP.pip_pc}
-    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
-    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
-    , Icache_L1_miss{vlSymsp->TOP.Icache_L1_miss}
-    , Icache_L1_hit{vlSymsp->TOP.Icache_L1_hit}
-    , Dcache_L1_miss{vlSymsp->TOP.Dcache_L1_miss}
-    , Dcache_L1_hit{vlSymsp->TOP.Dcache_L1_hit}
-    , io_master_wdata{vlSymsp->TOP.io_master_wdata}
-    , io_master_rdata{vlSymsp->TOP.io_master_rdata}
     , io_slave_wdata{vlSymsp->TOP.io_slave_wdata}
     , io_slave_rdata{vlSymsp->TOP.io_slave_rdata}
     , rootp{&(vlSymsp->TOP)}
@@ -139,13 +139,9 @@ void Vysyx_22041412_top::eval_step() {
         Vysyx_22041412_top___024root___eval_initial(&(vlSymsp->TOP));
         Vysyx_22041412_top___024root___eval_settle(&(vlSymsp->TOP));
     }
-    // MTask 0 start
-    VL_DEBUG_IF(VL_DBG_MSGF("MTask0 starting\n"););
-    Verilated::mtaskId(0);
     VL_DEBUG_IF(VL_DBG_MSGF("+ Eval\n"););
     Vysyx_22041412_top___024root___eval(&(vlSymsp->TOP));
     // Evaluate cleanup
-    Verilated::endOfThreadMTask(vlSymsp->__Vm_evalMsgQp);
     Verilated::endOfEval(vlSymsp->__Vm_evalMsgQp);
 }
 
@@ -179,7 +175,7 @@ VL_ATTR_COLD void Vysyx_22041412_top::final() {
 
 const char* Vysyx_22041412_top::hierName() const { return vlSymsp->name(); }
 const char* Vysyx_22041412_top::modelName() const { return "Vysyx_22041412_top"; }
-unsigned Vysyx_22041412_top::threads() const { return 1; }
+unsigned Vysyx_22041412_top::threads() const { return 4; }
 std::unique_ptr<VerilatedTraceConfig> Vysyx_22041412_top::traceConfig() const {
     return std::unique_ptr<VerilatedTraceConfig>{new VerilatedTraceConfig{false, false, false}};
 };
@@ -187,9 +183,9 @@ std::unique_ptr<VerilatedTraceConfig> Vysyx_22041412_top::traceConfig() const {
 //============================================================
 // Trace configuration
 
-void Vysyx_22041412_top___024root__trace_init_top(Vysyx_22041412_top___024root* vlSelf, VerilatedVcd* tracep);
+void Vysyx_22041412_top___024root__trace_init_top(Vysyx_22041412_top___024root* vlSelf, VerilatedFst* tracep);
 
-VL_ATTR_COLD static void trace_init(void* voidSelf, VerilatedVcd* tracep, uint32_t code) {
+VL_ATTR_COLD static void trace_init(void* voidSelf, VerilatedFst* tracep, uint32_t code) {
     // Callback from tracep->open()
     Vysyx_22041412_top___024root* const __restrict vlSelf VL_ATTR_UNUSED = static_cast<Vysyx_22041412_top___024root*>(voidSelf);
     Vysyx_22041412_top__Syms* const __restrict vlSymsp VL_ATTR_UNUSED = vlSelf->vlSymsp;
@@ -205,11 +201,11 @@ VL_ATTR_COLD static void trace_init(void* voidSelf, VerilatedVcd* tracep, uint32
     tracep->scopeEscape('.');
 }
 
-VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_register(Vysyx_22041412_top___024root* vlSelf, VerilatedVcd* tracep);
+VL_ATTR_COLD void Vysyx_22041412_top___024root__trace_register(Vysyx_22041412_top___024root* vlSelf, VerilatedFst* tracep);
 
-VL_ATTR_COLD void Vysyx_22041412_top::trace(VerilatedVcdC* tfp, int levels, int options) {
+VL_ATTR_COLD void Vysyx_22041412_top::trace(VerilatedFstC* tfp, int levels, int options) {
     if (tfp->isOpen()) {
-        vl_fatal(__FILE__, __LINE__, __FILE__,"'Vysyx_22041412_top::trace()' shall not be called after 'VerilatedVcdC::open()'.");
+        vl_fatal(__FILE__, __LINE__, __FILE__,"'Vysyx_22041412_top::trace()' shall not be called after 'VerilatedFstC::open()'.");
     }
     if (false && levels && options) {}  // Prevent unused
     tfp->spTrace()->addModel(this);

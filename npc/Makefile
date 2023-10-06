@@ -17,8 +17,9 @@ CSRCS = $(shell find $(abspath ./csrc) -name "*.cpp" -or -name "*.cc")
 CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
+
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads 1\
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 4 \
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns" 
 
@@ -27,14 +28,14 @@ VERILATOR_FLAGS += -MMD --build -cc --exe --trace --threads 1\
 
 LDFLAGS += "-lSDL2 -lLLVM-11 -ldl"
 
-
+#-CFLAGS -g
 build:$(VSRCS) $(CSRCS) $(CSRCS_H)
 	-@rm -rf $(OBJ_DIR)
-	verilator $(VERILATOR_FLAGS) --top-module $(TOPNAME) \
-		$(VSRCS_INC) $(CSRCS) -LDFLAGS $(LDFLAGS)
+	verilator $(VERILATOR_FLAGS) -j 4 --top-module $(TOPNAME) \
+		$(VSRCS_INC) $(CSRCS) -LDFLAGS $(LDFLAGS) 
 
 compile: 
-	make -C $(NPC_HOME)/obj_dir -j -f V$(TOPNAME).mk  V$(TOPNAME) 
+	make -C $(NPC_HOME)/obj_dir -j6 -f V$(TOPNAME).mk  V$(TOPNAME)
 
 run:
 	./obj_dir/Vysyx_22041412_top
@@ -45,9 +46,9 @@ clean:
 all:
 #python3 Immobj.py
 #make clean 
-	make build -s -j
-	make compile -s -j
-	make run -s
+	make build -s 
+	make compile -s 
+	make run -s -j4
 	$(call git_commit, "sim RTL") 
 	# verilator END 
 # DO NOT REMOVE THIS LINE!!!

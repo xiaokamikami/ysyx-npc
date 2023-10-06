@@ -475,11 +475,7 @@ assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
                       :id_rsA;
 assign ex_v2_in = (id_imm_V2Type==`ysyx_22041412_v2imm)?id_imm_data:
                   //(id_imm_V2Type==`ysyx_22041412_v2csr)?csr_data_o:
-                      (id_imm_V2Type==0 & id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:
-                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (~mem_ram_en))?mem_res:
-                      (id_imm_V2Type==0 & id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata:
-                      (id_imm_V2Type==0 & id_Rb != mem_rw & id_Rb != ex_rw  & id_Rb == wb_addr & id_Rb!=0 & mem_reg_en)?wb_data
-                      :id_rsB;
+                      ex_rs2_in;
 assign ex_rs2_in =  (id_Rb == ex_rw & id_Rb!=0 & ex_opcode!=`ysyx_22041412_load )?ex_res:           //取当前alu计算的数据   
                       (id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & ~mem_ram_en)?mem_res:         //取之前alu计算的数据
                       (id_Rb != ex_rw & id_Rb == mem_rw  & id_Rb!=0 & (sram_ready_o & mem_ram_en & ~mem_rw_type))?mem_rdata: //取ram读的数据

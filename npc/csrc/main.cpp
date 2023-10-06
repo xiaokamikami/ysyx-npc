@@ -1,5 +1,6 @@
 //#include Begin
 #include "../obj_dir/Vysyx_22041412_top.h"
+#include "verilated_fst_c.h"
 #include "verilated_vcd_c.h"
 #include "verilated_dpi.h"
 #include "color.h"
@@ -37,7 +38,7 @@ struct CPU_state
 //export module example;
 
 VerilatedContext *contextp = NULL;
-VerilatedVcdC* tfp = new VerilatedVcdC;
+VerilatedFstC* tfp = new VerilatedFstC;
 Vysyx_22041412_top *top = new Vysyx_22041412_top("ysyx_22041412_top");
 uint64_t *cpu_gpr = NULL;
 uint64_t *csr_gpr = NULL;
@@ -115,11 +116,18 @@ void device_write(uint64_t waddr, uint64_t wdata){
 } 
 
 void sim_init() {                 //vcd init
-  contextp = new VerilatedContext;
-  contextp->traceEverOn(true);
-  top->trace(tfp,0);
-  tfp->open("wave.vcd");
-  clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
+
+  #ifdef vcd_en  
+    contextp = new VerilatedContext;
+    contextp->traceEverOn(true);
+    top->trace(tfp,0);
+    tfp->open("wave.vcd");
+  #else 
+    contextp = new VerilatedContext;
+    contextp->traceEverOn(false);
+  #endif 
+
+  clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);  //获取启动时间
   boot_time =  sys_time.tv_sec;
 }
 
@@ -151,6 +159,7 @@ void updata_clk()    //刷新一次时钟与设备
           start_time++;
         }
       #endif 
+    contextp->timeInc(1);
   #endif 
 
   axi_channel axi;
@@ -161,9 +170,9 @@ void updata_clk()    //刷新一次时钟与设备
   }
   main_time++; 
 
-  #ifdef DEVICE_ENABLE
+  //#ifdef DEVICE_ENABLE
     device_update();
-  #endif
+  //#endif
   
   if(top->clk==0){
     main_clk_value++;  
@@ -172,12 +181,6 @@ void updata_clk()    //刷新一次时钟与设备
 
   
 }
-
-static void top_clk()
-{
-  top->clk = !(top->clk);
-}
-
 
 void exit_now() {
   is_exit = true;
@@ -202,11 +205,7 @@ void isa_reg_print(uint8_t num) {
 
 static int cmd_c()                //DIFFTEST
 { 
-  bool bubble;
-      
   paddr_t pc = top->pip_pc;
-
-  cpureg.pc = pc;
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
         #ifdef diff_en      //正确性检查
@@ -225,7 +224,7 @@ static int cmd_c()                //DIFFTEST
             }
             else difftest_step(pc, pc);
 
-            contextp->timeInc(1);
+
 
         #endif
       //isa_reg_display();
