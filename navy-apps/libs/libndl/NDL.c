@@ -12,7 +12,7 @@ static int canvas_x = 0, canvas_y = 0;
 static uint32_t boot_time = 0;
 int Event_fp;
 int Fb_fp;
-//»ñÈ¡Ê±¼ä
+//ï¿½ï¿½È¡Ê±ï¿½ï¿½
 uint32_t NDL_GetTicks() {
   //return sys ms
   struct timeval time;
@@ -24,15 +24,15 @@ uint32_t NDL_GetTicks() {
   return ((time.tv_sec * 1000) + (time.tv_usec / 1000));;
 }
 
-//¶ÁÈ¡Ò»¸öÎÄ¼þ
+//ï¿½ï¿½È¡Ò»ï¿½ï¿½ï¿½Ä¼ï¿½
 int NDL_PollEvent(char *buf, int len) {
   int ret = read(Event_fp,buf,len);
   //if(ret>0)printf("ret = %d \n",ret);
   return ret;
 }
 
-//´ò¿ªÒ»¸ö»­²¼
-//Èç¹ûº¯Êý´«²ÎÎª0   ÄÇ¼ÒÉèÖÃÎªÆÁÄ»´óÐ¡
+//ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0   ï¿½Ç¼ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½Ä»ï¿½ï¿½Ð¡
 void NDL_OpenCanvas(int *w, int *h) {
   if (*w == 0) *w = screen_w;
   if (*h == 0) *h = screen_h;
@@ -61,21 +61,21 @@ void NDL_OpenCanvas(int *w, int *h) {
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
 
-    //¾ÓÖÐ»­²¼  
+    //ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½  
     x+=(screen_w -canvas_x )/2;  
     y+=(screen_h -canvas_y )/2;
 
     //printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
     
-    //Ò»´Î»æÖÆÒ»ÐÐ
+    //Ò»ï¿½Î»ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
     for (int i = 0; i < h; ++ i) {    
-      lseek(Fb_fp, ((y + i) * screen_w + x) , SEEK_SET);//ÉèÖÃÆ«ÒÆÁ¿
-      write(Fb_fp, pixels + i * w, w );                 //Ð´ÈëÒ»ÐÐµÄÏñËØ
+      lseek(Fb_fp, ((y + i) * screen_w + x) , SEEK_SET);//ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½ï¿½ï¿½
+      write(Fb_fp, pixels + i * w, w );                 //Ð´ï¿½ï¿½Ò»ï¿½Ðµï¿½ï¿½ï¿½ï¿½ï¿½
   }
 
 }
 
-//Éù¿¨Ã»×ö
+//ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½
 void NDL_OpenAudio(int freq, int channels, int samples) {
 }
 
@@ -90,7 +90,7 @@ int NDL_QueryAudio() {
   return 0;
 }
 extern void SDL_Init();
-//³õÊ¼»¯ÎÄ¼þ£¬´æ´¢ÎÄ¼þºÅ
+//ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½Ä¼ï¿½ï¿½ï¿½
 int NDL_Init(uint32_t flags) {
   if (getenv("NWM_APP")) {
     evtdev = 3;
@@ -112,7 +112,7 @@ int NDL_Init(uint32_t flags) {
     read(disp,disps,sizeof(disps));
     close(disp);
     sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",&screen_w,&screen_h);
-    SDL_Init();
+
   return 0;
 }
 

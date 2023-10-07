@@ -24,8 +24,6 @@
 static uintptr_t loader(PCB *pcb, const char *filename) {
 //加载新的内存 需要刷新cache
 
-
-
   Elf_Ehdr ehdr={};
   Elf_Phdr phdr={};
   assert(filename!=NULL);
@@ -42,8 +40,11 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
   assert(ehdr.e_machine == EXPECT_TYPE);
   
   assert(ehdr.e_entry);
-  uintptr_t program_star=ehdr.e_entry;
+  uintptr_t program_star=ehdr.e_entry; //记录程序入口
   
+  //循环遍历LOAD类型并加载到内存中
+  //加载区间     [VirtAddr, VirtAddr + MemSiz)
+  //.bss清零区间 [VirtAddr + FileSiz, VirtAddr + MemSiz)
   for (int i=0; i < ehdr.e_phnum; i++)
   {
     fs_lseek(fd, ehdr.e_phoff + i * ehdr.e_phentsize, SEEK_SET);
@@ -53,8 +54,9 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
       Log("header type: PT_LOAD,mem start %lx end %lx",phdr.p_vaddr,phdr.p_vaddr+phdr.p_memsz);
       fs_lseek(fd, phdr.p_offset, SEEK_SET);
       // 加载数据到内存中
-      fs_read(fd, (void *)phdr.p_vaddr, phdr.p_filesz);
+      fs_read(fd, (void *)phdr.p_vaddr, phdr.p_memsz);
 
+      // 为.bss加载空内存区间
       memset((void *)(phdr.p_vaddr + phdr.p_filesz), 0, phdr.p_memsz - phdr.p_filesz);
     }
   }

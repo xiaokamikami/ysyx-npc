@@ -45,7 +45,7 @@ char *strncpy(char *dst, const char *src, size_t n) {
   }
   return ret;
 }
-
+//添加字符串到末尾
 char *strcat(char *dst, const char *src) {
   assert(dst != NULL && src != NULL);
   char *p =dst;
@@ -56,7 +56,7 @@ char *strcat(char *dst, const char *src) {
   while ((*p++ = *src++) !='\0');
   return p;
 }
-
+//全字符串匹配
 int strcmp(const char *s1, const char *s2) {
   assert(s1 != NULL && s2 != NULL);
   // 如果*s1不等于'\0'并且和*s2相等（也保证了*s2不等于'\0'），则继续下去
@@ -67,7 +67,7 @@ int strcmp(const char *s1, const char *s2) {
   // 如果不相等（某个字符不相等，或者s1是'\0'但s2不是）
   return *s1 - *s2;
 }
-
+//部分字符串匹配
 int strncmp(const char *str1, const char *str2, size_t n) {
   assert(str1  && str2);
   while (n){
@@ -82,7 +82,7 @@ int strncmp(const char *str1, const char *str2, size_t n) {
 	else
 		return 0;
 }
-
+//写入C N长度到S
 void *memset(void *s, int c, size_t n) {
   assert(s);
   char *p = s;
@@ -94,7 +94,7 @@ void *memset(void *s, int c, size_t n) {
   }
   return (void *)p;
 }
-
+//把指针in的数据复制len长度给out  处理内存重叠情况
 void *memmove(void *dst, const void *in, size_t len) {
   assert(dst && in);
   if(dst < in){
@@ -111,7 +111,7 @@ void *memmove(void *dst, const void *in, size_t len) {
 
 	return dst;
 }
-
+//把指针in的数据复制len长度给out  不处理内存重叠情况
 void *memcpy(void *out, const void *in, size_t n) {
   assert(out && in );
   char *d = (char *)out;
@@ -126,6 +126,7 @@ void *memcpy(void *out, const void *in, size_t n) {
 	return out;
 }
 
+//比较两个内存的值  相同返回0 不同返回差值
 int memcmp(const void *s1, const void *s2, size_t n) {
   assert(s1 && s2);
 

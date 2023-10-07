@@ -50,6 +50,7 @@ module ysyx_22041412_Icache(
 `define ICACHE_RD_CACHE     3'b010  
 `define ICACHE_RD_RAM       3'b100  
 `define ICACHE_READY        3'b101
+`define ICACHE_FENCE        3'b110
 /* 
     31     11 9    4 3      0                   127       0
    +---------+-------+--------+                 +---------+
@@ -182,11 +183,6 @@ reg [2:0] next_state;
           
           cache_clear <= 1;
         end
-        // `ICACHE_INST:begin  
-        //   cpu_ready        <= 1'b0;
-        //   cpu_read_data    <= 128'b0;
-        //   cache_clear      <= 1'b0;
-        // end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           cache_clear   <= cpu_read_clean;
           if(tag_v !=4'b0000 )begin
@@ -194,19 +190,7 @@ reg [2:0] next_state;
             cpu_ready     <= ~cpu_read_clean; 
  
             cache_hit     <= cache_hit+1;
-//近期最少使用计数
-            cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
-                                            (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
 
-            cache_fwen_ct[cache_index][1] <=(tag_v_w=='d1 && cache_fwen_ct[cache_index][1]!='b00) ?cache_fwen_ct[cache_index][1]-1'b1:
-                                            (tag_v_w!='d1 && cache_fwen_ct[cache_index][1]!='b11) ?cache_fwen_ct[cache_index][1]+1'b1:cache_fwen_ct[cache_index][1];
-                                            
-            cache_fwen_ct[cache_index][2] <=(tag_v_w=='d2 && cache_fwen_ct[cache_index][2]!='b00) ?cache_fwen_ct[cache_index][2]-1'b1:
-                                            (tag_v_w!='d2 && cache_fwen_ct[cache_index][2]!='b11) ?cache_fwen_ct[cache_index][2]+1'b1:cache_fwen_ct[cache_index][2];
-                                            
-            cache_fwen_ct[cache_index][3] <=(tag_v_w=='d3 && cache_fwen_ct[cache_index][3]!='b00) ?cache_fwen_ct[cache_index][3]-1'b1:
-                                            (tag_v_w!='d3 && cache_fwen_ct[cache_index][3]!='b11) ?cache_fwen_ct[cache_index][3]+1'b1:cache_fwen_ct[cache_index][3]; 
-                                                      
           end else begin
             cpu_ready  <= 1'b0;  
             cache_miss <= cache_miss+1;
@@ -252,7 +236,7 @@ reg [2:0] next_state;
 
 wire [1:0] cache_write_point;
 reg  [1:0] cache_write_point_l1;
-//assign cache_write_point = cache_rodom_cnt;  //纯随机
+assign cache_write_point = cache_rodom_cnt;  //伪随机替换
 
 // //没存满数据的话，先存空的line  评价为没啥用  可能对经常切换线程的任务有用
 // assign cache_write_point  = (~cache_v_ram[cache_index][0]) ? 2'd0 :
@@ -261,10 +245,10 @@ reg  [1:0] cache_write_point_l1;
 //                             (~cache_v_ram[cache_index][3]) ? 2'd3 : cache_rodom_cnt;
 
 // 替换最近不常用数据，如果没有，那就随机替换   在循环跑分测试中效果不好  对真实任务有效
-assign cache_write_point  = (cache_fwen_ct[cache_index][0] > (cache_fwen_ct[cache_index][1] & cache_fwen_ct[cache_index][2]  & 
-                                                              cache_fwen_ct[cache_index][3] )) ? 2'd0  :
-                            (cache_fwen_ct[cache_index][1] > (cache_fwen_ct[cache_index][2] & cache_fwen_ct[cache_index][3] ) ) ? 2'd1  :
-                            (cache_fwen_ct[cache_index][2] > cache_fwen_ct[cache_index][3] ) ? 2'd2  : 2'd3  ;
+// assign cache_write_point  = (cache_fwen_ct[cache_index][0] > (cache_fwen_ct[cache_index][1] & cache_fwen_ct[cache_index][2]  & 
+//                                                               cache_fwen_ct[cache_index][3] )) ? 2'd0  :
+//                             (cache_fwen_ct[cache_index][1] > (cache_fwen_ct[cache_index][2] & cache_fwen_ct[cache_index][3] ) ) ? 2'd1  :
+//                             (cache_fwen_ct[cache_index][2] > cache_fwen_ct[cache_index][3] ) ? 2'd2  : 2'd3  ;
 
 
 //伪随机替换计数器

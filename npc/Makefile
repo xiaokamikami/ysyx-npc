@@ -20,8 +20,8 @@ VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #rules for verilator
 VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 6 \
 	-O3 --x-assign fast --x-initial fast --noassert \
-	--timescale "1ns/1ns" \
-	micro.vlt pal.vlt
+	--timescale "1ns/1ns" 
+#micro.vlt pal.vlt
 #--prof-pgo profile.vlt
 
  

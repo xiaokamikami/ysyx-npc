@@ -18,6 +18,7 @@ module ysyx_22041412_mem#(
     output                     mem_ready_o,
     output [DATA_WIDTH-1:0]    r_data_o,
 
+    input                      fench_i,
     //mem <---> axi
 
     input       r_ready_i,          // 数据操作完成
@@ -50,11 +51,10 @@ assign wmask =  (func3==3'b000)?8'd8:     //sb
                 0;    */
 
 wire [63:0] cache_read_data;
-wire  dcache_ready_i;
-wire  dcache_valid_o;
-assign dcache_valid_o = mem_valid_i & ~mem_ready_o;
+wire  dcache_ready_o;
+wire  dcache_fench_ready;
 
-assign mem_ready_o = dcache_ready_i;
+assign mem_ready_o = dcache_ready_o | (fench_i & dcache_fench_ready);
 
 assign        r_data_o  =(~wen && mem_valid_i) ? (func3==3'b000)?{{56{cache_read_data[7]}},cache_read_data[7:0]}:    //lb
                                                  (func3==3'b001)?{{48{cache_read_data[15]}},cache_read_data[15:0]}:  //lh
@@ -77,8 +77,10 @@ ysyx_22041412_Dcache u_ysyx_22041412_Dcache(
     .cpu_write_data                 ( wdata                      ),
     .cpu_rw_size                    ( func3                      ),
     .cpu_read_data                  ( cache_read_data            ),
-    .cpu_valid                      ( dcache_valid_o             ),
-    .cpu_ready                      ( dcache_ready_i             ),
+    .cpu_valid                      ( mem_valid_i                ),
+    .cpu_ready                      ( dcache_ready_o             ),
+    .fench_i                        ( fench_i                    ),
+    .fench_ready                    ( dcache_fench_ready         ),
 
     .axi_w_ready_i                  ( w_ready_i                  ),
     .axi_w_valid_o                  ( w_valid_o                  ),

@@ -280,6 +280,7 @@ int main(int argc,char **argv){
     static char img[128];
     sprintf(nemu_str,"%s/build/riscv64-nemu-interpreter-so",argv[1]);
     sprintf(img,"%s/resource/Imm.bin",argv[2]);
+    //sprintf(img,"%s/resource/nanos-lite-riscv64-npc.bin",argv[2]);
 
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(img);

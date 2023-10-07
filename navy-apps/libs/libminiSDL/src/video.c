@@ -59,14 +59,6 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   //printf("end fill rect %d \n",dst_rect.h);
 }
 
-//为显存初始化空间
-extern int screen_w , screen_h;
-uint32_t *sdl_pixels;
-void SDL_Init(){
-  sdl_pixels = malloc(screen_w * screen_h * sizeof(uint32_t));
-  assert(sdl_pixels);
-}
-
 //更新显存并刷新   
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   assert(s != NULL);
@@ -75,10 +67,11 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
     w = s->w;
     h = s->h;
   }
+  uint32_t *sdl_pixels;
   //printf("SDL_updateRect x,y,w,h %d %d %d %d\n",x,y,w,h);
   // 初始化内存空间用于储存转换后的数据
-
-
+  sdl_pixels = malloc(w * h * sizeof(uint32_t));
+  assert(sdl_pixels);
   //绘制像素点
 
   // ARGB8 需要调用format->palette->colors调色盘    仙剑用的格式
@@ -106,7 +99,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
     assert(0);
   }
 
-
+  free(sdl_pixels);
 }
 
 // APIs below are already implemented.

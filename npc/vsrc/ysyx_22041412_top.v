@@ -636,7 +636,7 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     .mem_valid_i ( mem_ram_en      ),
     .mem_ready_o ( sram_ready_o    ),
     .r_data_o    ( mem_rdata       ),
-
+    .fench_i     ( 1'b0            ),
     //axi
     .r_ready_i   ( mem_r_ready   ),
     .r_valid_o   ( mem_r_valid   ),

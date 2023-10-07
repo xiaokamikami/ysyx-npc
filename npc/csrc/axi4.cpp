@@ -102,22 +102,11 @@ static void ram_read(uint64_t raddr, uint64_t *rdata) {
   #ifdef DEBUG_LOG_AXI4
     printf("axi4 ram_read addr %lx ",raddr);
   #endif
-  if(raddr >= 0x80000000 & raddr<0x83000000 ){     //程序文件
+  if(raddr >= 0x80000000 & raddr<0x88000000 ){     //程序文件 //虚拟磁盘
     //raddr=(raddr-CONFIG_MBASE);
     //*rdata =  *(uint64_t *)(sram+(raddr & ~0x7ull));
     *rdata = pmem_read(raddr , 8);
-    // *rdata = pmem_read((raddr & ~0x7ull), 8);
-    // // 8字节对齐
-    // uint8_t offset = raddr-(raddr & ~0x7ull);
-    // //mask
-    // if (offset>0)
-    // {
-    //   *rdata = (*rdata) >> (offset*8);
-    // }
   }
-  else if(raddr >= 0x83000000 & raddr<0x88000000 ){ //虚拟磁盘
-    *rdata = pmem_read(raddr, 8);
-  } 
   else if(DEVICE_BASE <= raddr && raddr <= AUDIO_SBUF_ADDR){ //读取外设
     device_read(raddr, rdata);
   }
