@@ -113,7 +113,7 @@ reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
 reg        cache_v_ram   [127:0][3:0]; //tag  V  标识数据是否有效
 reg        cache_d_ram   [127:0][3:0]; //tag  D  标识数据是否为dirty的
 wire        device    ;     //指示本次地址访问的是否为外设
-assign      device    =  (cache_tag[20:16]>'b10001)?1'b1 :1'b0;   // 80000000---87FFFFFF  为访问程序内存     device 为1时 视为访问外设
+assign      device    =  (cache_tag[20:13]>='b1000_0011)?1'b1 :1'b0;   // 80000000---87FFFFFF  为访问程序内存     device 为1时 视为访问外设
 
 
 

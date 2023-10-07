@@ -68,12 +68,10 @@ always @(posedge clk) begin
         data_r<=64'b0;
     end
 
-end
-   always @(posedge clk)begin
-     if(rst)begin
-     end else if(en & func3!='b000 & ready_o & valid_i)begin
+    if(en & func3!='b000 & ready_o & valid_i)begin
         mcsr_reg[addr]<=data_w;
      end
-   end
+end
+
 endmodule
 

@@ -15,32 +15,32 @@ Vysyx_22041412_top::Vysyx_22041412_top(VerilatedContext* _vcontextp__, const cha
     , rst{vlSymsp->TOP.rst}
     , io_master_awready{vlSymsp->TOP.io_master_awready}
     , io_master_awvalid{vlSymsp->TOP.io_master_awvalid}
-    , io_master_awsize{vlSymsp->TOP.io_master_awsize}
     , io_master_wready{vlSymsp->TOP.io_master_wready}
     , io_master_wvalid{vlSymsp->TOP.io_master_wvalid}
-    , io_master_bready{vlSymsp->TOP.io_master_bready}
-    , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
-    , pip_pc{vlSymsp->TOP.pip_pc}
-    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
-    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
-    , Icache_L1_miss{vlSymsp->TOP.Icache_L1_miss}
-    , Icache_L1_hit{vlSymsp->TOP.Icache_L1_hit}
-    , Dcache_L1_miss{vlSymsp->TOP.Dcache_L1_miss}
-    , Dcache_L1_hit{vlSymsp->TOP.Dcache_L1_hit}
-    , io_master_wdata{vlSymsp->TOP.io_master_wdata}
     , io_master_wlast{vlSymsp->TOP.io_master_wlast}
+    , io_master_bready{vlSymsp->TOP.io_master_bready}
     , io_master_rvalid{vlSymsp->TOP.io_master_rvalid}
+    , Dcache_L1_miss{vlSymsp->TOP.Dcache_L1_miss}
+    , clk{vlSymsp->TOP.clk}
     , Ebreak{vlSymsp->TOP.Ebreak}
     , io_master_awlen{vlSymsp->TOP.io_master_awlen}
+    , io_master_awsize{vlSymsp->TOP.io_master_awsize}
     , io_master_arready{vlSymsp->TOP.io_master_arready}
     , io_master_arvalid{vlSymsp->TOP.io_master_arvalid}
     , io_master_arlen{vlSymsp->TOP.io_master_arlen}
     , io_master_arsize{vlSymsp->TOP.io_master_arsize}
     , io_master_rready{vlSymsp->TOP.io_master_rready}
     , io_master_rlast{vlSymsp->TOP.io_master_rlast}
+    , io_master_awaddr{vlSymsp->TOP.io_master_awaddr}
     , io_master_araddr{vlSymsp->TOP.io_master_araddr}
+    , pip_pc{vlSymsp->TOP.pip_pc}
+    , pip_dnpc{vlSymsp->TOP.pip_dnpc}
+    , pip_mem_pc{vlSymsp->TOP.pip_mem_pc}
+    , Icache_L1_miss{vlSymsp->TOP.Icache_L1_miss}
+    , Icache_L1_hit{vlSymsp->TOP.Icache_L1_hit}
+    , Dcache_L1_hit{vlSymsp->TOP.Dcache_L1_hit}
+    , io_master_wdata{vlSymsp->TOP.io_master_wdata}
     , io_master_rdata{vlSymsp->TOP.io_master_rdata}
-    , clk{vlSymsp->TOP.clk}
     , io_master_awprot{vlSymsp->TOP.io_master_awprot}
     , io_master_awid{vlSymsp->TOP.io_master_awid}
     , io_master_awuser{vlSymsp->TOP.io_master_awuser}

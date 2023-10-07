@@ -7,14 +7,14 @@
 //#define end_time    200     //限制运行时间
 
 //#define vcd_en  1            //波形记录开关
-//#define debuge_time   5      //debug波形的时钟地点
+//#define debuge_time   9674000      //debug波形的时钟地点
 //#define debuge_pc   0        //debug波形的pc地址
 
 //*************device*************//
 #define SDL_VGA 1
 #define SDL_KEYBOARD 1 
 
-//#define DEVICE_ENABLE 1
+#define DEVICE_ENABLE 1
 #define CONFIG_HAS_KEYBOARD 1
 #define CONFIG_HAS_VGA 1
 #define CONFIG_HAS_TIMER 1

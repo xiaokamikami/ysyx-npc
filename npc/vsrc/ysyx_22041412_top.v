@@ -530,7 +530,7 @@ ysyx_22041412_mcsr csr_reg(
      .data_i(csr_data_i),
      .data_o(csr_data_o),
 
-     .valid_i(mem_valid_o),
+     .valid_i(ex_valid_o),
      .ready_o(csr_ready_o)
  );
 ysyx_22041412_alu EXE_alu(          //ALU
@@ -654,7 +654,7 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     .w_addr_o    ( mem_w_addr    )
 );
 always @(*)begin
-    if(ex_jump_mode == `ysyx_22041412_j_B | ex_csr_jar_en )begin //条件分支  与 ECALL
+    if(ex_jump_mode == `ysyx_22041412_j_B | (ex_csr_jar_en & csr_ready_o) )begin //条件分支  与 ECALL
         mem_dnpc   = (~ex_csr_jar_en & ex_res[0])? (ex_imm_data+ex_pc) : 
                      ex_csr_jar_en ? csr_data_o       :ex_pc+4 ;
         if_jr_ready=1'b1;

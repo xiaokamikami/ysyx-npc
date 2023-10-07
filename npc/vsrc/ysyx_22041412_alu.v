@@ -49,18 +49,26 @@ module ysyx_22041412_alu(
   wire      mul_vaild;
   wire      div_valid;
 
-
-
   assign mul_signed = (func3==3'b000 || func3==3'b001) ? 2'b11:
                       (func3==3'b010 )                 ? 2'b10: 2'b00;
   assign mul_vaild  =  mul_en & ready_i;
   assign mul_mode   =  func3[0];
 
-  assign div_signed = (func3==3'b100 || func3==3'b110|| func3==3'b101) ? 1'b1 : 1'b0;
+  assign div_signed = (func3==3'b100 || func3==3'b110) ? 1'b1 : 1'b0;
   assign div_valid  =  div_en & ready_i;
-  assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;
+  assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;  //为1是取余  0除法
+
+
+    //门控时钟，仿真用，主要是为了减少仿真不用乘法器时的逻辑运算
+        reg       mul_clk;
+        always @(*)begin
+          if(mul_vaild)
+            mul_clk = clk;
+          else mul_clk = 0;
+        end
+
   ysyx_22041412_mul mul (        //mul
-    .clk  (clk),
+    .clk  (mul_clk),
     .rst  (rst),
     .flush(1'b0),   //暂时不用
 

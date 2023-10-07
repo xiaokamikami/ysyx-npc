@@ -170,10 +170,8 @@ void updata_clk()    //刷新一次时钟与设备
   }
   main_time++; 
 
-  //#ifdef DEVICE_ENABLE
-    device_update();
-  //#endif
-  
+  device_update();
+
   if(top->clk==0){
     main_clk_value++;  
     cmd_c();//记录指令的变化 并验证正确性
@@ -223,16 +221,11 @@ static int cmd_c()                //DIFFTEST
               dut_num=dut_num-1;
             }
             else difftest_step(pc, pc);
-
-
-
         #endif
       //isa_reg_display();
-      last_pc=top->pip_pc;    
+      last_pc =top->pip_pc;    
       main_dir_value+=1;     //统计运行的指令量
-      #ifdef diff_pc
-        same_pc = 0; 
-      #endif 
+      same_pc = 0; 
     }
     #ifdef diff_pc
       else {      //PC长时间无变化，视为卡死
@@ -253,6 +246,7 @@ static int cmd_c()                //DIFFTEST
         is_exit =true;
         //assert(0);
       }
+      last_pc =0;  
     } 
     else if((pc < CONFIG_MBASE) && (pc > (CONFIG_MBASE + CONFIG_MSIZE))){
       
