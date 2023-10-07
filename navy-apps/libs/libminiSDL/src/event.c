@@ -29,7 +29,7 @@ int SDL_PollEvent(SDL_Event *ev) {
     //printf("keys %s\n",keys);
     // ev->type 指明event类型
     // ev->key.type 指明键盘event的类型
-    for (int key = 0; key < kb_len; ++key) {      //遍历按键名字
+    for (int key = 0; key < kb_len; ++key) {      //遍历按键名字并更新所有按键的状态值
       if (strcmp(keys, keyname[key]) == 0) {
         ev->key.keysym.sym = key;
         // 判断是按键按下还是抬起
@@ -59,6 +59,7 @@ int SDL_PeepEvents(SDL_Event *ev, int numevents, int action, uint32_t mask) {
   return 0;
 }
 
+//获取键盘状态
 uint8_t* SDL_GetKeyState(int *numkeys) {
   //printf("[SDL_GetKeyState] entering and return\n");
   if (numkeys != NULL)

@@ -4,7 +4,6 @@ module ysyx_22041412_top(
     input wire rst,
     //EXE
     output wire [63:0]pip_pc,
-    output wire [63:0]pip_dnpc,
     output wire [63:0]pip_mem_pc,
     output Ebreak,
 
@@ -107,8 +106,14 @@ module ysyx_22041412_top(
     parameter AXI_STRB_WIDTH    = AXI_DATA_WIDTH/8;
     parameter AXI_USER_WIDTH    = 1;
     parameter PC_WIDTH          = 64;
+
+//DIFF-TEST
+assign pip_pc     = wb_pc;
 assign pip_mem_pc = mem_pc;
 assign Ebreak=(id_imm=='b000100000000000001110011)?1:0;
+//
+
+
 
 //axi
 wire         r_valid;  // 请求有效
@@ -264,12 +269,6 @@ ysyx_22041412_axi_Arbiter axi_Arbiter(
     .w_last_i(w_last_o)
 );
 
-
-//DIFF-TEST
-assign pip_pc  = wb_pc;
-assign pip_dnpc= wb_dnpc;
-//
-
 wire          icache_ar_valid;                           //IF请求
 wire          icache_ar_ready;
 wire   [63:0] icache_ar_data;
@@ -309,15 +308,16 @@ wire if_ready_o;
 reg if_jr_ready;
 reg if_jr_hit;
 ysyx_22041412_if IF_s1 (      //imm
-    .clk(clk),
-    .rst(rst),
-    .pc(if_pc),
-    .mem_dnpc(mem_dnpc),
-	.imm_data(if_imm),
+    .clk           (clk),
+    .rst           (rst),
 
-    .jarl_rady(if_jr_ready),
-    .jal_pc   (jal_pc[31:0]),
-    .jal_ok   (jal_ok),
+    .pc            (if_pc),
+	.imm_data      (if_imm),
+
+    .mem_dnpc      (mem_dnpc),
+    .jarl_rady     (if_jr_ready),
+    .jal_pc        (jal_pc[31:0]),
+    .jal_ok        (jal_ok),
 
     //流水线握手信�?
     .ready_o       (if_ready_o),       //准备好输出数据并更新pc
@@ -715,13 +715,12 @@ reg [4:0]wb_addr;
 reg [63:0]wb_imm_data;
 reg [63:0]wb_data;
 reg [PC_WIDTH-1:0]wb_pc;
-reg [63:0]wb_dnpc;
 
 always@(posedge clk)begin          
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
-        wb_pc<=mem_pc;
-        wb_reg_en<=mem_reg_en;
-        wb_imm_data<=mem_imm_data;
+        wb_pc         <=mem_pc;
+        wb_reg_en     <=mem_reg_en;
+        wb_imm_data   <=mem_imm_data;
 
 /*         if(mem_opcode == 0 && mem_pc!=0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
                $display("WB  GET PC  NOT IMM");
@@ -730,25 +729,24 @@ always@(posedge clk)begin
         if(mem_jump_mode == `ysyx_22041412_j_jal | mem_jump_mode==`ysyx_22041412_j_jalr)begin
             wb_data<= mem_pc+4;
             wb_addr<= mem_rw;
-            wb_dnpc<= mem_pc;
         end
         else if(mem_mem_mode == `ysyx_22041412_mem_load)begin
             wb_addr<= mem_rw;
             wb_data<= mem_rdata;
-            wb_dnpc<= mem_pc;
         end    
         else begin
             wb_addr<= mem_reg_en ? mem_rw : 5'b00000;
             wb_data<= mem_res;   
-            wb_dnpc<= mem_pc;
+
         end 
+
     end else begin
         wb_pc      <=0;
         wb_reg_en  <=0;
         wb_imm_data<= mem_imm_data; 
         wb_addr    <= 0;
         wb_data    <= 0;   
-        wb_dnpc    <= 0; 
+
     end
 
 end

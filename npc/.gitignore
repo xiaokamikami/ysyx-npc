@@ -1,5 +1,6 @@
 *.*
 *
+
 !*/
 !Makefile
 !*.mk
@@ -11,6 +12,8 @@
 !*.sh
 !.gitignore
 !README.md
+!*.vlt
 
 obj_dir/*
 resource/*
+

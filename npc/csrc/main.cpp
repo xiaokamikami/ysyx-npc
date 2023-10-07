@@ -269,16 +269,23 @@ void npc_init(void){
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
-
+  printf("veriltor init \n");
   for (int i = 0; i < argc; i++)
   {
-    printf("arg %d: %s\n",i,argv[i]);
+    printf( BLUE "arg %d: %s\n" NONE ,i,argv[i]);
   }
     npc_init();
-    static char nemu_str[] = "/home/kami/ysyx-workbench/nemu/build/riscv64-nemu-interpreter-so";
-    static char img[] = "/home/kami/ysyx-workbench/npc/resource/Imm.bin";
+    //加载difftest 与 程序img
+    static char nemu_str[128]; 
+    static char img[128];
+    sprintf(nemu_str,"%s/build/riscv64-nemu-interpreter-so",argv[1]);
+    sprintf(img,"%s/resource/Imm.bin",argv[2]);
+
     static char *diff_so_file = nemu_str;
     static long img_size = load_image(img);
+    printf("veriltor img load \n");
+
+
 
     top->clk=0;
     top->rst=1;  //复位CPU的状态

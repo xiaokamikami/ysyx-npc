@@ -27,7 +27,7 @@ module ysyx_22041412_alu(
   
   wire mul_ready_o;
   wire div_ready_o;
-  assign ready_o = (mul_en)? mul_ready_o : 
+  assign ready_o = (mul_en)? (mul_ready_o | stall_reg): 
                    (div_en)? div_ready_o : 
                    (~mul_en & ~div_en )  ? 1'b1 : 1'b0;  //ready o 握手
 
@@ -59,12 +59,12 @@ module ysyx_22041412_alu(
   assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;  //为1是取余  0除法
 
 
-    //门控时钟，仿真用，主要是为了减少仿真不用乘法器时的逻辑运算
+      //门控时钟 没做毛刺处理，仿真用，主要是为了减少仿真不用乘法器时的逻辑运算,流片前删除
         reg       mul_clk;
         always @(*)begin
-          if(mul_vaild)
-            mul_clk = clk;
-          else mul_clk = 0;
+          if(mul_vaild & ~stall_reg & clk)
+            mul_clk = 1'b1;
+          else mul_clk = 1'b0;
         end
 
   ysyx_22041412_mul mul (        //mul
@@ -182,12 +182,14 @@ always @(*) begin
       //$display("bu5=%d , result=%h",BU[5],Alusu);
     end
     else if(rv64_en[1]==1'b1) begin
-      Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
+      Alusu = (mul_en & mul_ready_o & ~stall_reg) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
+              (mul_en & stall_reg  ) ?  {{32{stall_result_lo[31]}},stall_result_lo[31:0]} :
               (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
                                         {{32{mux_result[31]}},mux_result[31:0]      };
     end
     else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
-      Alusu = (mul_en & mul_ready_o) ? mul_mode ? mul_result_hi : mul_result_lo :
+      Alusu = (mul_en & mul_ready_o  & ~stall_reg) ? mul_mode ? mul_result_hi : mul_result_lo :
+              (mul_en & stall_reg  ) ?  mul_mode  ? stall_result_hi : stall_result_lo :    
               (div_en & div_ready_o) ? div_result    : 0;
     end
     else if(opcode==`ysyx_22041412_Environment)begin
@@ -197,5 +199,19 @@ always @(*) begin
       Alusu = mux_result;
   end 
 
+  reg stall_reg;
+  reg [63:0]stall_result_lo;
+  reg [63:0]stall_result_hi;
+  always @(posedge clk)begin
+     if(mul_en & mul_ready_o & ~valid_i)begin  //如果下级没准备好数据，就先暂存乘法器的数据，同时禁止新的乘法  ,除法太慢了不会遇到这种情况，所以只需要缓存乘法
+        stall_reg       <= 1;
+        stall_result_lo <= mul_result_lo;
+        stall_result_hi <= mul_result_hi;
+     end else if(stall_reg & valid_i)begin
+        stall_reg       <= 0;
+        stall_result_lo <= 0;
+        stall_result_hi <= 0;
+     end
+  end
 endmodule
 

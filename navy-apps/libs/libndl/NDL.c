@@ -7,11 +7,12 @@
 
 static int evtdev = -1;
 static int fbdev = -1;
-static int screen_w = 0, screen_h = 0;
+int screen_w = 0, screen_h = 0;
 static int canvas_x = 0, canvas_y = 0;
 static uint32_t boot_time = 0;
 int Event_fp;
 int Fb_fp;
+//获取时间
 uint32_t NDL_GetTicks() {
   //return sys ms
   struct timeval time;
@@ -23,13 +24,15 @@ uint32_t NDL_GetTicks() {
   return ((time.tv_sec * 1000) + (time.tv_usec / 1000));;
 }
 
-
+//读取一个文件
 int NDL_PollEvent(char *buf, int len) {
   int ret = read(Event_fp,buf,len);
   //if(ret>0)printf("ret = %d \n",ret);
   return ret;
 }
+
 //打开一个画布
+//如果函数传参为0   那家设置为屏幕大小
 void NDL_OpenCanvas(int *w, int *h) {
   if (*w == 0) *w = screen_w;
   if (*h == 0) *h = screen_h;
@@ -72,6 +75,7 @@ void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
 
 }
 
+//声卡没做
 void NDL_OpenAudio(int freq, int channels, int samples) {
 }
 
@@ -85,28 +89,30 @@ int NDL_PlayAudio(void *buf, int len) {
 int NDL_QueryAudio() {
   return 0;
 }
-
+extern void SDL_Init();
+//初始化文件，存储文件号
 int NDL_Init(uint32_t flags) {
   if (getenv("NWM_APP")) {
     evtdev = 3;
   }
   //if(flags == 1){
     boot_time = NDL_GetTicks();
-    printf("init time\n");
+    printf("[NDL_Init]init time\n");
   //}
   //else if(flags == 2){
     Event_fp = open("/dev/events",0);
-    printf("init enent\n");
+    printf("[NDL_Init]init enent\n");
   //}
   //else if(flags == 3){
     Fb_fp = open("/dev/fb",0);
-    printf("init fd\n");
+    printf("[NDL_Init]init fd\n");
   //}
     int disp = open("/proc/dispinfo",0);
     char disps[64];
     read(disp,disps,sizeof(disps));
     close(disp);
     sscanf(disps,"%*[A-z] :%d\n%*[A-z] :%d",&screen_w,&screen_h);
+    SDL_Init();
   return 0;
 }
 

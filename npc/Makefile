@@ -8,7 +8,6 @@ include $(FILELIST_MK)
 
 TOPNAME = ysyx_22041412_top
 OBJ_DIR = /obj_dir/*.*
-NPC_HOME = /home/kami/ysyx-workbench/npc
 BIN = $(NPC_HOME)/vsrc/$(TOPNAME)
 
 # project source
@@ -19,9 +18,11 @@ VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 4 \
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 6 \
 	-O3 --x-assign fast --x-initial fast --noassert \
-	--timescale "1ns/1ns" 
+	--timescale "1ns/1ns" \
+	micro.vlt pal.vlt
+#--prof-pgo profile.vlt
 
  
 # rules for verilator
@@ -31,14 +32,14 @@ LDFLAGS += "-lSDL2 -lLLVM-11 -ldl"
 #-CFLAGS -g
 build:$(VSRCS) $(CSRCS) $(CSRCS_H)
 	-@rm -rf $(OBJ_DIR)
-	verilator $(VERILATOR_FLAGS) -j 4 --top-module $(TOPNAME) \
+	verilator $(VERILATOR_FLAGS) -j 6 --top-module $(TOPNAME) \
 		$(VSRCS_INC) $(CSRCS) -LDFLAGS $(LDFLAGS) 
 
 compile: 
-	make -C $(NPC_HOME)/obj_dir -j6 -f V$(TOPNAME).mk  V$(TOPNAME)
+	make -C $(NPC_HOME)/obj_dir -j6 -f V$(TOPNAME).mk  V$(TOPNAME) 
 
 run:
-	./obj_dir/Vysyx_22041412_top
+	./obj_dir/Vysyx_22041412_top $(NEMU_HOME) $(NPC_HOME)
 
 clean:
 	rm obj_dir/*
@@ -48,7 +49,7 @@ all:
 #make clean 
 	make build -s 
 	make compile -s 
-	make run -s -j4
+	make run -s -j6
 	$(call git_commit, "sim RTL") 
 	# verilator END 
 # DO NOT REMOVE THIS LINE!!!

@@ -132,7 +132,7 @@ size_t fs_lseek(int fd, size_t offset, int whence){
   else if(whence == SEEK_END) {
     assert(offset <= file_table[fd].size);
     file_table[fd].read_offset = offset+file_table[fd].size;
-    Log("return %ld",file_table[fd].size);
+    Log("return %ld id %d ",file_table[fd].size,fd);
     }
   else assert("fs_lseek error whench");
   return file_table[fd].read_offset;

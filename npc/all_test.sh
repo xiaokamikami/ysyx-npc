@@ -1,8 +1,10 @@
-cd /home/kami/ysyx-workbench/am-kernels/benchmarks/microbench
+AM_HOME = echo $AM_HOME
+cd AM_HOME
+cd ../am-kernels/benchmarks/microbench
 make ARCH=riscv64-npc mainargs=test run
 cd ../coremark
 make ARCH=riscv64-npc run
-cd /home/kami/ysyx-workbench/am-kernels/tests
+cd ../../tests
 cd alu-tests
 sh npc.sh
 cd ../am-tests

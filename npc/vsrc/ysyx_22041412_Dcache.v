@@ -301,13 +301,14 @@ reg [2:0] wr_state;  //cache状态机
                                           (rw_offset  & ~cpu_rw_en)?( axi_r_data_i    >> (cache_offset[2:0] *8)) : 64'b0;  //更新接口数据
                   axi_r_addr_o         <= 32'b0;
                   cache_rd_ready       <= (device || ~cpu_rw_en)?1'b1 : 1'b0;
-                  cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
                   if(~device)begin
                     write_data         <= {axi_r_data_i,write_data[63:0]} ;  //写回cache
                     write_en             [cache_write_point]              <= 1'b1;
                     cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
                     cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
                     cache_d_ram          [cache_index][cache_write_point] <= (cpu_rw_en)?1'b1:1'b0;
+                    
+                    cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
                   end
 
             end else  begin

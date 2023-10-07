@@ -59,6 +59,13 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   //printf("end fill rect %d \n",dst_rect.h);
 }
 
+//为显存初始化空间
+extern int screen_w , screen_h;
+uint32_t *sdl_pixels;
+void SDL_Init(){
+  sdl_pixels = malloc(screen_w * screen_h * sizeof(uint32_t));
+  assert(sdl_pixels);
+}
 
 //更新显存并刷新   
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
@@ -70,8 +77,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   }
   //printf("SDL_updateRect x,y,w,h %d %d %d %d\n",x,y,w,h);
   // 初始化内存空间用于储存转换后的数据
-  uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
-  assert(pixels);
+
 
   //绘制像素点
 
@@ -82,25 +88,25 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
     for (int i = 0;  i < h; ++ i) {
       for (int j = 0; j < w; ++ j) {
         color = &s->format->palette->colors[index[(y + i) * s->w + x + j]];
-        pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
+        sdl_pixels[i * w + j] = ((color->a << 24) | (color->r << 16) | (color->g << 8) | color->b);
       }
     }
-    NDL_DrawRect(pixels, x, y, w, h);
+    NDL_DrawRect(sdl_pixels, x, y, w, h);
   }
   // ARGB32     其他APP使用的格式
   else if (s->format->BitsPerPixel == 32) {
     uint32_t *src = (uint32_t *)s->pixels;
     for (int i = 0; i < h; ++ i)
       for (int j = 0; j < w; ++ j)
-        pixels[i * w + j] = src[i * s->w + j];
-    NDL_DrawRect(pixels, x, y, w, h);
+        sdl_pixels[i * w + j] = src[i * s->w + j];
+    NDL_DrawRect(sdl_pixels, x, y, w, h);
   }
   else {
     printf("[SDL_UpdateRect] Unimplemented format.\n");
     assert(0);
   }
 
-  free(pixels);
+
 }
 
 // APIs below are already implemented.
