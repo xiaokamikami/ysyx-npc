@@ -467,7 +467,7 @@ wire ex_wait;
 wire ex_load_wait;
 wire ex_mem_load_wait;
 wire alu_ready_o;
-wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o & ~ex_load_wait;
+wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o & ~ex_load_wait ;
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
 
 wire csr_ready_o;
@@ -588,7 +588,8 @@ always@(posedge clk)begin
         ex_mem_mode  <=id_mem_mode;
         ex_jump_mode <=id_jump_mode;
         //if(id_pc!=0)$display("ex load PC:%8h",id_pc);
-    end else if(mem_valid_o & ex_ready_o & (ex_wait|ex_load_wait) )begin  //ex load 类暂停 当 mem开始执行后，清空这条指令，使旁路指向MEM read_data
+    end 
+    else if(mem_valid_o & ex_ready_o & (ex_wait|ex_load_wait))begin  //ex load 类暂停 当 mem开始执行后，清空这条指令，使旁路指向MEM read_data
         ex_imm_data  <= 0;
         ex_pc        <= 0;
         ex_rw        <= 0;

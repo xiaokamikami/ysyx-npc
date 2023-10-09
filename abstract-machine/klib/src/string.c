@@ -144,8 +144,7 @@ void *memcpy(void *out, const void *in, size_t n) {
                 *(uint32_t *)d = *(uint32_t *)s;  
                 d += 4;  
                 s += 4;  
-
-                 *(uint32_t *)d = *(uint32_t *)s;  
+                *(uint32_t *)d = *(uint32_t *)s;  
                 d += 4;  
                 s += 4;  
                 *(uint32_t *)d = *(uint32_t *)s;  
@@ -172,8 +171,22 @@ void *memcpy(void *out, const void *in, size_t n) {
         }  
         // Copy the remaining bytes (less than)  
         while (n > 0) {  
-            *d++ = *s++;  
-            n--;  
+            if(n>8){
+              *d++ = *s++;  
+              *d++ = *s++;
+              *d++ = *s++; 
+              *d++ = *s++; 
+
+              *d++ = *s++; 
+              *d++ = *s++; 
+              *d++ = *s++; 
+              *d++ = *s++;        
+              n-=8; 
+            }else {
+              *d++ = *s++;  
+              n--; 
+            }
+ 
         }  
     }  
     return out;  

@@ -6,8 +6,8 @@
 #define diff_pc 1           //检查PC值的各种异常
 //#define end_time    200     //限制运行时间
 
-#define vcd_en  1            //波形记录开关
-#define debuge_time   713300      //debug波形的时钟地点
+#define vcd_en  1           //波形记录开关
+#define debuge_time   102885000       //debug波形的时钟地点
 //#define debuge_pc   0        //debug波形的pc地址
 
 //*************device*************//

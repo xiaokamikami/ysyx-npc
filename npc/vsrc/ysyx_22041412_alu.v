@@ -13,7 +13,6 @@ module ysyx_22041412_alu(
   input div_en,
   input [1:0]rv64_en, // 00 无 //01 RVI //10 RVR 
   //input [4:0]Mode,
-
   input  ready_i,
   
   input  valid_i,
@@ -24,13 +23,21 @@ module ysyx_22041412_alu(
   wire [4:0]Mode;
   wire [63:0]AU,BU,AY,BY;
 
-  
   wire mul_ready_o;
   wire div_ready_o;
-  assign ready_o = (mul_en)? (mul_ready_o | stall_reg): 
+  wire mul_doing;
+  reg  mul_wait;
+  assign ready_o = (mul_en)? mul_ready_o & mul_wait: 
                    (div_en)? div_ready_o : 
                    (~mul_en & ~div_en )  ? 1'b1 : 1'b0;  //ready o 握手
 
+  always@(posedge clk)begin
+      if(mul_doing)begin
+        mul_wait <= 1'b1;
+      end else if(mul_ready_o) begin
+        mul_wait <= 1'b0;
+      end
+  end
   wire [63:0]mux_result;
   wire [63:0]mul_result_hi;
   wire [63:0]mul_result_lo;
@@ -47,39 +54,34 @@ module ysyx_22041412_alu(
   wire [1:0]mul_signed;		//2’b11（signed x signed）；2’b10（signed x unsigned）；2’b00（unsigned x unsigned）；
   wire      div_signed;
   wire      mul_vaild;
-  wire      div_valid;
-
+  wire      div_vaild;
+  
+  //计算乘除法器的运算符号位和32模式开关
   assign mul_signed = (func3==3'b000 || func3==3'b001) ? 2'b11:
                       (func3==3'b010 )                 ? 2'b10: 2'b00;
   assign mul_vaild  =  mul_en & ready_i;
   assign mul_mode   =  func3[0];
 
   assign div_signed = (func3==3'b100 || func3==3'b110) ? 1'b1 : 1'b0;
-  assign div_valid  =  div_en & ready_i;
+  assign div_vaild  =  div_en & ready_i;
   assign div_mode   = (func3[2:1]==2'b11)? 1'b1 :1'b0;  //为1是取余  0除法
 
 
-      //门控时钟 没做毛刺处理，仿真用，主要是为了减少仿真不用乘法器时的逻辑运算,流片前删除
-        reg       mul_clk;
-        always @(*)begin
-          if(mul_vaild & ~stall_reg & clk)
-            mul_clk = 1'b1;
-          else mul_clk = 1'b0;
-        end
-
   ysyx_22041412_mul mul (        //mul
-    .clk  (mul_clk),
+    .clk  (clk),
     .rst  (rst),
     .flush(1'b0),   //暂时不用
 
-    .mul_vaild_i   (mul_en),
+    .mul_vaild_i   (mul_en ),
     .multiplicand_i(AU),
     .multiplier_i  (BU),
     .mulw_i        (rv64_en[1]),
     .mul_signed    (mul_signed),
-
+    .mul_mode      (mul_mode),
     .mul_valid_o   (mul_ready_o),
-    .result_hi_o   (mul_result_hi),
+    .mul_doing     (mul_doing),
+    .ready_i       (valid_i),//下级准备接收的信号
+    //.result_hi_o   (),
     .result_lo_o   (mul_result_lo)
   );
 
@@ -182,14 +184,12 @@ always @(*) begin
       //$display("bu5=%d , result=%h",BU[5],Alusu);
     end
     else if(rv64_en[1]==1'b1) begin
-      Alusu = (mul_en & mul_ready_o & ~stall_reg) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
-              (mul_en & stall_reg  ) ?  {{32{stall_result_lo[31]}},stall_result_lo[31:0]} :
+      Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
               (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
                                         {{32{mux_result[31]}},mux_result[31:0]      };
     end
     else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
-      Alusu = (mul_en & mul_ready_o  & ~stall_reg) ? mul_mode ? mul_result_hi : mul_result_lo :
-              (mul_en & stall_reg  ) ?  mul_mode  ? stall_result_hi : stall_result_lo :    
+      Alusu = (mul_en & mul_ready_o) ? mul_result_lo :  
               (div_en & div_ready_o) ? div_result    : 0;
     end
     else if(opcode==`ysyx_22041412_Environment)begin
@@ -199,19 +199,6 @@ always @(*) begin
       Alusu = mux_result;
   end 
 
-  reg stall_reg;
-  reg [63:0]stall_result_lo;
-  reg [63:0]stall_result_hi;
-  always @(posedge clk)begin
-     if(mul_en & mul_ready_o & ~valid_i)begin  //如果下级没准备好数据，就先暂存乘法器的数据，同时禁止新的乘法  ,除法太慢了不会遇到这种情况，所以只需要缓存乘法
-        stall_reg       <= 1;
-        stall_result_lo <= mul_result_lo;
-        stall_result_hi <= mul_result_hi;
-     end else if(stall_reg & valid_i)begin
-        stall_reg       <= 0;
-        stall_result_lo <= 0;
-        stall_result_hi <= 0;
-     end
-  end
+
 endmodule
 

@@ -51,7 +51,7 @@ size_t fb_write(const void *buf, size_t offset, size_t len) {
 
   int x = offset % Canvas_x;  //计算起点
   int y = offset / Canvas_x;
-  //printf("[fb write]x:%d y:%d \n",x,y);
+  //printf("[fb write]x:%d y:%d len:%d \n",x,y,len);
   io_write(AM_GPU_FBDRAW,x,y, (uint32_t *)buf, len , 1, true);
   return len;
 }
