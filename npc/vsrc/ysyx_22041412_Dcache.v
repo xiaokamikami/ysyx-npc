@@ -272,6 +272,7 @@ reg [2:0] wr_state;  //cache状态机
                                                        {rw_strb_64_ld,{64{1'b0}}};  //高64位
                     cache_d_ram[cache_index][tag_v_w] <=  1'b1 ;                                   
                   end 
+                  //$display("Dcache hit write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
 //近期最少使用计数
 /*             cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
                                             (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
@@ -295,15 +296,16 @@ reg [2:0] wr_state;  //cache状态机
               cache_rd_ready  <= 1'b0;  
               cache_miss      <= cache_miss+1;
 
+              wb_back         <= cache_d_ram [cache_index][cache_write_point];   //如果有脏数据  需要把即将被替换的数据放入回写通道 
           end else begin
-              cache_rd_ready  <= 1'b0;  
+              cache_rd_ready  <= 1'b0;   
           end
         end
         `DCACHE_RAM:begin	//从AXI申请读数据
-
+          
           if(axi_r_valid_o & axi_r_ready_i )begin
             if(axi_r_last_i )begin  //最后一次传输       //如果不是外设操作，需要根据dirty 装填需要回写的数据
-
+                  //$display("Dcache axi write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
                   //if(~device)$display("Dcache get  AXI4  %8h offset %h : %32h",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
                   //if(cache_d_ram [cache_index][cache_write_point]==1'b1) $display("\33[1;31mDcache dirty data %8h : %32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0},ram_rd_data  [cache_write_point][cache_index[6]]);
                   //if(device) $display("Dcache Read Device %8h",cpu_req_addr);
@@ -314,14 +316,14 @@ reg [2:0] wr_state;  //cache状态机
                                           (rw_offset  & ~cpu_rw_en)?( axi_r_data_i    >> (cache_offset[2:0] *8)) : 64'b0;  //更新接口数据
                   axi_r_addr_o         <= 32'b0;
                   cache_rd_ready       <= (device | ~cpu_rw_en)?1'b1 : 1'b0;
+                  wb_back                                                 <= 1'b0;
                   if(~device)begin
                     write_data                                            <= {axi_r_data_i,write_data[63:0]} ;  //写回cache
                     write_en             [cache_write_point]              <= 1'b1;
-                    rw_strb                                               <=  {128{1'b1}};
+                    rw_strb                                               <= {128{1'b1}};
                     cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
                     cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
                     cache_d_ram          [cache_index][cache_write_point] <= cpu_rw_en;  //如果是写数据，就标记为dirty 并进入写模式
-
                     //cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
                   end
 
@@ -331,8 +333,8 @@ reg [2:0] wr_state;  //cache状态机
           end
 		    end
         `DCACHE_W_CACHE:begin
-          rw_strb   <=  (~cache_offset[3]) ? {{64{1'b0}},rw_strb_64_ld}:  //低64位
-                                             {rw_strb_64_ld,{64{1'b0}}};  //高64位
+          rw_strb   <=  (~rw_offset) ? {{64{1'b0}},rw_strb_64_ld}:  //低64位
+                                       {rw_strb_64_ld,{64{1'b0}}};  //高64位
           //$display("Dcache axi write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
           write_data         <= (cache_write_data<< (cache_offset[2:0] *8));  //把本次要写入的数据写回cache
           cache_rd_ready     <= 1'b1;
@@ -345,33 +347,39 @@ reg [2:0] wr_state;  //cache状态机
 
 
      //针对某一个地址的调试器
-     wire[31:0] debug_addr = 'h83005000;
+/*       wire[31:0] debug_addr = 'h80010000;
     always @(posedge clk) begin
       if({cpu_req_addr[31:4]} == debug_addr[31:4]& cpu_rw_en & tag_v !=4'b0000) //命中写
-        $display("\33[1;33mDcache tag  write addr: %8h offset: %h data:%32h  index:%d tag:%d d:%d\033[0m",cpu_req_addr ,cache_offset, cache_write_data<<cache_offset[2:0]*8,cache_index,tag_v_w,cache_d_ram [cache_index][tag_v_w]);
+        $display("\33[1;33mDcache tag  write addr: %8h offset: %h data:%32h  len:%b tag:%d d:%d\033[0m",cpu_req_addr ,cache_offset, cache_write_data<<cache_offset[2:0]*8,cpu_rw_size,tag_v_w,cache_d_ram [cache_index][tag_v_w]);
 
       else if({cpu_req_addr[31:4]} ==debug_addr[31:4] & ~cpu_rw_en & tag_v !=4'b0000)  //命中读
-        $display("\33[1;33mDcache tag  read addr: %8h offset: %h data:%32h\033[0m",cpu_req_addr,cache_offset , cache_read_data<<cache_offset[2:0]*8);   
+        $display("\33[1;33mDcache tag  read addr: %8h offset: %h data:%32h  index:%d tag:%d d:%d\033[0m",cpu_req_addr,cache_offset , cache_read_data>>cache_offset[2:0]*8,cache_index,tag_v_w,cache_d_ram [cache_index][tag_v_w]);   
 
       if({cpu_req_addr[31:4]} ==debug_addr[31:4] & axi_r_last_i & ~cpu_rw_en)  //AXI访问结束 读
         $display("\33[1;31mDcache miss read   %8h offset %h  data: %h\033[0m",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
 
       else if({cpu_req_addr[31:4]} ==debug_addr[31:4] & axi_r_last_i & cpu_rw_en)  //AXI访问结束 写
-        $display("\33[1;31mDcache miss write  %8h offset %h  data: %h\033[0m",cpu_req_addr,cache_offset,cache_write_data);  
+        $display("\33[1;31mDcache miss write  %8h offset %h  data: %h \033[0m",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});  
 
-      else if({cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0000} =={debug_addr[31:4],4'b0000} & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point] )//AXI发起请求并且要替换的数据为dirty
-        $display("\33[1;31mDcache tag  tihuan start addr: %8h data:%32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} , ram_rd_data  [cache_write_point][cache_index[6]]);
-      
-      if ({cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} =={debug_addr[31:4],4'b0000} & axi_w_valid_o &  wr_state != `DCACHE_FENCE) //开始返回数据
+      else if(rd_state==`DCACHE_W_CACHE & {cpu_req_addr[31:4]} ==debug_addr[31:4])
+        $display("\33[1;31mDcache miss late write  %8h offset %h  data: %h rw_strb_64_ld:%h \033[0m",cpu_req_addr,cache_offset,cache_write_data,rw_strb_64_ld);   
+      if (axi_w_addr_o[31:4] ==debug_addr[31:4] & wb_back &  wr_state != `DCACHE_FENCE) //开始返回数据
         $display("\33[1;31mDcache tag  tihuan start : %8h data:%16h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} ,  ram_rd_data[cache_write_point][cache_index[6]]); 
 
-      else if(axi_w_addr_o[31:4] ==debug_addr[31:4] & axi_w_ready_i &  wr_state != `DCACHE_FENCE)  //数据返回结束
+      else if(axi_w_addr_o[31:4] ==debug_addr[31:4] & ~wb_back &  wr_state != `DCACHE_FENCE)  //数据返回结束
         $display("\33[1;31mDcache tag  tihuan succful: %8h data:%16h\033[0m",axi_w_addr_o , axi_w_data_o);
       
       else if(axi_w_addr_o[31:4] ==debug_addr[31:4] & axi_w_ready_i & wr_state == `DCACHE_FENCE) //FENCE返回结束
         $display("\33[1;31mDcache tag  fence_i succful: %8h data:%16h\033[0m",axi_w_addr_o , axi_w_data_o);    
-    end    
- 
+    end     */
+/*     always@(posedge clk)begin
+      if(cpu_valid & ({cpu_req_addr[31:4]} == debug_addr[31:4] ))
+        $display("tag d %d",cache_d_ram [cache_index][tag_v_w]);
+      else if({cache_tag_ram[fence_write_index][fence_page] ,fence_write_index}== debug_addr[31:4] & wr_state == `DCACHE_FENCE)
+        $display("tag d %d",cache_d_ram [fence_write_index][fence_page]);
+    end */
+
+    reg wb_back;
     always@(posedge clk)begin //状态机更新
       if(rst )begin
         wr_state <= `DCACHE_IDLE;
@@ -380,7 +388,7 @@ reg [2:0] wr_state;  //cache状态机
           `DCACHE_IDLE: begin
             if(cpu_valid & device & cpu_rw_en & ~cache_wr_ready)  //写外设
               wr_state <= `DCACHE_DEVICE;
-            else if(cpu_valid & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point] & ~device)  //有需要回写的数据
+            else if(wb_back)  //有需要回写的数据
               wr_state <= `DCACHE_WTBACK;
             else if(fence_i)begin
               wr_state <= `DCACHE_FENCE;
@@ -390,7 +398,7 @@ reg [2:0] wr_state;  //cache状态机
               wr_state <= `DCACHE_IDLE;
           end
           `DCACHE_WTBACK:begin
-            if(axi_w_ready_i & axi_w_last_i) 
+            if(~wb_back & ~dcache_w_busy) 
               wr_state <= `DCACHE_IDLE;
             else wr_state <=`DCACHE_WTBACK;
           end
@@ -434,17 +442,18 @@ reg [2:0] wr_state;  //cache状态机
               axi_w_size_o <= cpu_rw_size;
               //$display("\33[1;33mDcache waite device \033[0m" );
             end
-            else if(cpu_valid & axi_r_valid_o & cache_d_ram [cache_index][cache_write_point] & ~device)begin  //有需要回写的数据   在发起AXI读请求时就决定了替换对象，所以提前写回数据
+            else if(wb_back)begin  //有需要回写的数据  决定了替换对象，所以提前写回数据
               axi_w_valid_o    <= 1'b1;
-              //write_back_addr  <={cache_tag_ram[cache_index][cache_write_point],cache_index};
               {write_back_data,axi_w_data_o}     <= ram_rd_data[cache_write_point][cache_index[6]] ;
               axi_w_addr_o     <= {cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0};   
               axi_w_len_o      <= 'd1;
               axi_w_size_o     <= `BUST_8;
+              axi_w_size_o     <= `BUST_8;
+
+              axi_w_size_o     <= `BUST_8; 
 
               dcache_w_busy    <= 1'b1;
-              cache_v_ram [fence_write_index][fence_page] <= 1'b0 ;  //清掉脏数据位 并标记为无效数据
-              cache_d_ram [fence_write_index][fence_page] <= 1'b0 ;  //清掉脏数据位 并标记为无效数据  
+
               //$display("\33[1;31mDcache wtback start: %8h data:%32h\033[0m",{cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0} , ram_rd_data  [cache_write_point][cache_index[6]]);
             end else if(fence_i) begin
               fence_ready       <= 1'b0;
@@ -452,7 +461,6 @@ reg [2:0] wr_state;  //cache状态机
               fence_page        <= 2'b00; 
               fence_wait        <= 1'b1;     
             end
-
             else begin
               cache_wr_ready <= 1'b0;
               axi_w_valid_o  <= 1'b0;
@@ -460,19 +468,25 @@ reg [2:0] wr_state;  //cache状态机
               fence_ready    <= 1'b0;
             end
         end
-        `DCACHE_WTBACK:begin
-          if( axi_w_ready_i & ~axi_w_last_i )begin
+        `DCACHE_WTBACK:begin //处理回写数据的AXI信号
+          if( axi_w_ready_i & ~axi_w_last_i & axi_w_valid_o )begin
               axi_w_data_o  <= write_back_data;
               axi_w_valid_o <= 1'b1;
-          end else if(axi_w_ready_i & axi_w_last_i )begin
+          end else if(axi_w_ready_i & axi_w_last_i & axi_w_valid_o )begin
               axi_w_valid_o  <= 1'b0;
               axi_w_data_o   <= 64'b0;
               axi_w_addr_o   <= 32'b0;
               axi_w_size_o   <= 3'b0;   
               dcache_w_busy  <= 1'b0;  
-              
               //$display("\33[1;33mDcache wtback succful: %8h data:%32h\033[0m",axi_w_addr_o , axi_w_data_o);         
-            end
+          end else if(~axi_w_valid_o)begin
+              axi_w_valid_o  <= 1'b0;
+              axi_w_data_o   <= 64'b0;
+              axi_w_addr_o   <= 32'b0;
+              axi_w_size_o   <= 3'b0;   
+              dcache_w_busy  <= 1'b0;              
+              //$display("\33[1;33mDcache wtback idle");
+          end
         end
         `DCACHE_DEVICE:begin
           if(axi_w_ready_i)begin
@@ -485,7 +499,8 @@ reg [2:0] wr_state;  //cache状态机
           end //else               $display("\33[1;33mDcache waite device error \033[0m" );
         end
         `DCACHE_FENCE:begin     //返回所有的脏缓存  
-           if(fence_write_index==0)$display("display index %h   d%d",{cache_tag_ram[fence_write_index][fence_page] ,fence_write_index ,4'b0}, cache_d_ram [fence_write_index][fence_page] );
+          //  if(fence_write_index==0)
+          //     $display("display index %h   d%d",{cache_tag_ram[fence_write_index][fence_page] ,fence_write_index ,4'b0}, cache_d_ram [fence_write_index][fence_page] );
            
            if( cache_d_ram [fence_write_index][fence_page] == 1'b1 & ~fence_wait & ~fence_ready)begin
               if(~axi_w_valid_o)begin  
@@ -530,8 +545,6 @@ reg [2:0] wr_state;  //cache状态机
     end
 
 
-
-
 wire [1:0] cache_write_point;
 reg  [1:0] cache_write_point_l1;
 reg  [1:0] cache_rodom_cnt;
@@ -561,7 +574,7 @@ end  */
  always @(posedge clk) begin
   if(rst)begin
     cache_rodom_cnt <= 0;
-  end else if(~axi_r_valid_o) begin
+  end else if(~cpu_valid ) begin
     cache_rodom_cnt <= cache_rodom_cnt+1;
   end 
 end 

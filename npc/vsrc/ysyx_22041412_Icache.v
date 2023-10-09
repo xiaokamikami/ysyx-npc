@@ -189,14 +189,14 @@ reg [2:0] next_state;
 
     //针对某一个地址的调试器
 
-     wire[31:0] debug_addr = 'h83005000;
+/*      wire[31:0] debug_addr = 'h83005000;
     always @(posedge clk) begin
       if({cpu_req_addr[31:4]} ==debug_addr[31:4]  & tag_v !=4'b0000) 
         $display("\33[1;33mIcache hit  read addr: %8h data:%32h\033[0m",cpu_req_addr , ram_rd_data[tag_v_w][cache_index[6]]);    
       else if({cpu_req_addr[31:4]} ==debug_addr[31:4] & axi_r_last_i )
         $display("\33[1;31mIcache get  AXI4  %8h offset %h : %32h\033[0m",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
 
-    end   
+    end    */
 
 
     always@(posedge clk)begin //cache执行状态机

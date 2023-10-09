@@ -195,32 +195,24 @@ module ysyx_22041412_axi # (
     reg    w_last_ok;
     always @(posedge clk) begin
       if (rst) begin
-        //w_ready_o <= 0;
         wd_count        <= 8'b00000000;
         w_last_ok       <= 1'b0;
       end else if (w_valid_i & ~w_last_ok& axi_aw_valid ) begin  // 从设备给出的数据有效即valid拉高
         if (axi_w_ready_i & w_last_o) begin // 完成最后一次数据传输
-          //w_ready_o     <= 1;
           axi_w_valid_o <= 1'b0;
           w_last_ok     <= w_last_o;
-
-          //w_last_o      <= 1'b1;
           //$display("AXI W end");
         end  else if(axi_w_ready_i) begin            // 等待写入
           axi_w_valid_o <= 1'b1;
           wd_count      <= wd_count+'b1;
-          //w_ready_o     <= 0;
-          //w_last_o      <= 1'b0;
           //$display("AXI W count ++");
         end else begin
           axi_w_valid_o <= 1'b1;
         end
       end else begin 
         wd_count        <= 8'b00000000;
-        //w_ready_o       <= 0;
         axi_w_valid_o   <= 0;
         w_last_ok       <= 1'b0;
-        //w_last_o        <= 1'b0;
       end
     end
 
