@@ -13,12 +13,11 @@ module ysyx_22041412_decode(
 	output [1:0]V1Type,
 	output [1:0]V2Type,
 
-	///
+	///  一些特别指令的单独使能
 	output Mul_en,
 	output Div_en,
 	output [1:0]RV64_en,
-	//output Ram_en,
-	
+	output FENCE_i,
 	output reg[63:0] jal_pc,  //直接跳转命令 结果
 	output reg       jal_ok,
 
@@ -48,30 +47,28 @@ module ysyx_22041412_decode(
 	assign J_type=(instr[6:0]==`ysyx_22041412_jal) ;
 	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
 	assign S_type=(instr[6:0]==`ysyx_22041412_store );
-	assign R_type=(instr[6:0]==`ysyx_22041412_R_type)|(instr[6:0]==`ysyx_22041412_RV64_R);
-	
-	assign V1Type=(instr[6:0]==`ysyx_22041412_jal  )?`ysyx_22041412_v1pc:
-				  (instr[6:0]==`ysyx_22041412_auipc)?`ysyx_22041412_v1pc:
+	assign R_type=(instr[6:0]==`ysyx_22041412_R_type)|(instr[6:0]==`ysyx_22041412_RV64_R);  
+
+	assign V1Type=(instr[6:0]==`ysyx_22041412_jal |instr[6:0]==`ysyx_22041412_auipc )?`ysyx_22041412_v1pc:
 				  ((instr[6:0]==`ysyx_22041412_Environment)&((func3=='b101)|(func3=='b110)|(func3=='b111)))?`ysyx_22041412_v1zim:
 			    	`ysyx_22041412_v1rsa;	
 
-	assign V2Type=  R_type?`ysyx_22041412_v2rsb:
-					B_type?`ysyx_22041412_v2rsb:
+	assign V2Type=  (R_type | B_type)?`ysyx_22041412_v2rsb:
 				 	`ysyx_22041412_v2imm;
+
+	assign imme= ({{64{I_type}}}  &{{52{instr[31]}},instr[31:20]} ) |
+				 ({{64{U_type}}}  &{{32{instr[31]}},instr[31:12],{12{1'b0}}} ) |
+				 ({{64{J_type}}}  &{{44{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0} )|
+				 ({{64{B_type}}}  &{{52{instr[31]}},instr[7],instr[30:25],instr[11:8],1'b0} )|
+				 ({{64{S_type}}}  &{{52{instr[31]}},instr[31:25],instr[11:7]}) |
+				 64'b0;  
 
 	assign Mul_en = R_type&(instr[25]=='b1) & (func3[2]==0)?`ysyx_22041412_mulen:1'b0;//func3==3'b000 | func3==3'b001 | func3==3'b010 | func3==3'b011
 	assign Div_en = R_type&(instr[25]=='b1) & (func3[2]==1)?`ysyx_22041412_mulen:1'b0;
 
 	assign RV64_en = (instr[6:0]==`ysyx_22041412_RV64_R)?2'b10 :
 					 (instr[6:0]==`ysyx_22041412_RV64_I)?2'b01 : 2'b00;
-
-	assign imme= I_type?{{52{instr[31]}},instr[31:20]} :
-				 U_type?{{32{instr[31]}},instr[31:12],{12{1'b0}}} :
-				 J_type?{{44{instr[31]}},instr[19:12],instr[20],instr[30:21],1'b0} :
-				 B_type?{{52{instr[31]}},instr[7],instr[30:25],instr[11:8],1'b0} :
-				 S_type?{{52{instr[31]}},instr[31:25],instr[11:7]} :
-				 64'b0;
-
+	assign FENCE_i  = (instr[6:0]==`ysyx_22041412_FENCE) ? func3[0] : 1'b0;
 	assign jump_mode=(instr[6:0]==`ysyx_22041412_jalr)?`ysyx_22041412_j_jalr:
 				     J_type                         ?`ysyx_22041412_j_jal :
 					 B_type						    ?`ysyx_22041412_j_B   :
@@ -79,6 +76,7 @@ module ysyx_22041412_decode(
 
 	assign mem_mode = (instr[6:0]==`ysyx_22041412_load) ?`ysyx_22041412_mem_load : 
 	                   S_type                           ?`ysyx_22041412_mem_stor :`ysyx_22041412_mem_idle;
+
 
 
 

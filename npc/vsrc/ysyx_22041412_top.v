@@ -291,6 +291,8 @@ ysyx_22041412_Icache Icache_L1(
     .cpu_read_vaild (if_read_vaild),
     .cpu_read_clean (if_read_clean),
     .cache_clear    (Icache_clear), 
+    .fence_i        (if_fence_i),            
+    .fence_ready    (if_fence_ready),
 //icache    <---> AXI
     .axi_ready_i    (icache_ar_ready),        // 读有效等待接�?
     .axi_valid_o    (icache_ar_valid),        // 发出读请�?            
@@ -304,7 +306,8 @@ wire [31:0]if_imm;
 
 wire [PC_WIDTH-1:0]if_pc;
 wire if_ready_o;
-
+wire if_fence_i;
+wire if_fence_ready;
 reg if_jr_ready;
 reg if_jr_hit;
 ysyx_22041412_if IF_s1 (      //imm
@@ -319,6 +322,8 @@ ysyx_22041412_if IF_s1 (      //imm
     .jal_pc        (jal_pc[31:0]),
     .jal_ok        (jal_ok),
 
+    .fence_i       (if_fence_i),            
+    .fence_ready   (if_fence_ready),
     //流水线握手信�?
     .ready_o       (if_ready_o),       //准备好输出数据并更新pc
     .valid_i       (id_vaild_o),
@@ -353,7 +358,7 @@ wire [1:0] id_mem_mode;
 wire id_mul_en;
 wire id_div_en;
 wire [1:0]id_rv64_en;
-
+wire id_fence_i;
 wire [63:0]jal_pc;
 wire       jal_ok;
 
@@ -396,7 +401,7 @@ ysyx_22041412_decode ID_decode( //opcode
     .Mul_en(id_mul_en),
     .Div_en(id_div_en),
     .RV64_en(id_rv64_en),
-
+    .FENCE_i(id_fence_i),
     .jal_pc (jal_pc),
     .jal_ok (jal_ok),
 
@@ -444,6 +449,8 @@ reg [1:0] ex_mem_mode;
 reg ex_mul_en;
 reg ex_div_en;
 reg [1:0]ex_rv64_en;
+reg ex_fence_i;
+
 
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
@@ -572,6 +579,7 @@ always@(posedge clk)begin
         ex_mul_en  <= id_mul_en;
         ex_div_en  <= id_div_en;
         ex_rv64_en <= id_rv64_en;
+        ex_fence_i <= id_fence_i;
 
         ex_csr_jar_en<= csr_jar_en;
         ex_csr_id    <=id_csr_id;
@@ -613,12 +621,12 @@ reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg [1:0] mem_jump_mode;
 reg [1:0] mem_mem_mode;
-
+reg mem_fence_i;
 wire [63:0]mem_rdata;
 wire mem_valid_o;
 wire sram_ready_o;
 
-assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en);
+assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en) ;
 
 ysyx_22041412_mem u_ysyx_22041412_mem(
     .clk         ( clk         ),
@@ -636,7 +644,7 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     .mem_valid_i ( mem_ram_en      ),
     .mem_ready_o ( sram_ready_o    ),
     .r_data_o    ( mem_rdata       ),
-    .fench_i     ( 1'b0            ),
+    .fence_i     ( mem_fence_i     ),
     //axi
     .r_ready_i   ( mem_r_ready   ),
     .r_valid_o   ( mem_r_valid   ),
@@ -681,7 +689,8 @@ always@(posedge clk)begin
         mem_jump_mode <=ex_jump_mode;
         mem_mem_mode  <=ex_mem_mode;
         mem_rw_type   <= (ex_mem_mode ==`ysyx_22041412_mem_stor)  ? 1'b1 : 1'b0;
-        mem_ram_en    <= (ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load) ? 1'b1 :1'b0;
+        mem_ram_en    <= (ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load || ex_fence_i) ? 1'b1 :1'b0;
+        mem_fence_i   <= ex_fence_i;
         if(ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load)begin //mem  dram
             mem_reg_en <=(ex_mem_mode == `ysyx_22041412_mem_load)?1'b1 : 1'b0;
             mem_addr   <=ex_res[31:0];
@@ -712,7 +721,6 @@ end
 reg wb_reg_en;
 
 reg [4:0]wb_addr;
-reg [63:0]wb_imm_data;
 reg [63:0]wb_data;
 reg [PC_WIDTH-1:0]wb_pc;
 
@@ -720,11 +728,10 @@ always@(posedge clk)begin
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
         wb_pc         <=mem_pc;
         wb_reg_en     <=mem_reg_en;
-        wb_imm_data   <=mem_imm_data;
 
-/*         if(mem_opcode == 0 && mem_pc!=0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
-               $display("WB  GET PC  NOT IMM");
-        end */
+        //  if( mem_reg_en & mem_rw==0 & mem_pc!=0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
+        //     $display("WB  GET PC  NOT IMM");
+        // end  
 
         if(mem_jump_mode == `ysyx_22041412_j_jal | mem_jump_mode==`ysyx_22041412_j_jalr)begin
             wb_data<= mem_pc+4;
@@ -741,9 +748,8 @@ always@(posedge clk)begin
         end 
 
     end else begin
-        wb_pc      <=0;
-        wb_reg_en  <=0;
-        wb_imm_data<= mem_imm_data; 
+        wb_pc      <= 0;
+        wb_reg_en  <= 0;
         wb_addr    <= 0;
         wb_data    <= 0;   
 

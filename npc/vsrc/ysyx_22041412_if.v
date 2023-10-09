@@ -9,12 +9,16 @@ module ysyx_22041412_if(
     input valid_i,
     output reg ready_o,  
 
+    //快速译码的信号
     //JUMP RES
     //input   jump_hit,          //1 分支结果为跳转   0不跳    为分支预测预留的引脚
     input [31:0]jal_pc,
     input       jal_ok  ,
     input [63:0]mem_dnpc,        //其他跳转的结果
-    //cache 
+
+    output reg  fence_i,
+    input       fence_ready,
+    //ifu   <---> cache 
     input      ready_i,          // 读有效等待接收
     output reg valid_o,          // 发出读请求
        
@@ -54,7 +58,7 @@ wire jump_b;
 wire jal ;
 wire jarl;
 wire ecall ;
-
+assign fence_i  = (imm_data[6:0]==`ysyx_22041412_FENCE) ? imm_data[12] : 1'b0;
 assign jal  = ( imm_data[6:0]==`ysyx_22041412_jal) ?1'b1:1'b0;  //直接跳转命令  可以直接出结果 由 译码部分计算
 assign jarl = ( imm_data[6:0]==`ysyx_22041412_jalr)?1'b1:1'b0;  //直接跳转  但是需要等读取寄存器
 assign ecall= (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010))? 1'b1 : 1'b0;
@@ -88,21 +92,19 @@ reg imm_ready;
 
   always@(posedge clk)begin   //Cache取值流状态机
     if(rst)begin
-      cache_state<=`CACHE_IDLE;
+      cache_state<=`CACHE_VAILD;
     end
     case (cache_state)
-    `CACHE_IDLE:begin
-      cache_state <= valid_o?`CACHE_VAILD :`CACHE_IDLE;   //只有启动时会处在这个阶段
-      end
     `CACHE_VAILD:begin
-      cache_state <= jump ?`CACHE_WAIT : `CACHE_VAILD;
+      cache_state <= jump ?`CACHE_WAIT : fence_i ?`CACHE_CLEAN :  `CACHE_VAILD;
     end
     `CACHE_WAIT:begin
-      cache_state <= valid_o?`CACHE_VAILD : `CACHE_WAIT;  
+      cache_state <= valid_o?`CACHE_VAILD : fence_i ?`CACHE_CLEAN : `CACHE_WAIT;  
     end
     `CACHE_BRENCH:begin        //B
     end
     `CACHE_CLEAN:begin        //fence.i 
+       cache_state <= fence_ready ?`CACHE_VAILD : `CACHE_CLEAN;  
     end
     default:;
     endcase
@@ -110,19 +112,17 @@ reg imm_ready;
   reg wait_ok;
   reg [31:0]jump_pc;
     always@(posedge clk)begin     //为IFU预取下一个指令槽 128bit
-    if(rst)begin
-        get_pc   <= {28{1'b0}};
+    if(rst)begin    //启动！
+        get_pc    <= {28{1'b0}};
+        valid_o   <= 1'b1;
+        r_addr_o  <= 32'h80000000;
+        imm_ready <= 0;
+        wait_ok   <= 0;
     end else begin
       case (cache_state)
-      `CACHE_IDLE:begin //只有启动时会处在这个阶段
-          valid_o   <=valid_i;
-          r_addr_o  <=dnpc;
-          imm_ready <= 0;
-          wait_ok   <= 0;
-        end
       `CACHE_VAILD:begin   //等待接收新的指令
         wait_ok       <= 0;
-        if_read_clean <= (jal | jarl | ecall |jump_b );//遇到直接跳转指令必须清掉预取指令
+        if_read_clean <= (jal | jarl | ecall |jump_b |fence_i);//遇到直接跳转指令必须清掉预取指令  fence_i 也是
         if(ready_i==1'b1 & ~imm_ready & ~one_line)begin
           valid_o  <= 0 ;
           imm_ready<= 1 ;
@@ -134,7 +134,7 @@ reg imm_ready;
         end  else if(~valid_o & imm_ready & ~jump)begin
           valid_o  <= 1 ;
           imm_ready<= 0 ;     
-          r_addr_o <= {get_pc+1'b1,4'b0000};
+          r_addr_o <= {get_pc+1'b1,4'b0000};//取地址指向下一个LINE
           if_read_vaild  <= 0;
         end  
         if(jump) begin 
@@ -164,7 +164,10 @@ reg imm_ready;
       end
       `CACHE_BRENCH:begin        //条件分支的预测
       end
-      `CACHE_CLEAN:begin        //fence.i 
+      `CACHE_CLEAN:begin        //fence.i  结束后，重新申请新的指令
+        valid_o        <= fence_ready; 
+        r_addr_o       <= dnpc;
+        dnpc_v         <= 0;
       end
       default:;
       endcase
@@ -184,10 +187,13 @@ reg imm_ready;
           state<= valid_i ? `IF_LINE : `IF_IDLE;
         end
         `IF_LINE:begin
-          state <=(jump & ~jal) ? `IF_WAIT : `IF_LINE;
+          state <=(jump & ~jal) ? `IF_WAIT : fence_i ?`CACHE_CLEAN : `IF_LINE;
         end
         `IF_WAIT:begin
-          state <= jarl_rady? `IF_LINE :`IF_WAIT;
+          state <= jarl_rady ? `IF_LINE :`IF_WAIT;
+        end
+        `CACHE_CLEAN:begin
+          state <= fence_ready ? `IF_LINE :`CACHE_CLEAN;
         end
         default: ;
         
@@ -224,13 +230,19 @@ reg imm_ready;
         end
         `IF_WAIT:begin              //等待分支指令给出新地址
           if(jarl_rady ) begin
-            imm_data         <={32{1'b0}};
+            imm_data       <={32{1'b0}};
             ready_o        <= 0;
             dnpc           <= mem_dnpc[31:0];
             //$display("IFU JUMP JARL/B PC %8h",mem_dnpc[31:0]);
           end  else if (valid_i)begin
             ready_o        <= 0;            
           end
+        end
+        `CACHE_CLEAN:begin    //等待cache处理完fence
+          if (valid_i)begin
+            ready_o          <= 0;
+            imm_data         <={32{1'b0}};            
+          end      
         end
         default: ;  
     endcase

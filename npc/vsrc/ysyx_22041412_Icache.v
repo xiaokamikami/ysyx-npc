@@ -25,6 +25,9 @@ module ysyx_22041412_Icache(
     input                   cpu_read_vaild,     // 数据请求
     input                   cpu_read_clean,     // 数据废弃请求
     output                  cache_clear,        // 表明废弃数据已丢弃
+
+    input                   fence_i,            
+    output  reg             fence_ready,
 //icache    <---> AXI
     input  					        axi_ready_i,        // 读有效等待接收
     output 					        axi_valid_o,        // 发出读请求      
@@ -63,9 +66,12 @@ wire [3:0]  cache_offset;
 
 wire [127:0]  ram_rd_data [3:0][1:0];   //CACHE读数据
 
+reg [1:0]  fence_page;       //返回cache页计数
+reg [6:0]  fence_write_index;//返回cache地址计数
+reg        fence_wait;
 assign cache_tag    = cpu_req_addr[31:11];
-assign cache_index  = cpu_req_addr[10:4];
-assign cache_offset = cpu_req_addr[3:0];  //offset作为 4条指令的 选通信号
+assign cache_index  = cpu_req_addr[10:4] ;
+assign cache_offset = cpu_req_addr[3:0];
 
 reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
 reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
@@ -106,6 +112,12 @@ reg bust_num;  //axi bust 计数
 reg [2:0] state;  //cache状态机
 reg [2:0] next_state;
 
+    reg fence_i_ld;
+    always@(posedge clk)begin
+      if(fence_i) fence_i_ld<=1'b1;
+      else if(fence_ready) fence_i_ld<=1'b0;
+    end
+
     always@(posedge clk)begin //状态机更新
       if(rst )begin
         state <= `ICACHE_IDLE;
@@ -122,7 +134,10 @@ reg [2:0] next_state;
         `ICACHE_IDLE: begin
           if(cpu_valid & ~cpu_ready) begin
             next_state = `ICACHE_RD_CACHE;
-          end 
+          end else if (fence_i_ld)begin
+            next_state = `ICACHE_FENCE;
+            $display("%lx Icache fence_i start");
+          end
           else next_state = `ICACHE_IDLE;
         end
         // `ICACHE_INST:begin
@@ -143,6 +158,10 @@ reg [2:0] next_state;
         `ICACHE_READY:begin
 			    next_state = (cpu_read_vaild |cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;  
         end
+        `ICACHE_FENCE:begin
+          next_state = (fence_ready)?`ICACHE_IDLE:`ICACHE_FENCE;
+          if(fence_ready) $display("%lx Icache Fence_i  succful");
+        end
         default: begin 
           next_state  = `ICACHE_IDLE;
         end
@@ -154,8 +173,8 @@ reg [2:0] next_state;
       if(rst)begin
         tag_v = 4'b0000;
       end else if(cpu_valid)begin
-        tag_v = { (cache_tag_ram[cache_index][2'd3]==cache_tag ),(cache_tag_ram[cache_index][2'd2]==cache_tag ),
-                  (cache_tag_ram[cache_index][2'd1]==cache_tag ),(cache_tag_ram[cache_index][2'd0]==cache_tag )};
+        tag_v = { (cache_tag_ram[cache_index][2'd3]==cache_tag & cache_v_ram[cache_index][2'd3]==1'b1),(cache_tag_ram[cache_index][2'd2]==cache_tag & cache_v_ram[cache_index][2'd2]==1'b1),
+                  (cache_tag_ram[cache_index][2'd1]==cache_tag & cache_v_ram[cache_index][2'd1]==1'b1),(cache_tag_ram[cache_index][2'd0]==cache_tag & cache_v_ram[cache_index][2'd0]==1'b1)};
       end else begin
         tag_v = 4'b0000;
       end
@@ -164,6 +183,21 @@ reg [2:0] next_state;
                         (tag_v== 'b0010) ?'d1 :
                         (tag_v== 'b0100) ?'d2 : 
                         (tag_v== 'b1000) ?'d3 : 'd0 ;
+
+
+
+
+    //针对某一个地址的调试器
+
+     wire[31:0] debug_addr = 'h83005000;
+    always @(posedge clk) begin
+      if({cpu_req_addr[31:4]} ==debug_addr[31:4]  & tag_v !=4'b0000) 
+        $display("\33[1;33mIcache hit  read addr: %8h data:%32h\033[0m",cpu_req_addr , ram_rd_data[tag_v_w][cache_index[6]]);    
+      else if({cpu_req_addr[31:4]} ==debug_addr[31:4] & axi_r_last_i )
+        $display("\33[1;31mIcache get  AXI4  %8h offset %h : %32h\033[0m",cpu_req_addr,cache_offset,{axi_r_data_i,write_data[63:0]});
+
+    end   
+
 
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
@@ -179,9 +213,13 @@ reg [2:0] next_state;
           write_en    <= 4'b0000;
           write_data  <= 128'b0;
           cpu_ready   <= 1'b0;
-          cpu_read_data   <= 0;
-          
+          cpu_read_data  <= 0;
+          fence_ready    <= 1'b0;
           cache_clear <= 1;
+          if(fence_i) begin
+              fence_write_index <= 7'b00000000;
+              fence_page        <= 2'b00;      
+          end
         end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           cache_clear   <= cpu_read_clean;
@@ -214,11 +252,10 @@ reg [2:0] next_state;
             write_data[127:64]        <= axi_r_data_i;  //写回cache
             cpu_read_data [127:64]    <= axi_r_data_i;  //更新接口数据
             write_en             [cache_write_point]              <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
-            cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;//(cpu_read_clean)?cache_tag_ram        [cache_index][cache_write_point]:cache_tag;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
-            cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
+            cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;//(cpu_read_clean)?cache_tag_ram        [cache_index][cache_write_point]:cache_tag;
             cpu_ready                                             <= (cpu_read_clean)?1'b0:1'b1;
-            cache_clear   <= cpu_read_clean; 
+            cache_clear          <= cpu_read_clean; 
             //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end 
 		    end
@@ -228,6 +265,15 @@ reg [2:0] next_state;
           cpu_ready       <= ~(cpu_read_clean|cpu_read_vaild);
           cpu_read_data   <= cpu_read_data;
           cache_clear     <= cpu_read_clean; 
+        end
+        `ICACHE_FENCE:begin   //ICACHE的FENCE很简单，循环把数据有效位全部清了就行
+          if(~fence_ready)begin
+            cache_v_ram [fence_write_index][fence_page] <= 1'b0 ;  //清掉脏数据位 并标记为无效数据  
+            fence_ready       <= (fence_write_index=={7{1'b1}} & fence_page==2'b11 )  ?1'b1 : 1'b0;
+            fence_write_index <= fence_write_index+1;
+            fence_page        <= (fence_write_index=={7{1'b1}}) ? (fence_page +1'b1) :fence_page; 
+            //$display("\33[1;33mIcache Fence_i succful  index:%d  pape:%1h\033[0m",fence_write_index,fence_page );
+          end
         end
         default: ;
         endcase

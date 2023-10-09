@@ -146,15 +146,15 @@ void updata_clk()    //刷新一次时钟与设备
           star_debug = 1;
           start_time = 0;
           printf("start_debug \n");
-        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
+        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+5000)){
           tfp->dump(main_time);
           start_time++;
         }else{ star_debug = 0;}
       #elif debuge_time
         star_debug = 1;
-        if( debuge_time < main_time & main_time< debuge_time+3000){
+        if( debuge_time < main_time & main_time< debuge_time+5000){
           tfp->dump(main_time);
-        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+3000)){
+        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+5000)){
           tfp->dump(main_time);
           start_time++;
         }
@@ -230,7 +230,7 @@ static int cmd_c()                //DIFFTEST
     #ifdef diff_pc
       else {      //PC长时间无变化，视为卡死
         ++same_pc;
-        if(same_pc > 100) {
+        if(same_pc > 10000) {
           printf("The pc No update many times \n");
           is_exit =true;
           //assert(0);
@@ -241,7 +241,7 @@ static int cmd_c()                //DIFFTEST
   #ifdef diff_pc
     else if(pc==0){       //PC长时间为0  说明IFU有问题或跳转后流水线堵塞没有解除
       ++same_pc;
-      if(same_pc > 100) {   
+      if(same_pc > 10000) {   
         printf("The pc No update many times PC==0\n");
         is_exit =true;
         //assert(0);
@@ -323,13 +323,13 @@ int main(int argc,char **argv){
     #endif
 
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak   或人为关闭窗口
-      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08lx\n" NONE,last_pc);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08x\n" NONE,last_pc);
       updata_clk();  
       break;
     }
     else if(is_exit ==true){            //遇到错误，停止运行
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08lx " NONE "maintime=%ld\n",last_pc,main_time);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_pc,main_time);
       
       updata_clk();  
       //break;

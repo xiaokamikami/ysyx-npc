@@ -112,18 +112,71 @@ void *memmove(void *dst, const void *in, size_t len) {
 	return dst;
 }
 //把指针in的数据复制len长度给out  不处理内存重叠情况
-void *memcpy(void *out, const void *in, size_t n) {
-  assert(out && in );
-  char *d = (char *)out;
-  char *s = (char *)in;
-  //Check for overlapping buffers:
-  if ( (d<=s) || (d>=s+n) )
-  {     
-    //Do normal (Upwards) Copy
-    while (n-- > 0)
-    *d++ = *s++;
-  }
-	return out;
+void *memcpy(void *out, const void *in, size_t n) {  
+    assert(out && in);  
+    char *d = (char *)out;  
+    char *s = (char *)in;  
+  
+    // Check for overlapping buffers:  
+    if ((d <= s) || (d >= s + n)) {  
+        // Do normal (Upwards) Copy  
+        // if ((uintptr_t)d % 8 == 0 && (uintptr_t)s % 8 == 0 && n >= 8) {  
+        //     // Both input and output are 8-byte aligned, and we have at least 8 bytes to copy.  
+        //     while (n >= 8) {  
+        //         *(uint64_t *)d = *(uint64_t *)s;  
+        //         d += 8;  
+        //         s += 8;  
+        //         n -= 8;  
+        //     }  
+        // } else  
+        if ((size_t)d % 4 == 0 && (size_t)s % 4 == 0 && n >= 32) {    //小端对齐 大数据拷贝  一次写8*4字节
+            // Both input and output are 4-byte aligned, and we have at least 4 bytes to copy.  
+            while (n >= 32) {  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+
+                 *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+
+                n -= 32;
+            }  
+        }  
+        else if ((size_t)d % 4 == 0 && (size_t)s % 4 == 0 && n >= 4) {    //小端对齐  一次写4字节
+            // Both input and output are 4-byte aligned, and we have at least 4 bytes to copy.  
+            while (n >= 4) {  
+                *(uint32_t *)d = *(uint32_t *)s;  
+                d += 4;  
+                s += 4;  
+                n -= 4;  
+            }  
+        }  
+        // Copy the remaining bytes (less than)  
+        while (n > 0) {  
+            *d++ = *s++;  
+            n--;  
+        }  
+    }  
+    return out;  
 }
 
 //比较两个内存的值  相同返回0 不同返回差值

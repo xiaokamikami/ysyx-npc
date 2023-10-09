@@ -60,13 +60,19 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
       memset((void *)(phdr.p_vaddr + phdr.p_filesz), 0, phdr.p_memsz - phdr.p_filesz);
     }
   }
+
   return program_star;
 }
 
 void naive_uload(PCB *pcb, const char *filename) {
+  
   uintptr_t entry = loader(pcb, filename);
+
+  Log("Fence_i start ");//转入新程序之前，需要先执行FENCE.I
+  asm volatile("fence.i":::"memory");
+  Log("Fence_i ok ");
+
   Log("Jump to entry = %p", entry);
-  //asm volatile("fence.i"::);
   ((void(*)())entry) ();
 }
 
