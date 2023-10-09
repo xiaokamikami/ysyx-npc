@@ -1,4 +1,4 @@
-// Í¨ÓÃ¼Ä´æÆ÷×é
+//å¯„å­˜å™¨å †
 module ysyx_22041412_dff(
      input clk,
 	 input [4:0]Ra,
@@ -27,10 +27,12 @@ always@(posedge clk)begin
 		if(write_en)begin
 			DataReg[Rw] <= BusW;
         	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     
+  		end
 		
-  	end
 end
- assign BusA = (Ra==5'b0)?64'd0:DataReg[Ra];
- assign BusB = (Rb==5'b0)?64'd0:DataReg[Rb];
+ assign BusA = (Ra == 5'b0) ?64'd0:
+ 			   (Ra == Rw & write_en) ? BusW :DataReg[Ra];
+ assign BusB = (Rb ==5'b0) ?64'd0:
+ 			   (Rb == Rw & write_en) ? BusW : DataReg[Rb];
  
 endmodule

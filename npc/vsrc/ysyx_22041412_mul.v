@@ -11,7 +11,7 @@ module ysyx_22041412_mul(
 	input			[1:0]		mul_signed,		//2’b11（signed x signed）；2’b10（signed x unsigned）；2’b00（unsigned x unsigned）；
 	input						mul_mode,  //为1表示为长乘法
 	output  reg 		 	    mul_valid_o, 	//为高表示乘法器输出的结果有效
-	output	reg					mul_doing, //表示乘法器正在计算 
+
 	input						ready_i,
 	//output	reg 	[63:0]		result_hi_o, 	//高 xlen bits 结果
 	output	reg		[63:0]		result_lo_o  	//低 xlen bits 结果
@@ -65,8 +65,7 @@ always @(posedge clk) begin
 			if(mul_vaild_i & ~mul_valid_o)  begin
 				multiplicand_r				<= multiplicand_abs;
 				multiplier_r				<= {multiplier_abs[64],multiplier_abs,1'b0}; //输入数值并扩展符号
-				mul_doing					<= 1'b1;
-			end else begin  //确保下级能接收后关闭信号
+			end else if(ready_i)begin  //确保下级能接收后关闭信号
 				mul_valid_o         <= 1'b0;
 				multiplicand_r		<= 0;
 				multiplier_r		<= 0; //输入数值并扩展符号
@@ -83,7 +82,6 @@ always @(posedge clk) begin
 			end  
 		end
 		FINISH:begin
-			mul_doing       <= 1'b0;
 			mul_valid_o     <= 1'b1;
 			result_lo_o     <= (~mul_mode)?result[63:0] :result[127:64];
 			multiplicand_r	<= 0;

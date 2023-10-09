@@ -25,19 +25,12 @@ module ysyx_22041412_alu(
 
   wire mul_ready_o;
   wire div_ready_o;
-  wire mul_doing;
-  reg  mul_wait;
-  assign ready_o = (mul_en)? mul_ready_o & mul_wait: 
+
+  assign ready_o = (mul_en)? mul_ready_o : 
                    (div_en)? div_ready_o : 
                    (~mul_en & ~div_en )  ? 1'b1 : 1'b0;  //ready o 握手
 
-  always@(posedge clk)begin
-      if(mul_doing)begin
-        mul_wait <= 1'b1;
-      end else if(mul_ready_o) begin
-        mul_wait <= 1'b0;
-      end
-  end
+
   wire [63:0]mux_result;
   wire [63:0]mul_result_hi;
   wire [63:0]mul_result_lo;
@@ -79,7 +72,6 @@ module ysyx_22041412_alu(
     .mul_signed    (mul_signed),
     .mul_mode      (mul_mode),
     .mul_valid_o   (mul_ready_o),
-    .mul_doing     (mul_doing),
     .ready_i       (valid_i),//下级准备接收的信号
     //.result_hi_o   (),
     .result_lo_o   (mul_result_lo)
