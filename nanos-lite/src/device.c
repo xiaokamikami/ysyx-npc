@@ -58,12 +58,10 @@ size_t events_read(void *buf, size_t offset, size_t len) {
     th->type         = ev.keydown ;
   }
 
-  
-  printf("[events] keycode=%d ,down=%d",th->key.keysym.sym,th->type);
+  //printf("[events] keycode=%d ,down=%d",th->key.keysym.sym,th->type);
 
 
-
-  // if (ev.keycode == AM_KEY_NONE) return 0;
+  // if (ev.keycode == AM_KEY_NONE) return 0;     //之前写的老版本，采用字符解析法，计算开销很大，废弃
   // sprintf((char *)buf, "k%c %s\0", ev.keydown ? 'd' : 'u', keyname[ev.keycode]);
   // len = strlen(buf);
   //int keydown;

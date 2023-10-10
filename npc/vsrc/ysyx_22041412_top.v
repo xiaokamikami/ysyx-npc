@@ -324,7 +324,7 @@ ysyx_22041412_if IF_s1 (      //imm
 
     .fence_i       (if_fence_i),            
     .fence_ready   (if_fence_ready),
-    //流水线握手信�?
+    //流水线握手
     .ready_o       (if_ready_o),       //准备好输出数据并更新pc
     .valid_i       (id_vaild_o),
 
@@ -418,7 +418,7 @@ always@(posedge clk )begin //IF ID
         id_imm     <= id_imm;
         id_pc      <= id_pc;
         id_ready_o <= id_ready_o; 
-    end else if(ex_valid_o) begin//没有新指�? 插入空泡
+    end else if(ex_valid_o) begin//没有新指令? 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
         id_ready_o <= 1'b1;

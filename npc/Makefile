@@ -17,8 +17,9 @@ CSRCS_H = $(shell find $(abspath ./csrc) -name "*.h")
 VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #--threads {$(2)}
 #prof是手册里的一个多线程优化功能，加上后跑一次程序，会输出一个.vlt文件， 有文件之后可以关闭prof，然后把文件加入编译选项，可以提高多线程运行的效率,修改verilog后需要重新生成
+#现在用单核仿真，发现单核比多线程快
 #rules for verilator
-VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 6 \
+VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 1\
 	-O3 --x-assign fast --x-initial fast --noassert \
 	--timescale "1ns/1ns"
 #micro.vlt pal.vlt
@@ -49,7 +50,7 @@ all:
 #make clean 
 	make build -s 
 	make compile -s 
-	make run -s -j6
+	make run -s 
 	$(call git_commit, "sim RTL") 
 	# verilator END 
 # DO NOT REMOVE THIS LINE!!!

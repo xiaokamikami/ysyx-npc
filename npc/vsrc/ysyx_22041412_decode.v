@@ -64,15 +64,15 @@ module ysyx_22041412_decode(
 	assign Auipc = (instr[6:0]==`ysyx_22041412_auipc) ? 1'b1:1'b0;
 
 
-	assign I_type=(Jarl) | (instr[6:0]==`ysyx_22041412_load) |I_Imm |RV64_I_IMM|Handle;
-	assign U_type=(Li) | Auipc;
+	assign I_type=(Jarl| (instr[6:0]==`ysyx_22041412_load) |I_Imm |RV64_I_IMM|Handle) ;
+	assign U_type=(Li | Auipc);
 	assign J_type=(instr[6:0]==`ysyx_22041412_jal) ;
 	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
 	assign S_type=(instr[6:0]==`ysyx_22041412_store );
 	assign R_type=(RV64_R_IMM)|(R_Imm);  
 
 	assign V1Type=(instr[6:0]==`ysyx_22041412_jal |instr[6:0]==`ysyx_22041412_auipc )?`ysyx_22041412_v1pc:
-				  ((instr[6:0]==`ysyx_22041412_Environment)&((func3=='b101)|(func3=='b110)|(func3=='b111)))?`ysyx_22041412_v1zim:
+				  (Handle&((func3=='b101)|(func3=='b110)|(func3=='b111)))?`ysyx_22041412_v1zim:
 			    	`ysyx_22041412_v1rsa;	
 
 	assign V2Type=  (R_type | B_type)?`ysyx_22041412_v2rsb:
