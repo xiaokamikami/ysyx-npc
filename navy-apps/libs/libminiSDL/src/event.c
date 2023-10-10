@@ -23,8 +23,7 @@ int SDL_PollEvent(SDL_Event *ev) {
   int i = NDL_PollEvent(ev, 1);
   key_state[ev->key.keysym.sym] = ev->type; //根据返回的键值更新键盘数组的值
 
-/*   char buf[32];
-  
+/*   char buf[32];      //已废弃的版本
   if (NDL_PollEvent(buf, 32)) {
     //printf("buf %s \n",buf);
     char keys[10]={};
