@@ -48,6 +48,7 @@ size_t fs_load(int fd,uintptr_t* offset,uintptr_t* len){
   *len=file_table[fd].size;
   return 0;
 }
+
 //打开一个文件并返回序列号
 int fs_open(const char *pathname, int flags, int mode){
   assert(pathname != NULL);
@@ -73,9 +74,13 @@ size_t fs_read(int fd, void *buf, size_t len){
   size_t ret_len=0;
   switch (fd)
   {
-    case FD_EVENTS: ret_len = events_read(buf,0,len); //读取键盘事件
+    case FD_EVENTS: 
+          ret_len = events_read(buf,0,len); //读取键盘事件
+          return ret_len;
       break;
-    case FD_DISPINFO: ret_len = dispinfo_read(buf,0,len);//读取屏幕参数
+    case FD_DISPINFO: 
+        ret_len = dispinfo_read(buf,0,len);//读取屏幕参数
+        return ret_len;
       break;
     default:    
         if(file_table[fd].read_offset+len>file_table[fd].size){
@@ -86,7 +91,8 @@ size_t fs_read(int fd, void *buf, size_t len){
         ramdisk_read((void *)buf,file_table[fd].disk_offset+file_table[fd].read_offset,ret_len);
         file_table[fd].read_offset+=ret_len;
         //Log("read end\n");
-        break;
+        return ret_len;
+      break;
   }
 
   return ret_len;
@@ -109,10 +115,10 @@ size_t fs_write(int fd, const void *buf, size_t len){
           return len;
       break;
     default:    //写普通文件
-      assert(file_table[fd].read_offset + len <= file_table[fd].size);
-      ramdisk_write(((char *)buf),file_table[fd].read_offset+file_table[fd].disk_offset,len);
-      file_table[fd].read_offset+=len;
-      return len;
+        assert(file_table[fd].read_offset + len <= file_table[fd].size);
+        ramdisk_write(((char *)buf),file_table[fd].read_offset+file_table[fd].disk_offset,len);
+        file_table[fd].read_offset+=len;
+        return len;
       break;
   }
 
@@ -125,18 +131,21 @@ size_t fs_lseek(int fd, size_t offset, int whence){
   switch (whence)
   {
     case SEEK_SET://直接设置偏移量
-      assert(offset <= file_table[fd].size);
-      file_table[fd].read_offset = offset;
+        assert(offset <= file_table[fd].size);
+        file_table[fd].read_offset = offset;
+        return file_table[fd].read_offset;
       /* code */
       break;
     case SEEK_CUR://从当前位置+OFFSET
-      assert(file_table[fd].read_offset + offset <= file_table[fd].size);
-      file_table[fd].read_offset += offset;
+        assert(file_table[fd].read_offset + offset <= file_table[fd].size);
+        file_table[fd].read_offset += offset;
+        return file_table[fd].read_offset;
       break;
     case SEEK_END://返回文件末尾
-      assert(offset <= file_table[fd].size);
-      file_table[fd].read_offset = offset+file_table[fd].size;
-      Log("return %ld id %d ",file_table[fd].size,fd);
+        assert(offset <= file_table[fd].size);
+        file_table[fd].read_offset = offset+file_table[fd].size;
+        Log("return %ld id %d ",file_table[fd].size,fd);
+        return file_table[fd].read_offset;
       break;
     default:assert("fs_lseek error whench");   
     break;

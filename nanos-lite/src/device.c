@@ -1,12 +1,13 @@
 #include <common.h>
 #include "device.h"
 #include "fs.h"
+#include "stdio.h"
 #if defined(MULTIPROGRAM) && !defined(TIME_SHARING)
 # define MULTIPROGRAM_YIELD() yield()
 #else
 # define MULTIPROGRAM_YIELD()
 #endif
-
+#define KEYDOWN_MASK 0x8000
 #define NAME(key) \
   [AM_KEY_##key] = #key,
 
@@ -14,6 +15,29 @@ static const char *keyname[256] __attribute__((used)) = {
   [AM_KEY_NONE] = "NONE",
   AM_KEYS(NAME)
 };
+
+
+typedef struct {
+  uint8_t sym;
+} SDL_keysym;
+
+typedef struct {
+  uint8_t type;
+  SDL_keysym keysym;
+} SDL_KeyboardEvent;
+
+typedef struct {
+  uint8_t type;
+  int code;
+  void *data1;
+  void *data2;
+} SDL_UserEvent;
+typedef union {
+  uint8_t type;
+  SDL_KeyboardEvent key;
+  SDL_UserEvent user;
+} SDL_Event;
+
 
 size_t serial_write(const void *buf, size_t offset, size_t len) {
   for (uint16_t i=0;i<len;++i)
@@ -26,9 +50,22 @@ size_t serial_write(const void *buf, size_t offset, size_t len) {
 
 size_t events_read(void *buf, size_t offset, size_t len) {
   AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
+  SDL_Event *th = buf;
+  //把AM IO的数据转为NAVY的SDL格式  
   if (ev.keycode == AM_KEY_NONE) return 0;
-  sprintf((char *)buf, "k%c %s\0", ev.keydown ? 'd' : 'u', keyname[ev.keycode]);
-  len = strlen(buf);
+  else{
+    th->key.keysym.sym  = (uint8_t)ev.keycode ;
+    th->type         = ev.keydown ;
+  }
+
+  
+  printf("[events] keycode=%d ,down=%d",th->key.keysym.sym,th->type);
+
+
+
+  // if (ev.keycode == AM_KEY_NONE) return 0;
+  // sprintf((char *)buf, "k%c %s\0", ev.keydown ? 'd' : 'u', keyname[ev.keycode]);
+  // len = strlen(buf);
   //int keydown;
   //if(ev.keydown) keydown=1;
   //else keydown=0;

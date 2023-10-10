@@ -132,33 +132,21 @@ void *memcpy(void *out, const void *in, size_t n) {
         if ((size_t)d % 4 == 0 && (size_t)s % 4 == 0 && n >= 32) {    //小端对齐 大数据拷贝  一次写8*4字节
             // Both input and output are 4-byte aligned, and we have at least 4 bytes to copy.  
             while (n >= 32) {  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
+                *(uint32_t *)(d) = *(uint32_t *)(s); 
+                *(uint32_t *)(d+4) = *(uint32_t *)(s+4);  
+                *(uint32_t *)(d+8) = *(uint32_t *)(s+8);  
+                *(uint32_t *)(d+12) = *(uint32_t *)(s+12);  
 
+                *(uint32_t *)(d+16) = *(uint32_t *)(s+16);  
+                *(uint32_t *)(d+20) = *(uint32_t *)(s+20); 
+                *(uint32_t *)(d+24) = *(uint32_t *)(s+24);   
+                *(uint32_t *)(d+28) = *(uint32_t *)(s+28); 
+
+                d += 32;
+                s += 32;
                 n -= 32;
             }  
+            //printf("memcpy 32\n");
         }  
         else if ((size_t)d % 4 == 0 && (size_t)s % 4 == 0 && n >= 4) {    //小端对齐  一次写4字节
             // Both input and output are 4-byte aligned, and we have at least 4 bytes to copy.  
@@ -168,6 +156,7 @@ void *memcpy(void *out, const void *in, size_t n) {
                 s += 4;  
                 n -= 4;  
             }  
+          //printf("memcpy 4\n");
         }  
         // Copy the remaining bytes (less than)  
         while (n > 0) {  

@@ -150,6 +150,7 @@ void updata_clk()    //刷新一次时钟与设备
           tfp->dump(main_time);
           start_time++;
         }else{ star_debug = 0;}
+        
       #elif debuge_time
         star_debug = 1;
         if( debuge_time < main_time & main_time< debuge_time+5000){

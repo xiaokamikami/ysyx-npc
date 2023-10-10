@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #define keyname(k) #k,
-
+#define KEYDOWN_MASK 0x8000
 static const char *keyname[] = {
   "NONE",
   _KEYS(keyname)
@@ -20,16 +20,19 @@ static int kb_len = sizeof(keyname) / sizeof(keyname[0]);
 static uint8_t key_state[sizeof(keyname) / sizeof(keyname[0])] = {0};
 
 int SDL_PollEvent(SDL_Event *ev) {
-  char buf[64];
+  int i = NDL_PollEvent(ev, 1);
+  key_state[ev->key.keysym.sym] = ev->type;
+
+/*   char buf[32];
   
-  if (NDL_PollEvent(buf, 64)) {
+  if (NDL_PollEvent(buf, 32)) {
     //printf("buf %s \n",buf);
     char keys[10]={};
     sscanf(buf+3,"%s",keys);
     //printf("keys %s\n",keys);
     // ev->type 指明event类型
     // ev->key.type 指明键盘event的类型
-    for (int key = 0; key < kb_len; ++key) {      //遍历按键名字并更新所有按键的状态值
+    for (int key = 0; key < kb_len; ++key) {      //遍历按键并更新所有按键的状态值
       if (strcmp(keys, keyname[key]) == 0) {
         ev->key.keysym.sym = key;
         // 判断是按键按下还是抬起
@@ -43,9 +46,9 @@ int SDL_PollEvent(SDL_Event *ev) {
     }
     
     return 1;
-  }
+  } */
 
-  return 0;
+  return i;
 }
 
 int SDL_WaitEvent(SDL_Event *event) {
