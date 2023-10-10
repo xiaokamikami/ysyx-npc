@@ -5,22 +5,23 @@ module ysyx_22041412_alu(
   input [63:0]scr1,
   input [63:0]scr2,
   input [63:0]imm,
-  input [6:0]opcode,
+  //input [6:0]opcode,
   input [2:0]func3,
-  input func7,
-
+  //input func7,
+  input [4:0]Mode,
   input mul_en,
   input div_en,
   input [1:0]rv64_en, // 00 无 //01 RVI //10 RVR 
   //input [4:0]Mode,
   input  ready_i,
-  
+
+
   input  valid_i,
   output ready_o,
   output [63:0]result
 
   );
-  wire [4:0]Mode;
+  
   wire [63:0]AU,BU,AY,BY;
 
   wire mul_ready_o;
@@ -94,39 +95,8 @@ ysyx_22041412_div div(
 );
 
 
-  //ALU mode  
-  assign Mode = (opcode==`ysyx_22041412_R_type)?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:`ysyx_22041412_SUB:
-                                                (func3=='b001)?`ysyx_22041412_sll:
-                                                (func3=='b010)?`ysyx_22041412_slt:
-                                                (func3=='b011)?`ysyx_22041412_slt:
-                                                (func3=='b100)?`ysyx_22041412_XOR:
-                                                (func3=='b101)?(func7=='b0)?`ysyx_22041412_srl:`ysyx_22041412_sra:
-                                                (func3=='b110)?`ysyx_22041412_OR:
-                                                (func3=='b111)?`ysyx_22041412_AND:0:
-
-                (opcode==`ysyx_22041412_RV64_R )?(func3=='b000)?(func7=='b0)?`ysyx_22041412_UADD:`ysyx_22041412_SUB:
-                                                 (func3=='b001)?`ysyx_22041412_sllw:
-                                                 (func3=='b101)?(func7 =='b0)?`ysyx_22041412_srlw:`ysyx_22041412_sraw:0:
-
-                (opcode==`ysyx_22041412_I_type )?(func3=='b000)?`ysyx_22041412_UADD:
-                                                (func3=='b001)?`ysyx_22041412_sll:
-                                                (func3=='b010)?`ysyx_22041412_slt:
-                                                (func3=='b011)?`ysyx_22041412_slt:
-                                                (func3=='b100)?`ysyx_22041412_XOR:
-                                                (func3=='b101)?(func7 =='b0)?`ysyx_22041412_srl:`ysyx_22041412_sra:
-                                                (func3=='b110)?`ysyx_22041412_OR:
-                                                (func3=='b111)?`ysyx_22041412_AND:0:
-
-                (opcode==`ysyx_22041412_RV64_I)?(func3=='b000)?`ysyx_22041412_UADD:
-                                                (func3=='b001)?`ysyx_22041412_slliw:
-                                                (func3=='b101)?(func7 =='b0)?`ysyx_22041412_srliw:`ysyx_22041412_sraiw:0:
-                (opcode==`ysyx_22041412_auipc)?`ysyx_22041412_UADD:
-                (opcode==`ysyx_22041412_lui)?`ysyx_22041412_li:
-                (opcode==`ysyx_22041412_load|opcode==`ysyx_22041412_store|opcode==`ysyx_22041412_jal|opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
-                0;
-
   //基本运算
-  ysyx_22041412_MuxKeyWithDefault #(17, 5, 64)Mux_ALU (mux_result,Mode,`ysyx_22041412_zero_word,{
+  ysyx_22041412_MuxKeyWithDefault #(18, 5, 64)Mux_ALU (mux_result,Mode,`ysyx_22041412_zero_word,{
     `ysyx_22041412_UADD,(AU + BU),
     `ysyx_22041412_ADD,(AY + BY),
     `ysyx_22041412_SUB,($signed(AU) - BU),
@@ -143,54 +113,96 @@ ysyx_22041412_div div(
     `ysyx_22041412_srliw,(BU[5]==0)?{{32{1'b0}},(AU[31:0] >> BU[4:0])}:AU,
     `ysyx_22041412_slliw,(BU[5]==0)?{{32{1'b0}},(AU[31:0] << BU[4:0])}:AU,
     `ysyx_22041412_sraiw,(BU[5]==0)?{{32{1'b0}},($signed(AU[31:0]) >>> BU[4:0])}:AU,
-    `ysyx_22041412_li,BU
+    `ysyx_22041412_li,BU,
+    `ysyx_22041412_IDLE,{64{1'b0}}
   });
 
-always @(*) begin
-    if(Mode == `ysyx_22041412_slt)begin
-      if(func3 ==3'b010)begin
-        Alusu= ($signed(AU-BU)<0) ? 64'b1 :64'b0;
-      end
-      else if(func3 ==3'b011) begin //sltu
-        Alusu=(AU<BU) ? 64'b1 : 64'b0;
-      end
-      else  Alusu=0;
-    end
-    else if(opcode==`ysyx_22041412_B_type)begin     //条件分支
-      if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
-      else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
-      else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
-      else if(func3 == 3'b101 && ~($signed(AU)<$signed(BU))) Alusu=1; 
-      else if(func3 == 3'b110 && (AU < BU))         Alusu=1;
-      else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
-      else Alusu=0;  
-      //$display("ALU B ");
-    end
-    else if(opcode==`ysyx_22041412_jalr)begin
-      Alusu = mux_result&(~64'h00000001);
-      //$display("jarl =%h",Alusu);
-    end
-    else if(rv64_en[0]==1'b1) begin
-      if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
-      else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
-      //$display("bu5=%d , result=%h",BU[5],Alusu);
-    end
-    else if(rv64_en[1]==1'b1) begin
-      Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
-              (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
-                                        {{32{mux_result[31]}},mux_result[31:0]      };
-    end
-    else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
-      Alusu = (mul_en & mul_ready_o) ? mul_result_lo :  
-              (div_en & div_ready_o) ? div_result    : 0;
-    end
-    else if(opcode==`ysyx_22041412_Environment)begin
-      Alusu=0; 
-    end
-    else
-      Alusu = mux_result;
-  end 
+//input [1:0]rv64_en, // 00 无 //01 RVI //10 RVR 
+wire slt ;
+wire btb ;
+assign slt = (Mode == `ysyx_22041412_slt)   ?1'b1 : 1'b0;
+assign btb = (Mode ==`ysyx_22041412_B_jump) ?1'b1 : 1'b0;
 
+wire [3:0]res_mux;
+assign res_mux = {rv64_en[1]&~slt,rv64_en[0]&~slt,btb,slt};
+
+always @(*) begin
+  case (res_mux)
+  'b0001:begin
+      if(func3 ==3'b010)begin
+          Alusu= ($signed(AU-BU)<0) ? 64'b1 :64'b0;
+        end
+        else if(func3 ==3'b011) begin //sltu
+          Alusu=(AU<BU) ? 64'b1 : 64'b0;
+        end
+        else  Alusu=0;
+      end
+  'b0010:begin  //条件分支
+        if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
+        else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
+        else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
+        else if(func3 == 3'b101 && ~($signed(AU)<$signed(BU))) Alusu=1; 
+        else if(func3 == 3'b110 && (AU < BU))         Alusu=1;
+        else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
+        else Alusu=0; 
+  end
+  'b0100:begin
+    if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
+    else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+  end
+  'b1000:begin
+    Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
+            (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
+                                      {{32{mux_result[31]}},mux_result[31:0]      };
+  end
+  default :begin
+      Alusu = (mul_en & mul_ready_o) ? mul_result_lo :  
+              (div_en & div_ready_o) ? div_result    : mux_result;
+  end
+    
+  endcase
+      
+end
+
+
+// always @(*) begin
+//   if(Mode == `ysyx_22041412_slt)begin
+//         if(func3 ==3'b010)begin
+//           Alusu= ($signed(AU-BU)<0) ? 64'b1 :64'b0;
+//         end
+//         else if(func3 ==3'b011) begin //sltu
+//           Alusu=(AU<BU) ? 64'b1 : 64'b0;
+//         end
+//         else  Alusu=0;
+//       end
+//   else if(Mode==`ysyx_22041412_B_jump)begin     //条件分支
+//         if ((func3 == 3'b000)&& (AU==BU))             Alusu=1;
+//         else if(func3 == 3'b001 && (AU!=BU))          Alusu=1;    //bne
+//         else if(func3 == 3'b100 && ($signed(AU)<$signed(BU)))  Alusu=1;
+//         else if(func3 == 3'b101 && ~($signed(AU)<$signed(BU))) Alusu=1; 
+//         else if(func3 == 3'b110 && (AU < BU))         Alusu=1;
+//         else if(func3 == 3'b111 && (AU >= BU))        Alusu=1;
+//         else Alusu=0; 
+//       //$display("ALU B ");
+//   end
+//   else if(rv64_en[0]==1'b1) begin
+//        if((Mode==`ysyx_22041412_srliw | Mode==`ysyx_22041412_sraiw |Mode==`ysyx_22041412_slliw) & BU[5]==1) Alusu = mux_result;
+//     else Alusu = {{32{mux_result[31]}},mux_result[31:0]};
+// //$display("bu5=%d , result=%h",BU[5],Alusu);
+//   end 
+//   else if(rv64_en[1]==1'b1) begin
+//     Alusu = (mul_en & mul_ready_o) ?  {{32{mul_result_lo[31]}},mul_result_lo[31:0]} :
+//             (div_en & div_ready_o) ?  {{32{div_result[31]}},div_result[31:0]      } :
+//                                         {{32{mux_result[31]}},mux_result[31:0]      };
+//   end
+//   else if(rv64_en[1]==1'b0 & (mul_en | div_en) )begin
+//       Alusu = (mul_en & mul_ready_o) ? mul_result_lo :  
+//               (div_en & div_ready_o) ? div_result    : 0;
+//   end
+//   else
+//       Alusu = mux_result;
+// end
+   
 
 endmodule
 

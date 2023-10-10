@@ -354,7 +354,7 @@ wire [63:0]id_rsA;
 wire [63:0]id_rsB;
 wire [1:0] id_jump_mode;
 wire [1:0] id_mem_mode;
-
+wire [4:0] id_alu_mode;
 wire id_mul_en;
 wire id_div_en;
 wire [1:0]id_rv64_en;
@@ -370,15 +370,15 @@ assign id_vaild_o = ex_valid_o;
     wire [11:0]csr;
     wire [2:0]id_csr_id;
     wire id_csr_en;
-    assign csr_jar_en=(id_csr_en&(id_csr_id==0 | id_csr_id==1))?1:0;
+    assign csr_jar_en=id_csr_en?(id_csr_id==0 | id_csr_id==1)?1'b1:1'b0:1'b0;
     assign csr =id_csr_en?id_imm_data[11:0]:0;
     assign id_csr_id=(csr==12'h000)?3'd1:   //ecall
-                (csr==12'h302)?3'd0:   //mret
-                (csr==12'h300)?3'd2:   //mstatus
-                (csr==12'h305)?3'd3:   //mtvec
-                (csr==12'h341)?3'd4:   //mepc
-                (csr==12'h342)?3'd5:   //mcause
-                0; 
+                    (csr==12'h302)?3'd0:   //mret
+                    (csr==12'h300)?3'd2:   //mstatus
+                    (csr==12'h305)?3'd3:   //mtvec
+                    (csr==12'h341)?3'd4:   //mepc
+                    (csr==12'h342)?3'd5:   //mcause
+                                     0; 
     assign id_csr_en =  (id_opcode==`ysyx_22041412_Environment)?1:0;
 
 
@@ -396,7 +396,7 @@ ysyx_22041412_decode ID_decode( //opcode
 	.imme(id_imm_data),
     .V1Type(id_imm_V1Type),
     .V2Type(id_imm_V2Type),
-
+    .Alu_Mode(id_alu_mode),
 
     .Mul_en(id_mul_en),
     .Div_en(id_div_en),
@@ -445,7 +445,7 @@ reg [6:0]ex_opcode;
 reg [PC_WIDTH-1:0]ex_pc;
 reg [1:0] ex_jump_mode;
 reg [1:0] ex_mem_mode;
-
+reg [4:0] ex_alu_mode;
 reg ex_mul_en;
 reg ex_div_en;
 reg [1:0]ex_rv64_en;
@@ -547,9 +547,7 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .scr2(ex_v2),
     .imm(ex_imm_data),
     .func3(ex_func3),
-    .func7(ex_func7),
-    .opcode(ex_opcode),
-
+    .Mode(ex_alu_mode),
     .mul_en(ex_mul_en),
     .div_en(ex_div_en),
     .rv64_en(ex_rv64_en),
@@ -567,7 +565,7 @@ always@(posedge clk)begin
         ex_func3   <= id_func3;
         ex_func7   <= id_func7;
         ex_imm_data<= id_imm_data;
-
+        ex_alu_mode<= id_alu_mode;
         ex_pc      <= id_pc;
         ex_v1      <= ex_v1_in;
         ex_v2      <= ex_v2_in;
@@ -597,7 +595,7 @@ always@(posedge clk)begin
         ex_func3     <= 0;
         ex_mem_mode  <= 0;
         ex_jump_mode <= 0;
-        
+        ex_alu_mode  <= 0;
         ex_csr_jar_en<= 0;
         ex_csr_id    <= 0;
         ex_csr_en    <= 0;
@@ -669,7 +667,7 @@ always @(*)begin
         if_jr_ready=1'b1;
         if_jr_hit  = ex_csr_jar_en ? 1'b0 : ex_res[0] ; //1 hit   0 not
     end else if(ex_jump_mode==`ysyx_22041412_j_jalr)begin
-        mem_dnpc   = ex_res;
+        mem_dnpc   = ex_res&(~64'h00000001);
         if_jr_ready=1'b1 ;
         if_jr_hit  =1'b1;
     end else begin
