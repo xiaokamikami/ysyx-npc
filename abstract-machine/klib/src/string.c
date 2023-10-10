@@ -83,15 +83,38 @@ int strncmp(const char *str1, const char *str2, size_t n) {
 		return 0;
 }
 //写入C N长度到S
+//通过展开的方式，减少分支指令的开销
 void *memset(void *s, int c, size_t n) {
   assert(s);
   char *p = s;
-  size_t i = 0;
-  while (i<n)
+  //size_t i = 0;
+  while (n>8)
   {
-    p[i]=c;
-    i++;
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
+
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
+      p[n]=c;
+      n--;
   }
+  
+  while (n>0)
+  {
+      p[n]=c;
+      n--;
+  }
+  //printf("memset \n");
   return (void *)p;
 }
 //把指针in的数据复制len长度给out  处理内存重叠情况
@@ -147,20 +170,8 @@ void *memcpy(void *out, const void *in, size_t n) {
                 n -= 32;
             }  
             //printf("memcpy 32\n");
-        }  
-        else if ((size_t)d % 4 == 0 && (size_t)s % 4 == 0 && n >= 4) {    //小端对齐  一次写4字节
-            // Both input and output are 4-byte aligned, and we have at least 4 bytes to copy.  
-            while (n >= 4) {  
-                *(uint32_t *)d = *(uint32_t *)s;  
-                d += 4;  
-                s += 4;  
-                n -= 4;  
-            }  
-          //printf("memcpy 4\n");
-        }  
-        // Copy the remaining bytes (less than)  
-        while (n > 0) {  
-            if(n>8){
+        }  else {
+            while(n>=8){        //展开访存指令为连续 ， 由于IF的存在，分支指令的消耗 需要有大于5次访存才能保证有收益
               *d++ = *s++;  
               *d++ = *s++;
               *d++ = *s++; 
@@ -169,15 +180,29 @@ void *memcpy(void *out, const void *in, size_t n) {
               *d++ = *s++; 
               *d++ = *s++; 
               *d++ = *s++; 
-              *d++ = *s++;        
+              *d++ = *s++;  
+
+
               n-=8; 
-            }else {
+            }
+            while (n > 0) {
+              *d++ = *s++;  
+              n--; 
+            }
+            return out;
+        }
+
+        // Copy the remaining bytes (less than)  
+  
+   
+            //处理最后的  
+            while (n > 0) {
               *d++ = *s++;  
               n--; 
             }
  
         }  
-    }  
+     
     return out;  
 }
 

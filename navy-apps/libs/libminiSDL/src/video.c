@@ -21,13 +21,15 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
   
   //根据颜色编码类型选择复制模式
   //写入地址  = 目标高度起点+已写入次数 * 行宽度 + 当前写入的列位置+列起点 ，从src中拷贝相同位置的数据出来覆盖dst
-
+  //x为偏移量起点          已改为memcpy一次拷贝一行的数据 
   if (src->format->BitsPerPixel == 8) {         
     uint8_t* pixels_src = (uint8_t*)src->pixels;
     uint8_t* pixels_dst = (uint8_t*)dst->pixels;
-    for (int i = 0; i < scr_rect.h; ++i)
-      for (int j = 0; j < scr_rect.w; ++j)
-        pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
+     for (int i = 0; i < scr_rect.h; ++i)
+        memcpy(pixels_dst+((dst_rect.y+ i)* dst->w)+dst_rect.x  ,  pixels_src+((scr_rect.y+i) *src->w)+scr_rect.x  ,  scr_rect.w);
+    //   for (int j = 0; j < scr_rect.w; ++j)
+    //     pixels_dst[(dst_rect.y + i) * dst->w + dst_rect.x + j] = pixels_src[(scr_rect.y + i) * src->w  + scr_rect.x + j];
+
   }
   else if (src->format->BitsPerPixel == 32) {
     uint32_t* pixels_src = (uint32_t*)src->pixels;
@@ -44,7 +46,9 @@ void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_
 }
 
 
-//填充颜色
+//填充颜色  为一个纯色矩阵  可用memset 直接设置内存的值
+// dst为画布结构体  dstrect为画布显存
+//PAL 常调用   
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   assert(dst != NULL);
   SDL_Rect dst_rect;
@@ -52,10 +56,13 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
   
   uint32_t *pixels = (uint32_t *)dst->pixels;
+  memset(pixels+((dst_rect.y)* dst->w)+dst_rect.x,color,dst_rect.h*dst_rect.w);
   //循环填充 按行为单位
-  for (int i = 0; i < dst_rect.h; ++ i)
+/*   for (int i = 0; i < dst_rect.h; ++ i)
     for (int j = 0; j < dst_rect.w; ++ j)
       pixels[(dst_rect.y + i) * dst->w + (dst_rect.x + j)] = color;
+ */
+
   //printf("end fill rect %d \n",dst_rect.h);
 }
 
@@ -75,6 +82,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
   //绘制像素点
 
   // ARGB8 需要调用format->palette->colors调色盘    仙剑用的格式
+  //由于要调用调色盘 不好改为memcpy  
   if (s->format->BitsPerPixel == 8) {
     uint8_t *index = (uint8_t *)s->pixels;
     SDL_Color *color;
@@ -93,6 +101,7 @@ void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
       for (int j = 0; j < w; ++ j)
         sdl_pixels[i * w + j] = src[i * s->w + j];
     NDL_DrawRect(sdl_pixels, x, y, w, h);
+    //printf("[SDL_UpdateRect]32\n");
   }
   else {
     printf("[SDL_UpdateRect] Unimplemented format.\n");

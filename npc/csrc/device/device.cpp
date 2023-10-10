@@ -43,11 +43,6 @@ static void serial_putc(char ch) {
   printf("%c",ch);
 }
 
-uint32_t serial_io_output() {
-  //uint32_t key = key_dequeue();
-  //if(key!=0 )printf("get key code %d \n",key_dequeue());
-  return key_dequeue();
-}
 
 void serial_io_input(long long wdata) {
   serial_putc((char)wdata);
@@ -58,21 +53,13 @@ void device_update() {
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
-
       #ifdef SDL_KEYBOARD
         // If a key was pressed
-        case SDL_KEYDOWN:{
-          uint8_t k = event.key.keysym.scancode;
-          bool is_keydown = (event.key.type == SDL_KEYDOWN);
-          send_key(k, is_keydown);
-          //printf("get key code %d \n",k);
-          break;
-        }
+        case SDL_KEYDOWN:
         case SDL_KEYUP: {
-          uint8_t k = event.key.keysym.scancode;
           bool is_keydown = (event.key.type == SDL_KEYDOWN);
-          send_key(k, is_keydown);
-          //printf("get key code %d \n",k);
+          send_key(event.key.keysym.scancode, is_keydown);
+          //printf("get key code %d type:%d \n",k,is_keydown);
           break;
         }
       #endif

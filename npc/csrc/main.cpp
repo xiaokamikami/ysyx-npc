@@ -79,7 +79,7 @@ void device_read(uint64_t raddr, uint64_t *rdata){
       case VGACTL_ADDR: *rdata = mmio_read(raddr,4);
         printf("npc: vga config w %ld , h %ld \n",*rdata>>16,*rdata&0x0000ffff);
         break;
-      case KBD_ADDR   : *rdata = serial_io_output();
+      case KBD_ADDR   : *rdata = key_dequeue();  
         break;  
       case RTC_ADDR   : main_time_us=get_time(); 
                         *rdata = (uint32_t)main_time_us;
@@ -134,6 +134,7 @@ void sim_init() {                 //vcd init
 //end
 static uint8_t star_debug;
 static uint64_t start_time;
+static uint8_t updevice_clk;
 void updata_clk()    //刷新一次时钟与设备
 {
 
@@ -163,22 +164,24 @@ void updata_clk()    //刷新一次时钟与设备
     contextp->timeInc(1);
   #endif 
 
-  axi_channel axi;
   if (top->clk == 1){ 
+    axi_channel axi;
     axi_copy_from_dut_ptr(top, axi);  //从 NPC引脚拷贝出数据
     axi4_helper_falling(axi);         //模拟从机工作
     axi_set_dut_ptr(top, axi);        //复制结果到 NPC引脚
   }
-  main_time++; 
-
-  device_update();
-
-  if(top->clk==0){
+  else{
     main_clk_value++;  
+    updevice_clk++;
     cmd_c();//记录指令的变化 并验证正确性
+    if(updevice_clk==200){
+        device_update();  //准备外设数据
+    }
+    
   }
 
-  
+  main_time++; 
+
 }
 
 void exit_now() {
@@ -210,9 +213,30 @@ static int cmd_c()                //DIFFTEST
         #ifdef diff_en      //正确性检查
             //paddr_t npc  = top->pip_dnpc;
             //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
-            // for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
-            //   cpureg.gpr[i] = cpu_gpr[i];
-            // } // sp regs are used for addtion
+/*     struct timespec start, end;  
+    double elapsed_time;  
+  
+    clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
+            for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
+               cpureg.gpr[i] = cpu_gpr[i];
+            } // sp regs are used for addtion
+    clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
+  
+    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
+            printf("printf for copy reg time%lf\n",elapsed_time);
+
+    clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
+          memcpy(&cpureg.gpr,cpu_gpr,reg32_size); 
+    clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
+  
+    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
+            printf("printf memcpy copy reg time%lf\n",elapsed_time);
+
+    exit(0); */
+
+            //for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
+               //cpureg.gpr[i] = cpu_gpr[i];
+            //} // sp regs are used for addtion
             memcpy(&cpureg.gpr,cpu_gpr,reg32_size); //准备需要被检查的寄存器数据 
             cpureg.pc=pc;
 

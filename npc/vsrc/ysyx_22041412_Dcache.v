@@ -574,7 +574,7 @@ end  */
  always @(posedge clk) begin
   if(rst)begin
     cache_rodom_cnt <= 0;
-  end else if(~cpu_valid ) begin
+  end else if(rd_state==`DCACHE_IDLE ) begin
     cache_rodom_cnt <= cache_rodom_cnt+1;
   end 
 end 
