@@ -8,9 +8,7 @@
 !*.[cSh]
 !*.cpp
 !scripts/*.mk
-!apps/bird/repo/*
-!apps/pal/repo/*
-!libs/libc/*
+
 !/fsimg/share/files/num
 !/fsimg/share/fonts/Courier-*.bdf
 !/fsimg/share/music/little-star.ogg
