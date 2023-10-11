@@ -21,3 +21,4 @@
 !/fsimg/share/music/rhythm/empty.ogg
 !/fsimg/share/pictures/projectn.bmp
 build/*
+libs/libc
