@@ -95,7 +95,18 @@ void init_device() {
   Log("Initializing devices...");
   ioe_init();
 }
-
+#ifdef __ISA_AM_NATIVE__ 
+struct timeval
+{
+#ifdef __USE_TIME_BITS64
+  __time64_t tv_sec;		/* Seconds.  */
+  __suseconds64_t tv_usec;	/* Microseconds.  */
+#else
+  long tv_sec;		/* Seconds.  */
+  long tv_usec;	/* Microseconds.  */
+#endif
+};
+#endif
 
 uint64_t rtc_read(uintptr_t* addr){
   struct timeval *timeer = (struct timeval *)addr;

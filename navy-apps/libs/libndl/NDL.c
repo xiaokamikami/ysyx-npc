@@ -67,9 +67,14 @@ void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h){
     //printf("[NDL_DrawRect] %d %d %d %d\n",x,y,w,h);
     
     //循环写显存 一次写一行
-    for (int i = 0; i < h; ++ i) {    
+    for (int i = 0; i < h; ++ i) {   
+      #ifdef __ISA_NATIVE__
+      lseek(Fb_fp, ((y + i) * screen_w + x) * sizeof(uint32_t), SEEK_SET);
+      write(Fb_fp, pixels + i * w, w * sizeof(uint32_t));
+      #else
       lseek(Fb_fp, ((y + i) * screen_w + x) , SEEK_SET);//先修改offset为起点
       write(Fb_fp, pixels + i * w, w );                 //写数据
+      #endif
   }
 
 }
