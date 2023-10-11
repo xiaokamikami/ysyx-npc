@@ -1,6 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
-
+//初始化所有外设的接口
 void __am_timer_init();
 void __am_gpu_init();
 void __am_audio_init();

@@ -17,14 +17,13 @@ LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 .PHONY: $(AM_HOME)/am/src/riscv/npc/trm.c
 
-NPC_HOME = /home/kami/ysyx-workbench/npc
 VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.v
 VSRCS += $(NPC_HOME)/resource/*.hex
 INCFLAGS += $(addprefix -Ldir, $(VSRCS))
 
 image: $(IMAGE).elf
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
-#@$(OBJDUMP) -d $(IMAGE).elf > $(NPC_HOME)/resource/test.txt
+	@$(OBJDUMP) -d $(IMAGE).elf > $(NPC_HOME)/resource/bin.txt
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 	@cp $(IMAGE_REL).bin $(NPC_HOME)/resource/Imm.bin

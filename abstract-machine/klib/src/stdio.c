@@ -245,7 +245,14 @@ int sprintf(char *out, const char *fmt, ...) {
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {
-  panic("Not implemented");
+    va_list ap;
+    va_start(ap, fmt);
+
+    // 调用vsprintf函数将格式化的字符串输出到字符数组中
+    int result = vsprintf(out, fmt, ap);
+
+    va_end(ap);
+    return result;  // 返回输出字符的总个数
 }
 
 int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {

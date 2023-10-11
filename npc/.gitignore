@@ -1,7 +1,6 @@
 *.*
 *
-obj_dir/
-resource/
+
 !*/
 !Makefile
 !*.mk
@@ -10,6 +9,11 @@ resource/
 !*.cc
 !*.cpp
 !*.py
+!*.sh
 !.gitignore
 !README.md
+!*.vlt
+
+obj_dir/*
+resource/*
 

@@ -1,3 +1,4 @@
+//寄存器堆
 module ysyx_22041412_dff(
      input clk,
 	 input [4:0]Ra,
@@ -18,7 +19,7 @@ import "DPI-C" function void set_gpr_ptr(input logic [63:0] a []);
 initial set_gpr_ptr(DataReg);  //read gpr
 
 wire write_en;
-assign write_en = (!rst & Wen & Rw!=5'b0)?1:0;
+assign write_en = ( Wen & Rw!=5'b0)?1:0;
 
 always@(posedge clk)begin
 	//if(rst==1'b0)begin
@@ -26,10 +27,12 @@ always@(posedge clk)begin
 		if(write_en)begin
 			DataReg[Rw] <= BusW;
         	//$display("%lx  Write: addr:%d %16h",Rw,BusW);     
+  		end
 		
-  	end
 end
- assign BusA = (Ra==5'b0)?64'd0:DataReg[Ra];
- assign BusB = (Rb==5'b0)?64'd0:DataReg[Rb];
+ assign BusA = (Ra == 5'b0) ?64'd0:
+ 			   (Ra == Rw & write_en) ? BusW :DataReg[Ra];
+ assign BusB = (Rb ==5'b0) ?64'd0:
+ 			   (Rb == Rw & write_en) ? BusW : DataReg[Rb];
  
 endmodule

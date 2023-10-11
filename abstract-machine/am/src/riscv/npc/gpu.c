@@ -1,6 +1,7 @@
 #include <am.h>
 #include "npc.h"
 #include <klib-macros.h>
+#include <klib.h>
 #define SYNC_ADDR (VGACTL_ADDR + 4)
 #define N 32
 static uint32_t vga_width =400;
@@ -26,15 +27,18 @@ void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
   };
 }
 
+//写入显存 偏移量加到起点，然后写w*h*sizeof(uint32)
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
   uint32_t x = ctl->x, y = ctl->y, w = ctl->w, h = ctl->h;
   if (w == 0 || h == 0) return;
   uint32_t *fb = (uint32_t *)FB_ADDR;
   uint32_t *pixels = (uint32_t *)ctl->pixels;
-  for (uint32_t j = 0; j < h; ++j)
-    for (uint32_t i = 0; i < w; ++i) {
-      fb[(y + j) * vga_width + (x + i)] = pixels[j * w + i];
-    }
+  memcpy(fb + ((y * vga_width)  + x ),pixels ,w*4*h);
+/*   for (uint32_t j = 0; j < h; ++j){
+     for (uint32_t i = 0; i < w; ++i) {
+          fb[(y + j) * vga_width + (x + i)] = pixels[j * w + i];
+      }  
+  } */
   if (ctl->sync) {
     outl(SYNC_ADDR, 1);
   }

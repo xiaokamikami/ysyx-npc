@@ -2,16 +2,16 @@
 #define __DEVICE_H__
 
 
-struct timeval
-{
-#ifdef __USE_TIME_BITS64
-  __time64_t tv_sec;		/* Seconds.  */
-  __suseconds64_t tv_usec;	/* Microseconds.  */
-#else
-  long tv_sec;		/* Seconds.  */
-  long tv_usec;	/* Microseconds.  */
-#endif
-};
+// struct timeval
+// {
+// #ifdef __USE_TIME_BITS64
+//   __time64_t tv_sec;		/* Seconds.  */
+//   __suseconds64_t tv_usec;	/* Microseconds.  */
+// #else
+//   long tv_sec;		/* Seconds.  */
+//   long tv_usec;	/* Microseconds.  */
+// #endif
+// };
 
 #define MMIO_BASE 0xa0000000
 #define DEVICE_BASE 0xa0000000
@@ -29,5 +29,7 @@ uint64_t rtc_read(uintptr_t* addr);
 size_t events_read(void *buf, size_t offset, size_t len);
 size_t dispinfo_read(void *buf, size_t offset, size_t len);
 size_t fb_write(const void *buf, size_t offset, size_t len);
+
+
 #endif
 

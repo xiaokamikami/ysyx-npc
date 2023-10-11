@@ -6,27 +6,13 @@
 #include <string.h>
 #include "difftests/memory.h"
 #include "device/macro.h"
-uint8_t sram[CONFIG_MSIZE];
-#define MAX_AXI_DATA_LEN 8
-//uint64_t *dram;
+#include "device/device.h"
+#include "device/debug.h"
+#include "device/io/map.h"
 
-void init_ram(char *img, long img_size){  //加载程序到内存中
+#include "main.h"
 
-    assert(sram !=NULL);
-    int ret;
-    FILE *fp = fopen(img, "rb");
-    if (fp == NULL) {
-        printf("Can not open img '%s'\n", img);
-        assert(0);
-    }
-
-    fseek(fp, 0, SEEK_SET);
-    ret = fread(sram, img_size, 1, fp);
-    assert(ret == 1);
-    fclose(fp);
-
-    printf("init_ram:%s size: %d MB \n",img,CONFIG_MSIZE/1024/1024);
-}
+extern void exit_now();
 // 检查写地址通道是否握手
 bool axi_check_waddr_fire(const axi_channel &axi) {
   if (axi.aw.valid && axi.aw.ready) {
@@ -48,7 +34,20 @@ bool axi_check_wdata_fire(const axi_channel &axi) {
   }
   return false;
 }
-// ar channel: (1) read raddr; (2) try to accept the address; (3) check raddr fire
+//检查写响应通道
+bool axi_check_wack_fire(const axi_channel &axi) {
+  if (axi.b.valid && axi.b.ready) {
+#ifdef DEBUG_LOG_AXI4
+    printf("axi b channel fired id = %d\n", axi.b.id);
+    std::fflush(stdout);
+    std::fflush(stderr);
+#endif
+    return true;
+  }
+  return false;
+}
+
+// ar channel: (1) read raddr; (2) try to accept the address; 
 // 获取读地址
 bool axi_get_raddr(const axi_channel &axi, axi_addr_t &addr) {
   // 如果master发送valid，则读取读地址通道的读地址
@@ -62,6 +61,19 @@ bool axi_get_raddr(const axi_channel &axi, axi_addr_t &addr) {
 // 接受读地址，将ready设置为1
 void axi_accept_raddr(axi_channel &axi) {
   axi.ar.ready = 1;
+}
+// aw channel: (1) read waddr; (2) try to accept the address; 
+// 获取写地址
+bool axi_get_waddr(const axi_channel &axi, axi_addr_t &addr) {
+  if (axi.aw.valid) {
+    addr = axi.aw.addr;
+    return true;
+  }
+  return false;
+}
+//接收写地址，将ready设置为1
+void axi_accept_waddr(axi_channel &axi) {
+  axi.aw.ready = 1;
 }
 // 检查读地址通道是否握手
 bool axi_check_raddr_fire(const axi_channel &axi) {
@@ -86,39 +98,54 @@ bool axi_check_rdata_fire(const axi_channel &axi) {
   return false;
 }
 
-void init_axi4(){
-
-}
-
-void axi4_read(){
-
-}
-void axi4_write(){
-    
-}
-
-static void ram_read(long long raddr, uint32_t *rdata) {
-  if(raddr >= 0x80000000 & raddr<0x83000000 ){
-    raddr=(raddr-CONFIG_MBASE);
-    *rdata =  *(uint32_t *)(sram+raddr);
-    //printf("ram_read raddr %llx data %x \n",raddr,*rdata);
+static void ram_read(uint64_t raddr, uint64_t *rdata) {
+  #ifdef DEBUG_LOG_AXI4
+    printf("axi4 ram_read addr %lx ",raddr);
+  #endif
+  if(raddr >= 0x80000000 & raddr<0x88000000 ){     //程序文件 //虚拟磁盘
+    //raddr=(raddr-CONFIG_MBASE);
+    //*rdata =  *(uint64_t *)(sram+(raddr & ~0x7ull));
+    *rdata = pmem_read(raddr , 8);
   }
-  else if(raddr >= 0x83000000 & raddr<0x88000000 ){
-    *rdata = pmem_read(raddr, 4);
+  else if(DEVICE_BASE <= raddr && raddr <= AUDIO_SBUF_ADDR){ //读取外设
+    device_read(raddr, rdata);
+  }
+  else if(raddr !=0) {
+    printf("axi4 read no tag addr %16lx \n",raddr);
+    exit_now();//assert(0);
   }
   else assert(raddr==0);
+  #ifdef DEBUG_LOG_AXI4
+    printf("axi4 ram_read addr %lx data %lx \n",raddr,*rdata);
+  #endif
+}
+static void ram_write(uint64_t waddr,size_t len, uint64_t wdata) {
+  #ifdef DEBUG_LOG_AXI4
+    printf("axi4 ram_write addr %lx data %lx \n",waddr,wdata);
+  #endif
+  if(waddr<0x88000000 && waddr >= 0x80000000 ){
+    pmem_write((waddr), len, wdata);     //写入不对齐
+  }
+  else if(DEVICE_BASE <= waddr && waddr <= AUDIO_SBUF_ADDR){ //写外设
+    device_write(waddr,wdata);
+  }
+  else if(waddr !=0){
+    printf("axi4 write no tag addr %lx \n",waddr);
+    exit_now();//assert(0);
+  } 
+  else assert(waddr==0);
 }
 static int wait_resp_r = 0;
 static int wait_resp_b = 0;
 static int wait_req_w = 0;
 // 准备上升沿的处理
-void dramsim3_helper_rising(const axi_channel &axi) {
+void axi4_helper_rising(const axi_channel &axi) {
   // ticks DRAMsim3 according to CPU_FREQ:DRAM_FREQ
 
   // read data fire: check the last read request
   // 如果读数据握手了
   if (axi_check_rdata_fire(axi)) {
-    wait_resp_r = 1;
+
   }
   // read address fire: accept a new request
   // 如果读地址握手了
@@ -129,45 +156,67 @@ void dramsim3_helper_rising(const axi_channel &axi) {
   // the last write transaction is acknowledged
   // 如果写响应通道握手了
   // 理应是写完了再响应，但仿真器是瞬间写入，因此直接握手并写入
+  if(axi_check_wack_fire(axi)){
 
+  }
 
   // write address fire: accept a new write request
   // 如果写地址握手了
+  if (axi_check_waddr_fire(axi)) {
 
+  }
 
   // write data fire: for the last write transaction
   // 如果写数据握手了
+  if (axi_check_wdata_fire(axi)) {
 
+  } 
 }
-axi_addr_t raddr;
+axi_addr_t raddr=0;
+axi_addr_t waddr=0;
+uint8_t  r_len_count=0;
+uint8_t  w_len_count=0;
 // 准备下降沿的处理
-void dramsim3_helper_falling(axi_channel &axi) {
+void axi4_helper_falling(axi_channel &axi) {
   // default branch to avoid wrong handshake
+  uint64_t data;
+  uint8_t  strb;
+
   // 初始化slave的所有握手信号避免错误握手
   axi.aw.ready = 0;
   axi.w.ready  = 0;
   axi.b.valid  = 0;
   axi.ar.ready = 0;
   axi.r.valid  = 0;
+  axi.r.last   = 0;
   // RADDR: check whether the read request can be accepted
   // 读地址，检测是否有读地址请求，并且dram能否接收请求，那么就接收读地址
   if (axi_get_raddr(axi, raddr)) {
     axi.ar.ready = 1;
-
     //printf("try to accept read request to 0x%lx\n", raddr);
   }
   // RDATA: if finished, we try the next rdata response
   // 读数据，检测是否有读数据回应，如果有就提交到axi总线
-  if (axi.r.ready==1) {
-      uint32_t data;
-      ram_read(raddr,&data);
+  if (axi.r.ready==1 ) {
+      //printf("ar len %ld ",axi.ar.len);
+      if(r_len_count<axi.ar.len+1){
+          ram_read(raddr+r_len_count*8,&data);
+          // 利用返回的读数据设置axi总线
+          memcpy(axi.r.data, &data, 8);
+          //printf("[axi ar]addr=%lx ,data=%lx ",raddr+r_len_count*8,data);
+          r_len_count =r_len_count+1;
+          if(r_len_count==(axi.ar.len+1)){
+            axi.r.valid = 1;
+            axi.r.last =  1;
+            //printf("end \n");
+          }else{
+            axi.r.valid = 1;
+            axi.r.last =  0;
+          }  
+      }
 
-      // 利用返回的读数据设置axi总线
-      memcpy(axi.r.data, &data, 4);
-      axi.r.valid = 1;
-      axi.r.last =  1;
-      axi.r.id = 0;
-      //printf("[axi ar]addr=%lx ,data=%x \n",raddr,data);
+  } else {
+    r_len_count = 0;
   }
 
 
@@ -176,12 +225,43 @@ void dramsim3_helper_falling(axi_channel &axi) {
   // Note: block the next write here to simplify logic
   // 写请求，检测是否有写请求，并且目前仿真是否有其他请求，并且dram能否接收请求
   // ok则接收写地址和写数据
-
-
+  if (axi_get_waddr(axi, waddr)) {
+      axi.aw.ready = 1;
+      //printf("try to accept write request to 0x%lx\n", waddr);
+  }
   // WDATA: check whether the write data can be accepted
   // 写数据，burst持续接收写数据
+  if( axi.w.valid == 1){
+      uint8_t len;
+      len = (axi.aw.size==0) ? 1 : 
+            (axi.aw.size==1) ? 2 : 
+            (axi.aw.size==2) ? 4 :    
+            (axi.aw.size==3) ? 8 : 0;     
+            
+      if(len==0 ){printf("%d ",len);exit_now();  }//assert(len == 0);
 
-  
+      if(~axi.w.last ){
+          memcpy(&data,axi.w.data ,8);
+          ram_write(waddr+w_len_count*8,len,data);
+          // 利用返回的读数据设置axi总线
+          //if(waddr==0x8000ff28)
+          //printf("[axi wr]addr=%lx ,data=%lx len=%d",waddr+w_len_count*len,data,len);
+          w_len_count =w_len_count+1;
+          axi.w.ready = 1;
+      } else {
+          memcpy(&data,axi.w.data ,8);
+          ram_write(waddr+w_len_count*8,len,data);
+          // 利用返回的读数据设置axi总线
+          //if(waddr==0x8000ff28)
+          //printf("[axi wr]addr=%lx ,data=%lx len=%d\n",waddr+w_len_count*len,data,len);
+          axi.b.valid = 1;
+          axi.w.ready = 1;
+          w_len_count = 0;
+          printf("\n");
+      }
+  }else {
+    w_len_count = 0;
+  }
 
   // WRESP: if finished, we try the next write response
   // 写响应

@@ -214,9 +214,7 @@ bool axi_check_wdata_fire(const axi_channel &axi);
 void axi_put_wack(axi_channel &axi, uint8_t id);
 bool axi_check_wack_fire(const axi_channel &axi);
 
-
-void dramsim3_finish();
-void dramsim3_helper_rising(const struct axi_channel &axi);
-void dramsim3_helper_falling(struct axi_channel &axi);
+void axi4_helper_rising(const struct axi_channel &axi);
+void axi4_helper_falling(struct axi_channel &axi);
 #endif
 

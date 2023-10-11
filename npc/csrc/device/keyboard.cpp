@@ -38,13 +38,16 @@ static void key_enqueue(uint32_t am_scancode) {
   //Assert(key_r != key_f, "key queue overflow!");
 }
 
+
+//获取键盘数组的值
 uint32_t key_dequeue() {
   uint32_t key = _KEY_NONE;
   if (key_f != key_r) {
     key = key_queue[key_f];
     key_f = (key_f + 1) % KEY_QUEUE_LEN;
-    //printf("key_f %d \n",key_f);
+    //printf("[Veriltor:key_dequeue]key_f %d \n",key_f);
   }
+
   return key;
 }
 

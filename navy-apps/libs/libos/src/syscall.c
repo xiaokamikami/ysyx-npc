@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <time.h>
+#include <stdint.h>
 #include "syscall.h"
 
 // helper macros

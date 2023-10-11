@@ -9,24 +9,28 @@ module ysyx_22041412_axi_Arbiter #(
     input rst,
 // if   
     input          if_ar_valid,                           //IF请求
-    output  reg    if_ar_ready,
-    input          if_ar_wen_w,
-    output  reg[63:0] if_ar_data,
+    output         if_ar_ready,
+    output  [63:0] if_ar_data,
     input   [31:0] if_ar_addr,
     input    [7:0] if_ar_len,
-    input    [7:0] if_ar_size,
-
+    output         if_last_i,
 // mem
-    input          mem_rw_valid,                          //MEM请求
-    output  reg    mem_rw_ready,
-    input          mem_rw_wen,
-    output  reg[63:0] mem_rw_r_data,
-    input   [63:0] mem_rw_w_data,
-    input   [31:0] mem_rw_addr,
-    input    [7:0] mem_rw_len,
-    input    [7:0] mem_rw_size,
-
-// axi
+  //READ
+    input          mem_r_valid,                
+    output         mem_r_ready,
+    output  [63:0] mem_r_data,
+    input   [31:0] mem_r_addr,
+    input    [7:0] mem_r_len,
+    output         mem_r_last_i,
+  //WRIT
+    input          mem_w_valid,                        
+    output         mem_w_ready,
+    input   [63:0] mem_w_data,
+    input   [31:0] mem_w_addr,
+    input    [7:0] mem_w_len,   
+    input    [2:0] mem_w_size,
+    output         mem_w_last_i,  
+// to axi
     output                               r_valid_i,          //读请求
     output                               w_valid_i,          //写请求
 	  input                                r_ready_o,          //读数据结束
@@ -35,91 +39,137 @@ module ysyx_22041412_axi_Arbiter #(
     output  [AXI_DATA_WIDTH-1:0]         rw_w_data_i,        //写数据
     output  [AXI_ADDR_WIDTH-1:0]         w_addr_i,           //写地址
     output  [AXI_ADDR_WIDTH-1:0]         r_addr_i,           //读地址
-    output  [7:0]                        w_size_i,           //写掩码
-    output  [7:0]                        r_size_i,           //读掩码
+    output  [2:0]                        w_size_i,           //写掩码
+    output  [2:0]                        r_size_i,           //读掩码
     output  [7:0]                        r_len_i,            //读突发长度
-    output  [7:0]                        w_len_i             //写突发长度
+    output  [7:0]                        w_len_i,            //写突发长度
+    input                                r_last_i,
+    input                                w_last_i
 );
+//读通道常通 IF , MEM有读请求则在本次IF结束后立刻处理
 `define AXI_IDLE         3'b000     //空闲
 `define MEMW             3'b001     //选通MEM写
 `define MEMR             3'b010     //选通MEM读
 `define IF               3'b100     //选通IF
-reg[2:0] switch;          //选择器状态  
-reg[2:0] next_switch;
 
+
+
+`define BUST_1           3'b000
+`define BUST_2           3'b001
+`define BUST_4           3'b010
+`define BUST_8           3'b011 
+
+reg[2:0] rd_switch;          //读通道选择器状态  
+reg[2:0] rd_next_switch;
+reg[1:0] rd_state;           //读通道状态机
+reg[1:0] rd_next_state;
+
+// reg[2:0] wr_switch;          //写通道选择器状态  
+// reg[2:0] wr_next_switch;
+// reg[1:0] wr_state;           //写通道状态机
+// reg[1:0] wr_next_state;
 `define IDLE         2'b00  
 `define BUSY         2'b01     
 //`define DONE         2'b100     
-reg[1:0] state;       //状态机
-reg[1:0] next_state;
 
-    always@(posedge clk)begin
+
+//------------读通道   Read transmission---------------------\\
+    always@(posedge clk)begin //状态机更新
       if(rst )begin
-        state <= `IDLE;
+        rd_state <= `IDLE;
       end else begin
-        state <= next_state;
-        switch<= next_switch;
+        rd_state <= rd_next_state;
+        rd_switch<= rd_next_switch;
       end
     end
-    //next state
-    always@(*)begin
+    always@(*)begin //next state
       if(rst )begin
-        next_state  = `IDLE;
-        next_switch = 'b0000;
+        rd_next_state  = `IDLE;
+        rd_next_switch = `AXI_IDLE;
       end else begin
-        case(state) //写入状态机的控制 
+        case(rd_state) //写入状态机的控制 
         `IDLE: begin
-              if(mem_rw_valid & mem_rw_wen )begin    //基于1234顺序选择本次传输的对象
-                next_state  = `BUSY;
-                next_switch =  `MEMW;   
-              end else if(mem_rw_valid & ~mem_rw_wen )begin
-                next_state  = `BUSY;
-                next_switch =  `MEMR;
+              if(mem_r_valid )begin
+                rd_next_state  = `BUSY;
+                rd_next_switch = `MEMR;
               end 
               else if(if_ar_valid)begin
-                next_state  = `BUSY;
-                next_switch = `IF;
+                rd_next_state  = `BUSY;
+                rd_next_switch = `IF;
               end else begin   
-                next_state  = `IDLE;
-                next_switch = `AXI_IDLE;
+                rd_next_state  = `IDLE;
+                rd_next_switch = `AXI_IDLE;
               end
         end
-        `BUSY:  begin                       //数据传输中
-          if(r_ready_o || w_ready_o )begin    
-            next_state = `IDLE;//ddr结束传输
-            next_switch= `AXI_IDLE;
+        `BUSY:  begin  //数据传输中
+          if((r_ready_o & r_last_i))begin   //传输结束了
+            //if(mem_rw_valid & ~mem_rw_wen )begin  //IF结束了，检查一下有没有MEM请求
+            //  rd_next_state  = `BUSY;
+            // rd_next_switch = `MEMR;
+            //end else if(if_ar_valid)begin            //IF有请求就继续连接IF
+            //  rd_next_state  = `BUSY;
+            //  rd_next_switch = `IF;     
+            //end else begin
+              rd_next_state  = `IDLE;
+              rd_next_switch = `AXI_IDLE;             
+            //end
+          end else if(~r_valid_i) begin//传输被取消
+              rd_next_state  = `IDLE;
+              rd_next_switch = `AXI_IDLE;   
           end else begin
-            next_state = `BUSY;//传输状态
-            next_switch= switch;
+            rd_next_state = `BUSY; //保持传输状态
+            rd_next_switch= rd_switch;
           end
         end
-        default: next_state = `IDLE;
+        default: rd_next_state = `IDLE;
         endcase
       end
     end
 
+//------------写通道   Write transmission---------------------\\
+  //always@( *)begin
 
-assign if_ar_data  =(switch==`IF)   ?data_read_o: 0;
-assign if_ar_ready =(switch==`IF)   ?r_ready_o  : 0;
 
-assign mem_rw_ready=(switch==`MEMR )?r_ready_o:
-                    (switch==`MEMW )?w_ready_o: 0;
+
+  //end
+
+
+
 
 //读通道
-assign r_valid_i   =(switch==`MEMR) ? mem_rw_valid :                //读请求
-                    (switch==`IF)   ? if_ar_valid  : 0;
-assign r_addr_i    =(switch==`MEMR) ? mem_rw_addr  :                //读地址
-                    (switch==`IF)   ? if_ar_addr   : 0;
-assign r_size_i    =(switch==`MEMR) ? mem_rw_size  : 
-                    (switch==`IF)   ? if_ar_size   : 0;
-assign r_len_i     =(switch==`MEMR) ? mem_rw_len   : 
-                    (switch==`IF)   ? if_ar_len    : 0;
+assign mem_r_last_i=(rd_switch==`MEMR )?r_last_i   : 0;
+assign mem_r_ready =(rd_switch==`MEMR )?r_ready_o  : 0;
+assign mem_r_data  =(rd_switch==`MEMR) ?data_read_o: 0;
+assign if_ar_data  =(rd_switch==`IF)   ?data_read_o: 0;
+assign if_ar_ready =(rd_switch==`IF)   ?r_ready_o  : 0;
+assign if_last_i   =(rd_switch==`IF)   ?r_last_i   : 0;
 
+assign r_valid_i   =(rd_switch==`MEMR) ? mem_r_valid : 
+                    (rd_switch==`IF)   ? if_ar_valid  : 0 ;  //读请求
+assign r_addr_i    =(rd_switch==`MEMR) ? mem_r_addr  :
+                    (rd_switch==`IF)   ? if_ar_addr   : 0 ;  //读地址
+assign r_size_i    =(rd_switch==`MEMR | rd_switch==`IF) ? `BUST_8  : 0 ;  //突发的宽度
+assign r_len_i     =(rd_switch==`MEMR) ? mem_r_len   :
+                    (rd_switch==`IF)   ?  if_ar_len   : 0 ;  //突发次数
+ 
 //写通道
-assign w_valid_i   =(switch == `MEMW)? mem_rw_valid : 0;            //写请求
-assign rw_w_data_i =(switch == `MEMW)? mem_rw_w_data: 0;            //写数据
-assign w_size_i    =(switch == `MEMW)? mem_rw_size  : 0;            //掩码
-assign w_addr_i    =(switch == `MEMW)? mem_rw_addr  : 0;            //地址
-assign w_len_i     =(switch == `MEMW)? mem_rw_len   : 0;            //突发长度
+assign mem_w_last_i= w_last_i ;
+assign mem_w_ready = w_ready_o ;
 
-endmodule
+assign w_valid_i   = mem_w_valid ;            //写请求
+assign rw_w_data_i = mem_w_data  ;            //写数据
+assign w_size_i    = mem_w_size  ;            //掩码
+assign w_addr_i    = mem_w_addr  ;            //地址
+assign w_len_i     = mem_w_len   ;            //突发次数
+
+
+/*        
+        wire[31:0] debug_addr = 'h800f4fe0; 
+//内存回写的检测
+always @(posedge clk) begin
+  if({mem_w_addr[31:4],{4{1'b0}}} == debug_addr & w_valid_i) 
+            $display("\33[1;34mDcache tag  write addr: %8h data:%32h\033[0m",mem_w_addr , mem_w_data);
+end
+ */
+
+ endmodule

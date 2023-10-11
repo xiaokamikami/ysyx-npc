@@ -33,6 +33,7 @@ static char* rl_gets() {
 //*********cmd***********
 static int cmd_XEXPR(char *args){
   int n;
+  int i=0;
   vaddr_t wp;
   //char *order;
   char *arg1 = strtok(NULL," ");
@@ -40,8 +41,9 @@ static int cmd_XEXPR(char *args){
   char *arg2 = strtok(NULL," ");
   sscanf(arg2,"%lx",&wp);
   //printf("Num:%d Addr:%lx\nStart:\n",n,wp);
-  for(;n>=1;n--){
-    printf("Addr:0x:%lx Rom:0x%08lx\n",wp,paddr_read(wp,4));
+  for(;n>=1;n=n-4){
+    i=i+4;
+    printf("Addr:0x:%lx Rom:0x%08lx\n",wp+i,paddr_read(wp+i,4));
   }
 
   return 0;

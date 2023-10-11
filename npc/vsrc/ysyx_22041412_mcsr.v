@@ -8,7 +8,9 @@ module ysyx_22041412_mcsr(
      input [2:0]func3,
      input [63:0]data_i,
      output [63:0]data_o,
-     output ready_o
+
+     input  valid_i,
+     output reg ready_o
  );
 
             // 0:mert
@@ -19,7 +21,7 @@ module ysyx_22041412_mcsr(
             // 5:mcause
 
 reg [63:0]mcsr_reg[5:0];
-reg ready;
+
 
 
 import "DPI-C" function void set_csr_ptr(input logic [63:0] a []);
@@ -32,41 +34,43 @@ wire [63:0]data;
 assign data=mcsr_reg[addr];
 assign data_o=data_r;
 
-assign ready_o=ready;
+
 always @(posedge clk) begin
-    if(rst) mcsr_reg[2] = 64'ha00001800;
-    else if(en& !ready & func3!='b000)begin
+    if(rst) begin
+        mcsr_reg[2] = 64'ha00001800;
+    end 
+    else if(en& !ready_o & func3!='b000 )begin
         data_r<=mcsr_reg[addr];
         if(func3=='b001 | func3=='b101) data_w<=data_i;
         else if(func3=='b010 | func3=='b110) data_w<=data|data_i;
         else if(func3=='b011 | func3=='b111) data_w<=data& (~data_i);
-        else data_w<=64'b0;
-        ready<=1'b1;
-        //$display("PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d",pc,data_r,addr,data_i,func3);
+        ready_o<=1'b1;
+        //$display("\033[1;36mMcsr PC:%8h  Read:%h  addr:%d  data_i:%h  func3:%d\033[0m",pc,mcsr_reg[addr],addr,data_i,func3);
     end
-    else if(en& !ready & addr=='b001)begin
+    else if(en& !ready_o & addr=='b001 )begin
         mcsr_reg[4]<=pc;
         mcsr_reg[5]<='h000b;
         data_r<=mcsr_reg[3];
-        ready<=1'b1;
+        ready_o<=1'b1;
         //$display("PC:%8h call %h",pc,mcsr_reg[3]);
     end
-    else if(en& !ready & addr=='b000)begin
+    else if(en& !ready_o & addr=='b000 )begin
         data_r<=mcsr_reg[4];
-        ready<=1'b1;
+        ready_o<=1'b1;
         //$display("PC:%8h mert %h",pc,mcsr_reg[4]);
     end
-    else if(en & ready & func3!='b000) begin    //�ӳ�һ��ִ��д��
-        mcsr_reg[addr]<=data_w;
-        ready<=1'b0;
-        data_w<=64'b0;
-        //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
-    end
-    else begin
-        ready<=1'b0;
+    // else if( ) begin    //write csr reg
+
+    //     //$display("PC:%8h  write %h  addr:%d",pc,data_w,addr);
+    // end
+    else if(valid_i)begin
+        ready_o<=1'b0;
         data_r<=64'b0;
     end
 
+    if(en & func3!='b000 & ready_o & valid_i)begin
+        mcsr_reg[addr]<=data_w;
+     end
 end
 
 endmodule

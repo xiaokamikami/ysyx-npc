@@ -1,5 +1,5 @@
 # coding:utf-8
-# 解析汇编指令到内存文件
+# 解析汇编指令为HEX文件
 import re
 f=open('./resource/test.txt','r')
 w=open('./resource/Imm_init.hex','w')

@@ -97,16 +97,15 @@ void init_monitor(int argc, char *argv[]) {
   //printf("argv:%s\n",argv[7]);
   /* Parse arguments. */
   parse_args(argc, argv);
-  if(ftrace_flag ==1){
-    char ls[100]="/home/kami/ysyx-workbench/am-kernels/tests/cpu-tests/build/";
-    char * tes = strncat(ls,tests,50);
-    riscv64_elf(tes);
-    FILE *fun  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-function.txt","w");
-    fclose(fun );
-    FILE *iqr  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-handle.txt","w");
-    fclose(iqr );
-
-  }
+  // if(ftrace_flag ==1){
+  //   char ls[100]="/home/kami/ysyx-workbench/am-kernels/tests/cpu-tests/build/";
+  //   char * tes = strncat(ls,tests,50);
+  //   riscv64_elf(tes);
+  //   FILE *fun  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-function.txt","w");
+  //   fclose(fun );
+  //   FILE *iqr  = fopen("/home/kami/ysyx-workbench/nemu/build/elf-handle.txt","w");
+  //   fclose(iqr );
+  // }
   /* Set random seed. */
   init_rand();
 
