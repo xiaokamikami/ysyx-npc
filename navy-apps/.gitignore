@@ -8,9 +8,9 @@
 !*.[cSh]
 !*.cpp
 !scripts/*.mk
-build/
-repo/
-libs/libc/
+!apps/bird/repo/*
+!apps/pal/repo/*
+!libs/libc/*
 !/fsimg/share/files/num
 !/fsimg/share/fonts/Courier-*.bdf
 !/fsimg/share/music/little-star.ogg
@@ -23,3 +23,4 @@ libs/libc/
 !/fsimg/share/music/rhythm/Si.ogg
 !/fsimg/share/music/rhythm/empty.ogg
 !/fsimg/share/pictures/projectn.bmp
+build/*
