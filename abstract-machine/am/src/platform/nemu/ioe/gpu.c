@@ -15,7 +15,7 @@ void __am_gpu_init() {
   //for (i = 0; i < vga_width * vga_height; i ++)fb[i] = i;   //初始化线条
   outl(SYNC_ADDR, 1);
 }
-
+//读取屏幕配置
 void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
   //vga_width = inl(VGACTL_ADDR)>>16  ;  // TODO: get the correct width
   //vga_height = inl(VGACTL_ADDR)&0x0000ffff ;  // TODO: get the correct height
@@ -26,6 +26,7 @@ void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
   };
 }
 
+//写入显存 偏移量加到起点，然后写w*h*sizeof(uint32)
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
   uint32_t x = ctl->x, y = ctl->y, w = ctl->w, h = ctl->h;
   if (w == 0 || h == 0) return;

@@ -27,6 +27,7 @@ void __am_gpu_config(AM_GPU_CONFIG_T *cfg) {
   };
 }
 
+//写入显存 偏移量加到起点，然后写w*h*sizeof(uint32)
 void __am_gpu_fbdraw(AM_GPU_FBDRAW_T *ctl) {
   uint32_t x = ctl->x, y = ctl->y, w = ctl->w, h = ctl->h;
   if (w == 0 || h == 0) return;

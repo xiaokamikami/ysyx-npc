@@ -57,6 +57,8 @@ enum {
 
 typedef uint32_t gpuptr_t;
 
+
+//VGA相关结构体
 struct gpu_texturedesc {
   uint16_t w, h;
   gpuptr_t pixels;

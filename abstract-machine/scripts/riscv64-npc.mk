@@ -17,7 +17,6 @@ LDFLAGS   += --gc-sections -e _start
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 .PHONY: $(AM_HOME)/am/src/riscv/npc/trm.c
 
-NPC_HOME = /home/kami/ysyx-workbench/npc
 VSRCS += $(NPC_HOME)/vsrc/ysyx_22041412_*.v
 VSRCS += $(NPC_HOME)/resource/*.hex
 INCFLAGS += $(addprefix -Ldir, $(VSRCS))

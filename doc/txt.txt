@@ -1,2 +1,6 @@
 NEMU 20秒
-NPC  1分钟内进游戏 2分进入战斗 5分钟内出数字
+NPC  1分钟进游戏 3分钟内出数字
+
+笔记：PAL 
+uibattle.c 1746行 修改了参数后才能显示数字
+注释navy-apps/apps/pal/repo/src/main.c的第471和第472行，跳过SOFTSTAR商标动画和群山飞鹤动画

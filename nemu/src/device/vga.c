@@ -68,7 +68,7 @@ void vga_update_screen() {
   //TODO: call `update_screen()` when the sync register is non-zero,
   // then zero out the sync register
 }
-
+//初始化VGA 初始化屏幕参数  创建显存
 void init_vga() {
   vgactl_port_base = (uint32_t *)new_space(8);
   vgactl_port_base[0] = (screen_width() << 16) | screen_height();

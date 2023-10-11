@@ -17,7 +17,7 @@
 #elif defined(__ISA_MIPS32__)
 #define EXPECT_TYPE EM_MIPS_X
 #elif defined(__ISA_RISCV32__) || defined(__ISA_RISCV64__)
-#define EXPECT_TYPE EM_RISCV
+#define EXPECT_TYPE EM_RISCV  //在YSYX中只用这个
 #else
 #error Unsupported ISA
 #endif
@@ -64,9 +64,12 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
   return program_star;
 }
 
+#define PC_START 0x80000000
+#define PC_END   0x88000000
+
 void naive_uload(PCB *pcb, const char *filename) {
-  
   uintptr_t entry = loader(pcb, filename);
+  assert( entry >= PC_START && entry<PC_END);//检测目标程序起点
 
   Log("Fence_i start ");//转入新程序之前，需要先执行FENCE.I
   asm volatile("fence.i":::"memory");

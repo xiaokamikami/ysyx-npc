@@ -72,7 +72,7 @@ extern "C" void set_gpr_ptr(const svOpenArrayHandle r) {
 extern "C" void set_csr_ptr(const svOpenArrayHandle r) {
   csr_gpr = (uint64_t *)(((VerilatedDpiOpenVar*)r)->datap());
 }
-
+//内存读外设处理
 void device_read(uint64_t raddr, uint64_t *rdata){
       switch (raddr)
       {
@@ -97,6 +97,7 @@ void device_read(uint64_t raddr, uint64_t *rdata){
         //printf("Device read : pc =%lx  dut_num =%d main_time =%d \n",top->pip_mem_pc,dut_num,main_time);
       #endif
 }
+//内存写外设处理
 void device_write(uint64_t waddr, uint64_t wdata){
   if( FB_ADDR <=waddr & waddr <= FB_ADDR+0xf00000){
     mmio_write(waddr,4,(uint32_t)wdata);
@@ -174,7 +175,7 @@ void updata_clk()    //刷新一次时钟与设备
     main_clk_value++;  
     updevice_clk++;
     cmd_c();//记录指令的变化 并验证正确性
-    if(updevice_clk==200){
+    if(updevice_clk==250){
         device_update();  //准备外设数据
     }
     

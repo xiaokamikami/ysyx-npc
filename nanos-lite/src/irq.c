@@ -1,6 +1,7 @@
 #include <common.h>
 #include "syscall.h"
 extern void do_syscall(Context *c);
+//处理中断事件
 static Context* do_event(Event e, Context* c) {
   switch (e.event) {
     case 0: Log("irq handle event ID = EVENT_NULL\n");break;
