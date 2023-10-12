@@ -6,7 +6,7 @@ cd ../am-kernels/benchmarks/microbench
 make ARCH=riscv64-nemu mainargs=test run
 cd ../../tests
 cd alu-tests
-sh nemu.sh
+make ARCH=nemu run
 cd ../am-tests
 make ARCH=riscv64-nemu  mainargs=h run
 make ARCH=riscv64-nemu  mainargs=t run
