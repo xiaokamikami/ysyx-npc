@@ -54,9 +54,22 @@ void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
   SDL_Rect dst_rect;
   if(dstrect !=NULL) dst_rect = *dstrect;
   else dst_rect = (SDL_Rect){0,0,dst->w,dst->h}; 
-  
-  uint32_t *pixels = (uint32_t *)dst->pixels;
-  memset(pixels+((dst_rect.y)* dst->w)+dst_rect.x,color,dst_rect.h*dst_rect.w);
+
+  if(dst->format->BitsPerPixel==8){
+    for (size_t i = 0; i < dst_rect.h; i++)
+    {
+      memset(dst->pixels+((i+dst_rect.y)* dst->w+dst_rect.x),(uint8_t)color,dst_rect.w);
+    }
+  }
+  else if(dst->format->BitsPerPixel==32){
+    for (size_t i = 0; i < dst_rect.h; i++)
+    {
+      memset(dst->pixels+((i+dst_rect.y)* dst->w+dst_rect.x),color,dst_rect.w);
+    }
+  }else{
+    assert(0);
+  }
+
   //循环填充 按行为单位
 /*   for (int i = 0; i < dst_rect.h; ++ i)
     for (int j = 0; j < dst_rect.w; ++ j)
