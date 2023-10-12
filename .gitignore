@@ -6,13 +6,13 @@
 !/nanos-lite/*
 !/navy-apps/*
 !/npc/*
-!/am-kernels/*
+
 !Makefile
 !README.md
 !.gitignore
 !init.sh
 !doc/*
 /fceux-am
-
+/am-kernels
 /nvboard
 !*.sh
