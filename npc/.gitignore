@@ -13,7 +13,7 @@
 !.gitignore
 !README.md
 !*.vlt
-
+!resource/readme.md
 obj_dir/*
-resource/*
+#resource/*
 

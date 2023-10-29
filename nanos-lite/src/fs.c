@@ -5,7 +5,7 @@
 #include "debug.h"
 typedef size_t (*ReadFn) (void *buf, size_t offset, size_t len);
 typedef size_t (*WriteFn) (const void *buf, size_t offset, size_t len);
-//#define FS_DEBUG
+#define FS_DEBUG
 
 //描述一个文件的各项参数
 typedef struct {
@@ -20,6 +20,10 @@ typedef struct {
 //文件结构体列表
 enum {FD_STDIN, FD_STDOUT, FD_STDERR, FD_FB,FD_EVENTS, FD_DISPINFO};
 
+//调试用 方便打印函数的操作
+const char* const fs_lseek_whence[] = {"SEEK_SET", "SEEK_CUR", "SEEK_END"};
+const char* const fs_fs_write[]     = {"FD_STDIN", "FD_STDOUT", "FD_STDERR", "FD_FB"};
+const char* const fs_fs_read[]     =  {"FD_EVENTS", "FD_DISPINFO"};
 size_t invalid_read(void *buf, size_t offset, size_t len) {
   panic("should not reach here");
   return 0;
@@ -70,22 +74,28 @@ int fs_open(const char *pathname, int flags, int mode){
 
 //读取一个磁盘文件  或是虚拟设备的文件
 size_t fs_read(int fd, void *buf, size_t len){
-  #ifdef FS_DEBUG
-    Log("read on %d %lx,len %ld",fd,buf,len);
-  #endif 
   assert(buf!=NULL);
   size_t ret_len=0;
   switch (fd)
   {
     case FD_EVENTS: 
+          #ifdef FS_DEBUG
+            Log("read on %s %lx,len %ld",fs_fs_read[0],buf,len);
+          #endif        
           ret_len = events_read(buf,0,len); //读取键盘事件
           return ret_len;
       break;
     case FD_DISPINFO: 
-        ret_len = dispinfo_read(buf,0,len);//读取屏幕参数
-        return ret_len;
+          #ifdef FS_DEBUG
+            Log("read on %s %lx,len %ld",fs_fs_read[1],buf,len);
+          #endif  
+          ret_len = dispinfo_read(buf,0,len);//读取屏幕参数
+          return ret_len;
       break;
     default:    //读取普通文件，要防止访问越界
+        #ifdef FS_DEBUG
+          Log("read on fd:%d %lx,len %ld",fd,buf,len);
+        #endif 
         if(file_table[fd].read_offset+len>file_table[fd].size){
           ret_len = file_table[fd].size-file_table[fd].read_offset;
         }
@@ -103,17 +113,20 @@ size_t fs_read(int fd, void *buf, size_t len){
 
 //读取一个磁盘文件  或是虚拟设备的文件
 size_t fs_write(int fd, const void *buf, size_t len){
-  #ifdef FS_DEBUG
-    Log("sys_write fd=%ld,buf*=%lx,len=%lx",fd,buf,len);
-  #endif // DEBUG
   assert(buf!=NULL);
   size_t ret_len = 0;
   switch (fd)
   {
-    case FD_FB:    
+    case FD_FB: 
+        #ifdef FS_DEBUG
+          Log("sys_write %s ,buf*=%lx,len=%lx",fs_fs_write[3],buf,len);
+        #endif // DEBUG   
         ret_len=fb_write(buf,file_table[fd].read_offset,len);//写文件
       break;
     case FD_STDOUT :case FD_STDERR:  //写串口
+        #ifdef FS_DEBUG
+          Log("sys_write %s ,buf*=%lx,len=%lx",fs_fs_write[FD_STDOUT],buf,len);
+        #endif // DEBUG  
           for (uint16_t i=0;i<len;++i)
           {
             putch(((char *)buf)[i]);
@@ -121,6 +134,9 @@ size_t fs_write(int fd, const void *buf, size_t len){
           return len;
       break;
     default:    //写普通文件  要防止越界
+        #ifdef FS_DEBUG
+          Log("sys_write fd=%d,buf*=%lx,len=%lx",fd,buf,len);
+        #endif // DEBUG  
         assert(file_table[fd].read_offset + len <= file_table[fd].size);
         ramdisk_write(((char *)buf),file_table[fd].read_offset+file_table[fd].disk_offset,len);
         file_table[fd].read_offset+=len;
@@ -131,11 +147,10 @@ size_t fs_write(int fd, const void *buf, size_t len){
   return ret_len;
 }
 
-
 //调整读写文件的指针
 size_t fs_lseek(int fd, size_t offset, int whence){
   #ifdef FS_DEBUG
-    Log("[fs lseek] fd read %d offset %ld ",fd,offset);
+    Log("[fs lseek] fd read %d offset %ld  whence:%s ",fd,offset,fs_lseek_whence[whence]);
   #endif // DEBUG
   switch (whence)
   {
