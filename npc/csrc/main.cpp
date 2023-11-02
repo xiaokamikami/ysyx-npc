@@ -132,17 +132,37 @@ void sim_init() {                 //vcd init
   boot_time =  sys_time.tv_sec;
 }
 
-//end
+
+static timespec start_timespec, end_timespec;
+static uint8_t count_timespec; 
+//Statistical calculation time
+double getCalcuationTime(){
+  double elapsed_time; 
+  if (!count_timespec) {
+    clock_gettime(CLOCK_MONOTONIC, &start_timespec); // 记录开始时间  
+    count_timespec =1;
+    return 0;
+  }else {
+    clock_gettime(CLOCK_MONOTONIC, &end_timespec); // 记录开始时间
+    elapsed_time = ((end_timespec.tv_sec - start_timespec.tv_sec)*1000000000) + (end_timespec.tv_nsec - start_timespec.tv_nsec);
+    count_timespec =0;
+    return elapsed_time;
+  }
+  return 0;
+}
+
+
 static uint8_t star_debug;
 static uint64_t start_time;
 static uint8_t updevice_clk;
 void updata_clk()    //刷新一次时钟与设备
 {
-
+      //getCalcuationTime();
   top->clk = !(top->clk);  //取反时钟
   top->eval();             //为仿真核更新数据
-
+      //printf("printf rtl-update  time%lf\n",getCalcuationTime());
   #ifdef vcd_en    //一个是根据PC地址输出调试波形，一个是根据运行时间输出调试波形
+      //getCalcuationTime();  
       #ifdef debuge_pc
         if(top->pip_pc==debuge_pc & ~star_debug){
           star_debug = 1;
@@ -163,23 +183,30 @@ void updata_clk()    //刷新一次时钟与设备
         }
       #endif 
     contextp->timeInc(1);
+    //printf("printf vcd-update  time%lf\n",getCalcuationTime());
   #endif 
 
   if (top->clk == 1){ 
+      //getCalcuationTime();
     axi_channel axi;
     axi_copy_from_dut_ptr(top, axi);  //从 NPC引脚拷贝出数据
     axi4_helper_falling(axi);         //模拟从机工作
     axi_set_dut_ptr(top, axi);        //复制结果到 NPC引脚
+      //printf("printf axi-update  time%lf\n",getCalcuationTime());
   }
   else{
     main_clk_value++;  
     updevice_clk++;
+      //getCalcuationTime();
     cmd_c();//记录指令的变化 并验证正确性
+      //printf("printf dif-update  time%lf\n",getCalcuationTime());
     if(updevice_clk==250){
-        device_update();  //准备外设数据
+        //getCalcuationTime();
+      device_update();  //准备外设数据
+       // printf("printf device-update  time%lf\n",getCalcuationTime());
     }
-    
   }
+
 
   main_time++; 
 
@@ -214,6 +241,7 @@ static int cmd_c()                //DIFFTEST
         #ifdef diff_en      //正确性检查
             //paddr_t npc  = top->pip_dnpc;
             //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+
 /*     struct timespec start, end;  
     double elapsed_time;  
   
@@ -340,8 +368,8 @@ int main(int argc,char **argv){
   {
     updata_clk();  //刷新时钟，最耗时的部分
 
-    #ifdef end_time
-      if(main_clk_value>end_time){
+    #ifdef clk_count_end
+      if(main_clk_value>end_times){
         printf(BLUE "[TIME END]" GREEN " PC=%08lx\n" NONE,top->pip_pc);
         updata_clk();  
         break;

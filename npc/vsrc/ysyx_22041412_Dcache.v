@@ -274,17 +274,17 @@ reg [2:0] wr_state;  //cache状态机
                   end 
                   //$display("Dcache hit write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
 //近期最少使用计数
-/*             cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0 && cache_fwen_ct[cache_index][0]!='b00) ?cache_fwen_ct[cache_index][0]-1'b1:
-                                            (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:cache_fwen_ct[cache_index][0];
+/*             cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0) ? 'b00:
+                                            (tag_v_w!='d0 && cache_fwen_ct[cache_index][0]!='b11) ?cache_fwen_ct[cache_index][0]+1'b1:'b11;
 
-            cache_fwen_ct[cache_index][1] <=(tag_v_w=='d1 && cache_fwen_ct[cache_index][1]!='b00) ?cache_fwen_ct[cache_index][1]-1'b1:
-                                            (tag_v_w!='d1 && cache_fwen_ct[cache_index][1]!='b11) ?cache_fwen_ct[cache_index][1]+1'b1:cache_fwen_ct[cache_index][1];
+            cache_fwen_ct[cache_index][1] <=(tag_v_w=='d1) ? 'b00:
+                                            (tag_v_w!='d1 && cache_fwen_ct[cache_index][1]!='b11) ?cache_fwen_ct[cache_index][1]+1'b1:'b11;
                                             
-            cache_fwen_ct[cache_index][2] <=(tag_v_w=='d2 && cache_fwen_ct[cache_index][2]!='b00) ?cache_fwen_ct[cache_index][2]-1'b1:
-                                            (tag_v_w!='d2 && cache_fwen_ct[cache_index][2]!='b11) ?cache_fwen_ct[cache_index][2]+1'b1:cache_fwen_ct[cache_index][2];
+            cache_fwen_ct[cache_index][2] <=(tag_v_w=='d2) ? 'b00:
+                                            (tag_v_w!='d2 && cache_fwen_ct[cache_index][2]!='b11) ?cache_fwen_ct[cache_index][2]+1'b1:'b11;
                                             
-            cache_fwen_ct[cache_index][3] <=(tag_v_w=='d3 && cache_fwen_ct[cache_index][3]!='b00) ?cache_fwen_ct[cache_index][3]-1'b1:
-                                            (tag_v_w!='d3 && cache_fwen_ct[cache_index][3]!='b11) ?cache_fwen_ct[cache_index][3]+1'b1:cache_fwen_ct[cache_index][3];  */
+            cache_fwen_ct[cache_index][3] <=(tag_v_w=='d3) ? 'b00:
+                                            (tag_v_w!='d3 && cache_fwen_ct[cache_index][3]!='b11) ?cache_fwen_ct[cache_index][3]+1'b1:'b11;   */
 
                   //if(~cpu_rw_en)$display("\033[1;34mDCACHE hit  Read  addr:%8h offset %h size %h ,data:%16h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_read_data);         
                   //else$display("\033[1;35mDCACHE hit  Write addr:%8h offset %h size %h ,data:%32h \033[0m",cpu_req_addr,cache_offset,cpu_rw_size,cache_write_data<< (cache_offset[2:0] *8));
@@ -543,9 +543,7 @@ reg [2:0] wr_state;  //cache状态机
         endcase
       end
     end
-
-
-wire [1:0] cache_write_point;
+wire  [1:0] cache_write_point;
 reg  [1:0] cache_write_point_l1;
 reg  [1:0] cache_rodom_cnt;
 assign cache_write_point = cache_rodom_cnt;
@@ -561,14 +559,14 @@ assign cache_write_point = cache_rodom_cnt;
 //                             (~cache_v_ram[cache_index][7]) ? 3'd7 : cache_rodom_cnt;
 
 // 替换最近不常用数据，如果没有，那就随机替换   在循环跑分测试中效果不好  对真实任务有效  , 在做FENCH I的时候发现 覆盖率还没伪随机高，搞不懂
-/*  always@(posedge clk)begin
-  if(cpu_valid)begin
+/* always@(posedge clk)begin
+  if(rd_state==`DCACHE_IDLE)begin
     cache_write_point  <=   (cache_fwen_ct[cache_index][0] > (cache_fwen_ct[cache_index][1] & cache_fwen_ct[cache_index][2]  & 
                                                               cache_fwen_ct[cache_index][3] )) ? 2'd0  :
                             (cache_fwen_ct[cache_index][1] > (cache_fwen_ct[cache_index][2] & cache_fwen_ct[cache_index][3] ) ) ? 2'd1  :
                             (cache_fwen_ct[cache_index][2] > cache_fwen_ct[cache_index][3] ) ? 2'd2  : 2'd3  ;
   end
-end  */
+end   */
 
 //伪随机替换计数器
  always @(posedge clk) begin

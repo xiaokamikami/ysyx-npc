@@ -63,8 +63,10 @@ module ysyx_22041412_decode(
 	assign Li    = (instr[6:0]==`ysyx_22041412_lui) ? 1'b1 :1'b0 ;
 	assign Auipc = (instr[6:0]==`ysyx_22041412_auipc) ? 1'b1:1'b0;
 
+	wire Load;
+	assign Load = (instr[6:0]==`ysyx_22041412_load)? 1'b1 : 1'b0;
 
-	assign I_type=(Jarl| (instr[6:0]==`ysyx_22041412_load) |I_Imm |RV64_I_IMM|Handle) ;
+	assign I_type=(Jarl| Load |I_Imm |RV64_I_IMM|Handle) ;
 	assign U_type=(Li | Auipc);
 	assign J_type=(instr[6:0]==`ysyx_22041412_jal) ;
 	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
@@ -96,8 +98,8 @@ module ysyx_22041412_decode(
 					 B_type						    ?`ysyx_22041412_j_B   :
 					                                 `ysyx_22041412_j_idle;
 
-	assign mem_mode = (instr[6:0]==`ysyx_22041412_load) ?`ysyx_22041412_mem_load : 
-	                   S_type                           ?`ysyx_22041412_mem_stor :`ysyx_22041412_mem_idle;
+	assign mem_mode =  Load 	?`ysyx_22041412_mem_load : 
+	                   S_type   ?`ysyx_22041412_mem_stor :`ysyx_22041412_mem_idle;
 
 
 
@@ -131,7 +133,7 @@ module ysyx_22041412_decode(
 
                 (Auipc)?`ysyx_22041412_UADD:
                 (Li  )?`ysyx_22041412_li:
-                (mem_mode==`ysyx_22041412_mem_load|mem_mode==`ysyx_22041412_mem_stor|opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
+                ( (mem_mode!='b00 ) |opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
                 0;
 	//提前计算出Jal的地址
     always@(posedge clk)begin

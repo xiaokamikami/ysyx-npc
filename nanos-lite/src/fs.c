@@ -5,7 +5,7 @@
 #include "debug.h"
 typedef size_t (*ReadFn) (void *buf, size_t offset, size_t len);
 typedef size_t (*WriteFn) (const void *buf, size_t offset, size_t len);
-#define FS_DEBUG
+//#define FS_DEBUG
 
 //描述一个文件的各项参数
 typedef struct {
