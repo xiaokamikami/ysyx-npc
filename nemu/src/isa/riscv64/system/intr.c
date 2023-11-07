@@ -3,7 +3,7 @@
 #include <cpu/ifetch.h>
 #include <locale.h>
 #include <stdlib.h>
-#include "/home/kami/ysyx-workbench/nemu/src/isa/riscv64/local-include/reg.h"
+#include "../local-include/reg.h"
 
 void irqtrace(word_t NO,word_t epc,word_t mtvec);
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
