@@ -32,6 +32,7 @@ endef
 	-@git add . -A --ignore-errors                                       `# add files to commit`
 	-@(echo "> $(MSG)" && echo $(STUID) $(STUNAME) && uname -a && uptime `# generate commit msg`) \
 	                | git commit -F - $(GITFLAGS)                        `# commit changes in tracer branch`
+	-@git rm --cached nemu/tools/spike-diff/repo
 	-@$(call git_soft_checkout, $(WORK_BRANCH))                          `# switch to work branch`
 	-@mv $(WORK_INDEX) .git/index                                        `# restore git index`
 

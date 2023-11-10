@@ -15,5 +15,4 @@
 /fceux-am
 /am-kernels
 /nvboard
-/nemu/tools/spike-diff/repo
 !*.sh
