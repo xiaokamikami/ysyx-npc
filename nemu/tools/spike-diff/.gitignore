@@ -1,0 +1,5 @@
+*.*
+*
+!difftest.cc
+!Makefile
+!.gitignore
