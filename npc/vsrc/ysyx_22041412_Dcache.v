@@ -242,14 +242,6 @@ reg [2:0] wr_state;  //cache状态机
     
     always @(*) begin  //read data 数据的输出
         case (rd_state)
-           `DCACHE_IDLE: begin
-                cpu_read_data  = 64'b0; 
-                cache_rd_ready = 1'b0;
-                write_index    = 7'b0;
-                rw_strb        = 128'b0;
-                write_data     = 128'b0;
-                write_en    [cache_write_point]  =1'b0;
-           end
            `DCACHE_CACHE: begin
                 if(tag_v !=4'b0000)begin 
                     cpu_read_data  = (~cpu_rw_en)?(cache_read_data >> (cache_offset[2:0] *8)) :0;  //通过移位将数据对齐到合适的地址上
@@ -478,8 +470,6 @@ reg [2:0] wr_state;  //cache状态机
 
     always @(*)begin
         case (wr_state)
-            `DCACHE_IDLE:   cache_wr_ready= 1'b0;
-            `DCACHE_WTBACK: cache_wr_ready= 1'b0;
             `DCACHE_DEVICE: begin
                 if(axi_w_ready_i)begin
                     cache_wr_ready= 1'b1;
@@ -487,8 +477,7 @@ reg [2:0] wr_state;  //cache状态机
                     cache_wr_ready= 1'b0;
                 end
             end
-            `DCACHE_FENCE:  cache_wr_ready= 1'b0;
-            default:        cache_wr_ready= 1'b0;
+            default:cache_wr_ready= 1'b0;
         endcase
     end
 //在空闲时返回脏数据   基于解耦的axi接口， 负责设备写和返回脏数据操作

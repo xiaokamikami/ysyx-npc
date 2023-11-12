@@ -4,6 +4,9 @@ module ysyx_22041412_top(
     input wire rst,
     //EXE
     output wire [63:0]pip_pc,
+    output reg  [4:0] pip_reg_addr,
+    output reg  [63:0]pip_reg_data,
+    output reg        pip_reg_en,
     output wire [63:0]pip_mem_pc,
     output Ebreak,
 
@@ -108,9 +111,15 @@ module ysyx_22041412_top(
     parameter PC_WIDTH          = 64;
 
 //DIFF-TEST
-assign pip_pc     = wb_pc;
-assign pip_mem_pc = mem_pc;
+assign pip_pc      = wb_pc;
+assign pip_mem_pc  = mem_pc;
 assign Ebreak=(id_imm=='b000100000000000001110011)?1:0;
+
+always @(posedge clk) begin
+    pip_reg_addr <= wb_addr;
+    pip_reg_data <= wb_data;
+    pip_reg_en   <= wb_reg_en;
+end
 //
 
 

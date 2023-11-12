@@ -46,9 +46,10 @@ bool is_exit = false;
 bool sdl_exit = false;
 bool isebreak = false;
 static uint32_t last_pc;
+static uint32_t last_diff_pc;
 static uint32_t same_pc;
-static void updata_clk();
-static int cmd_c();
+static inline void updata_clk();
+static inline int cmd_c();
 
 using namespace std;
 vluint64_t main_time = 0;
@@ -155,7 +156,7 @@ double getCalcuationTime(){
 static uint8_t star_debug;
 static uint64_t start_time;
 static uint8_t updevice_clk;
-void updata_clk()    //刷新一次时钟与设备
+static inline void updata_clk()    //刷新一次时钟与设备
 {
       //getCalcuationTime();
   top->clk = !(top->clk);  //取反时钟
@@ -203,13 +204,11 @@ void updata_clk()    //刷新一次时钟与设备
     if(updevice_clk==250){
         //getCalcuationTime();
       device_update();  //准备外设数据
-       // printf("printf device-update  time%lf\n",getCalcuationTime());
+       //printf("printf device-update  time%lf\n",getCalcuationTime());
     }
   }
 
-
   main_time++; 
-
 }
 
 void exit_now() {
@@ -233,42 +232,61 @@ void isa_reg_print(uint8_t num) {
 }
 
 
-static int cmd_c()                //DIFFTEST
+static inline int cmd_c()                //DIFFTEST
 { 
   paddr_t pc = top->pip_pc;
+    #ifdef diff_en 
+        if (top->pip_reg_en==1) {
+            #ifdef diff_reg0
+                if(cpu_gpr[0]!=0) {
+                    std::cout << "[cmd_c]Error  Cannot write to register zero" << std::endl;
+                    exit_now();
+                }
+            #endif
+            cpureg.gpr[top->pip_reg_addr]=top->pip_reg_data;//准备需要被检查的寄存器数据 
+        }
+    #endif
+
   if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
         #ifdef diff_en      //正确性检查
-            //paddr_t npc  = top->pip_dnpc;
-            //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+        //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
 
-/*     struct timespec start, end;  
-    double elapsed_time;  
-  
-    clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
-            for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
-               cpureg.gpr[i] = cpu_gpr[i];
-            } // sp regs are used for addtion
-    clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
-  
-    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
-            printf("printf for copy reg time%lf\n",elapsed_time);
+             
+            // struct timespec start, end;  
+            // double for_time,mem_time;  
+            // clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
+            //     if (top->pip_reg_en==1) {
+            //         #ifdef diff_reg0
+            //             if(cpu_gpr[0]!=0) {
+            //                 std::cout << "[cmd_c]Error  Cannot write to register zero" << std::endl;
+            //                 exit_now();
+            //             }
+            //         #endif
+            //         cpureg.gpr[top->pip_reg_addr]=top->pip_reg_data;//准备需要被检查的寄存器数据 
+            //     }
+            // clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
+            // mem_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
+            // printf("printf addr copy reg time%lf\n",mem_time);
+            // exit(0);
+            // clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
+            //     for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
+            //         cpureg.gpr[i] = cpu_gpr[i];
+            //     } // sp regs are used for addtion
+            // clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
+        
+            // for_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
+            // printf("printf for copy reg time%lf\n",for_time);
+            // exit(0);
 
-    clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
-          memcpy(&cpureg.gpr,cpu_gpr,reg32_size); 
-    clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
-  
-    elapsed_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
-            printf("printf memcpy copy reg time%lf\n",elapsed_time);
 
-    exit(0); */
+            // for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
+            //    cpureg.gpr[i] = cpu_gpr[i];
+            // } // sp regs are used for addtion
+            //memcpy(&cpureg.gpr,cpu_gpr,reg32_size); //准备需要被检查的寄存器数据 
 
-            //for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
-               //cpureg.gpr[i] = cpu_gpr[i];
-            //} // sp regs are used for addtion
-            memcpy(&cpureg.gpr,cpu_gpr,reg32_size); //准备需要被检查的寄存器数据 
             cpureg.pc=pc;
-
+            last_diff_pc=pc;
             if(dut_data.m_size>0 && Pop(&dut_data,pc))  {   //有访问外设的情况
               //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
               difftest_skip_ref();
@@ -314,12 +332,12 @@ static int cmd_c()                //DIFFTEST
   return 0;
 }
 
-void npc_init(void){
+static void npc_init(void){
   sim_init();
   rct_init();
   init_device();
-
 }
+
 int main(int argc,char **argv){
   Verilated::commandArgs(argc,argv);
   Verilated::traceEverOn(true);
@@ -352,14 +370,13 @@ int main(int argc,char **argv){
     //rst_cpu();
     printf("\033[1;31mWelcome to fxxk NPC\033[0m\n");
     printf("\033[1;32mimg_size %lx\33[0m\n", img_size);  
-  #ifdef diff_en
-
-    printf(BLUE "\033[1;31mDifftest  ENABLE \033[0m\n" NONE);
-    for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
-    init_difftest(diff_so_file, img_size, 1024);           // 为ref初始化bin文件
-  #else
-    printf(RED "\033[1;31mDifftest  DISABLE \033[0m\n" NONE);
-  #endif
+    #ifdef diff_en
+        printf(BLUE "\033[1;31mDifftest  ENABLE \033[0m\n" NONE);
+        for(int i = 0; i < 32; i++) cpureg.gpr[i] = cpu_gpr[i];// sp regs are used for addtion
+        init_difftest(diff_so_file, img_size, 1024);           // 为ref初始化bin文件
+    #else
+        printf(RED "\033[1;31mDifftest  DISABLE \033[0m\n" NONE);
+    #endif
 
 
   printf(BLUE "Run verilog\n" NONE);
@@ -377,13 +394,13 @@ int main(int argc,char **argv){
     #endif
 
     if(top->Ebreak==true | sdl_exit==true ){  //ebreak   或人为关闭窗口
-      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08x\n" NONE,last_pc);
+      printf(BLUE "[HIT GOOD ]" GREEN " PC=%08x\n" NONE,last_diff_pc);
       updata_clk();  
       break;
     }
     else if(is_exit ==true){            //遇到错误，停止运行
       //isa_reg_display();
-      printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_pc,main_time);
+      printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_diff_pc,main_time);
       
       updata_clk();  
       //break;
@@ -418,7 +435,7 @@ int main(int argc,char **argv){
   double freq,inst;
   freq = (double)main_clk_value/(end_time-boot_time);
   inst = (double)main_dir_value/(end_time-boot_time);
-  printf(BLUE "Verilator-freq :" NONE " %.0lf HZ\n",freq);
+  printf(BLUE "Verilator-freq :" NONE " %.0lf HZ = %0.1lf MHZ\n",freq,freq/1000000);
   printf(BLUE "Verilator-inst :" NONE " %.0lf inst/s\n",inst);
 
 

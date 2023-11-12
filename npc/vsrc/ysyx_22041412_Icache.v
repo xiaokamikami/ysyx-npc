@@ -18,7 +18,7 @@ module ysyx_22041412_Icache(
 
 //cpu       <---> icache
     input       [31:0]      cpu_req_addr,
-    input                   cpu_valid,
+    input                   cpu_valid,          //预取请求
     output  reg [127:0]     cpu_read_data,
     output  reg             cpu_ready,
 
@@ -29,12 +29,12 @@ module ysyx_22041412_Icache(
     input                   fence_i,            
     output  reg             fence_ready,
 //icache    <---> AXI
-    input  					        axi_ready_i,        // 读有效等待接收
-    output 					        axi_valid_o,        // 发出读请求      
-    input                   axi_r_last_i,       // 传输结束标识
+    input  					  axi_ready_i,        // 读有效等待接收
+    output 					  axi_valid_o,        // 发出读请求      
+    input                     axi_r_last_i,       // 传输结束标识
     output  reg [7:0] 		  axi_r_len_i,
-    input       [63:0]		  axi_r_data_i, 	  	// 读数据
-    output  reg [31:0]		  axi_r_addr_o  		  // 读地址
+    input       [63:0]		  axi_r_data_i, 	  // 读数据
+    output  reg [31:0]		  axi_r_addr_o        // 读地址
 );
 `define  ram_widh         'd128;
 `define  cache_size       'd1024;
@@ -132,38 +132,35 @@ reg [2:0] next_state;
       end else begin
         case(state) //写入状态机的控制 
         `ICACHE_IDLE: begin
-          if(cpu_valid & ~cpu_ready) begin
-            next_state = `ICACHE_RD_CACHE;
-          end else if (fence_i_ld)begin
-            next_state = `ICACHE_FENCE;
-            $display("%lx Icache fence_i start");
-          end
-          else next_state = `ICACHE_IDLE;
+            if(cpu_valid & ~cpu_ready) begin
+                next_state = `ICACHE_RD_CACHE;
+            end else if (fence_i_ld)begin
+                next_state = `ICACHE_FENCE;
+                $display("%lx Icache fence_i start");
+            end
+            else next_state = `ICACHE_IDLE;
         end
-        // `ICACHE_INST:begin
-        //     next_state = (cpu_read_clean | ~cpu_valid) ?`ICACHE_IDLE : `ICACHE_RD_CACHE;
-        // end
         `ICACHE_RD_CACHE:begin
-			    if(tag_v != 4'b0000 ) 
-				    next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
-			    else 
-				    next_state = (~cpu_valid    |cpu_read_clean)?`ICACHE_IDLE:`ICACHE_RD_RAM;
+			if(tag_v != 4'b0000 ) 
+				next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
+			else 
+				next_state = (~cpu_valid    |cpu_read_clean)?`ICACHE_IDLE:`ICACHE_RD_RAM;
         end
         `ICACHE_RD_RAM:begin
-          if(axi_r_last_i )
-            next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
-          else 
-            next_state = `ICACHE_RD_RAM;
-		    end
+            if(axi_r_last_i )
+                next_state = (cpu_read_vaild|cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;
+            else 
+                next_state = `ICACHE_RD_RAM;
+            end
         `ICACHE_READY:begin
 			    next_state = (cpu_read_vaild |cpu_read_clean)?`ICACHE_IDLE:`ICACHE_READY;  
         end
         `ICACHE_FENCE:begin
-          next_state = (fence_ready)?`ICACHE_IDLE:`ICACHE_FENCE;
-          if(fence_ready) $display("%lx Icache Fence_i  succful");
+            next_state = (fence_ready)?`ICACHE_IDLE:`ICACHE_FENCE;
+            if(fence_ready) $display("%lx Icache Fence_i  succful");
         end
         default: begin 
-          next_state  = `ICACHE_IDLE;
+            next_state  = `ICACHE_IDLE;
         end
         endcase
       end
@@ -184,7 +181,33 @@ reg [2:0] next_state;
                         (tag_v== 'b0100) ?'d2 : 
                         (tag_v== 'b1000) ?'d3 : 'd0 ;
 
-
+    always @(*) begin
+        case (state)
+        `ICACHE_RD_CACHE : begin
+            if(tag_v !=4'b0000 )begin
+                cpu_read_data = ram_rd_data[tag_v_w][cache_index[6]];
+                cpu_ready     = ~cpu_read_clean; 
+            end else begin
+                cpu_ready     = 1'b0;
+                cpu_read_data   = 128'b0;
+            end
+        end
+        `ICACHE_RD_RAM : begin
+            if(axi_valid_o & axi_ready_i & axi_r_last_i )begin
+                cpu_read_data = {axi_r_data_i,write_data[63:0]};
+                cpu_ready     = ~cpu_read_clean;
+            end
+        end
+        `ICACHE_READY:begin
+            cpu_read_data   = cache_read_data;
+            cpu_ready       = ~(cpu_read_clean|cpu_read_vaild);
+        end
+        default: begin
+            cpu_ready       = 1'b0;
+            cpu_read_data   = 128'b0;
+        end
+        endcase
+    end
 
 
     //针对某一个地址的调试器
@@ -198,10 +221,9 @@ reg [2:0] next_state;
 
     end    */
 
-
+    reg [127:0]     cache_read_data;
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
-			    cpu_ready   <= 1'b0;
           axi_valid_o <= 1'b0;
 
           cache_hit   <= 64'b0;
@@ -209,13 +231,12 @@ reg [2:0] next_state;
       end else begin
         case(state) 
         `ICACHE_IDLE: begin
-          axi_valid_o <= 1'b0;
-          write_en    <= 4'b0000;
-          write_data  <= 128'b0;
-          cpu_ready   <= 1'b0;
-          cpu_read_data  <= 0;
+          axi_valid_o    <= 1'b0;
+          write_en       <= 4'b0000;
+          write_data     <= 128'b0;
+          cache_read_data<= 128'b0;
           fence_ready    <= 1'b0;
-          cache_clear <= 1;
+          cache_clear    <= 1;
           if(fence_i) begin
               fence_write_index <= 7'b00000000;
               fence_page        <= 2'b00;      
@@ -224,13 +245,10 @@ reg [2:0] next_state;
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           cache_clear   <= cpu_read_clean;
           if(tag_v !=4'b0000 )begin
-            cpu_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
-            cpu_ready     <= ~cpu_read_clean; 
- 
-            cache_hit     <= cache_hit+1;
+            cache_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
+            cache_hit       <= cache_hit+1;
 
           end else begin
-            cpu_ready  <= 1'b0;  
             cache_miss <= cache_miss+1;
             
             axi_valid_o   <= 1'b1;    //发起申请
@@ -244,26 +262,23 @@ reg [2:0] next_state;
           if(axi_valid_o & axi_ready_i & ~bust_num)begin
             bust_num    <= 'b1;
             write_data[63:0]          <= axi_r_data_i;  //接收第一次bust的数据
-            cpu_read_data [63:0]      <= axi_r_data_i;  //
           end else if(axi_valid_o & axi_ready_i & axi_r_last_i & bust_num )begin
             bust_num             <= 1'b0;
             axi_valid_o          <= 1'b0;
             axi_r_len_i          <= 8'b0;
-            write_data[127:64]        <= axi_r_data_i;  //写回cache
-            cpu_read_data [127:64]    <= axi_r_data_i;  //更新接口数据
+            write_data[127:64]   <= axi_r_data_i;  //写回cache
+            cache_read_data      <= {axi_r_data_i,write_data[63:0]};
             write_en             [cache_write_point]              <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;//(cpu_read_clean)?1'b0:1'b1;
             cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;//(cpu_read_clean)?cache_tag_ram        [cache_index][cache_write_point]:cache_tag;
-            cpu_ready                                             <= (cpu_read_clean)?1'b0:1'b1;
             cache_clear          <= cpu_read_clean; 
             //$display("Icache not: %8h : %32h",cpu_req_addr,{axi_r_data_i,write_data[63:0]});
           end 
-		    end
+		end
         `ICACHE_READY:begin
-          write_en    <= 4'b0000;
-          write_data  <= 128'b0;
-          cpu_ready       <= ~(cpu_read_clean|cpu_read_vaild);
-          cpu_read_data   <= cpu_read_data;
+          write_en        <= 4'b0000;
+          write_data      <= 128'b0;
+          cache_read_data <= cache_read_data;
           cache_clear     <= cpu_read_clean; 
         end
         `ICACHE_FENCE:begin   //ICACHE的FENCE很简单，循环把数据有效位全部清了就行

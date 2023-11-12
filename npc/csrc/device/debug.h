@@ -5,10 +5,11 @@
 //difftest开关
 #define diff_en       1
 //检查PC值的各种异常
-//#define diff_pc       1
+#define diff_pc       1
+//#define diff_reg0     1
 //限制运行时间 二选一 记上升沿次数或者记指令次数
 //#define clk_count_end 1
-//const uint32_t end_times =20;
+//const uint32_t end_times =500;
 
 //波形记录开关
 #define vcd_en        1

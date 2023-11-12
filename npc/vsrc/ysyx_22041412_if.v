@@ -9,8 +9,7 @@ module ysyx_22041412_if(
     input valid_i,
     output reg ready_o,  
 
-    //快速译码的信号
-    //JUMP RES
+    //跳转处理部分
     //input   jump_hit,          //1 分支结果为跳转   0不跳    为分支预测预留的引脚
     input [31:0]jal_pc,
     input       jal_ok  ,
@@ -68,7 +67,7 @@ assign jump= (jal | jump_b  | jarl | ecall ) ? 1'b1 :1'b0;
   //针对循环的预测
     wire [31:0]B_pc  ;
     wire jump_mode   ;
-    reg jump_mode_l  ;  //暂存的本次预测结果  1为直接跳  0为不跳
+    reg jump_mode_ld ;  //暂存的本次预测结果  1为直接跳  0为不跳
     assign B_pc		=	jump_b?{{20{imm_data[31]}},imm_data[7],imm_data[30:25],imm_data[11:8],1'b0} : 32'b0;  //B类指令的目标地址
     /* 
       一条for翻译成汇编是
@@ -101,7 +100,7 @@ reg imm_ready;
     `CACHE_WAIT:begin
       cache_state <= valid_o?`CACHE_VAILD : fence_i ?`CACHE_CLEAN : `CACHE_WAIT;  
     end
-    `CACHE_BRENCH:begin        //B
+    `CACHE_BRENCH:begin       //B类指令的处理
     end
     `CACHE_CLEAN:begin        //fence.i 
        cache_state <= fence_ready ?`CACHE_VAILD : `CACHE_CLEAN;  
@@ -111,6 +110,21 @@ reg imm_ready;
   end
   reg wait_ok;
   reg [31:0]jump_pc;
+
+    always@(*)begin
+        case (cache_state)
+            `CACHE_VAILD: begin
+                if(~one_line )begin
+                    if_read_vaild      = 1'b1 ;
+                end else begin
+                    if_read_vaild      = 1'b0 ;
+                end
+            end
+            default :
+                    if_read_vaild      = 1'b0 ;
+        endcase
+    end
+    
     always@(posedge clk)begin     //为IFU预取下一个指令槽 128bit
     if(rst)begin    //启动！
         get_pc    <= {28{1'b0}};
@@ -123,19 +137,19 @@ reg imm_ready;
       `CACHE_VAILD:begin   //等待接收新的指令
         wait_ok       <= 0;
         if_read_clean <= (jal | jarl | ecall |jump_b |fence_i);//遇到直接跳转指令必须清掉预取指令  fence_i 也是
-        if(ready_i==1'b1 & ~imm_ready & ~one_line)begin
-          valid_o  <= 0 ;
-          imm_ready<= 1 ;
+        if(valid_o & ready_i==1'b1 & ~one_line)begin
+          valid_o        <= 0 ;
+          imm_ready      <= 1;
           read_imm_data  <= r_data_i;
-          if_read_vaild  <= 1;
+          //if_read_vaild  <= 1;
           dnpc_v         <= 1;
           get_pc         <= r_addr_o[31:4];
           //$display("IF get Cache pc %8h  %32h",r_addr_o,r_data_i);
-        end  else if(~valid_o & imm_ready & ~jump)begin
-          valid_o  <= 1 ;
-          imm_ready<= 0 ;     
+        end  else if(~valid_o & ~jump)begin
+          valid_o  <= 1 ;    
           r_addr_o <= {get_pc+1'b1,4'b0000};//取地址指向下一个LINE
-          if_read_vaild  <= 0;
+          imm_ready <= 1'b0;
+          //if_read_vaild  <= 0;
         end  
         if(jump) begin 
           valid_o   <= 1'b0;
@@ -212,7 +226,7 @@ reg imm_ready;
           imm_data      <= 0;
         end
         `IF_LINE:begin
-          if(valid_i & one_line & ~jump )begin
+          if(valid_i & one_line & ~jump )begin //每个周期发出一条指令，地址递增+4
             imm_data <=imm_data_4mux1;
             pc[31:0] <=dnpc;
             dnpc     <=dnpc+4;
