@@ -243,7 +243,8 @@ static inline int cmd_c()                //DIFFTEST
                     exit_now();
                 }
             #endif
-            cpureg.gpr[top->pip_reg_addr]=top->pip_reg_data;//准备需要被检查的寄存器数据 
+            if(top->pip_reg_addr!=0) 
+                cpureg.gpr[top->pip_reg_addr]=top->pip_reg_data;//准备需要被检查的寄存器数据 
         }
     #endif
 
@@ -251,34 +252,6 @@ static inline int cmd_c()                //DIFFTEST
     if(last_pc != pc){
         #ifdef diff_en      //正确性检查
         //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
-
-             
-            // struct timespec start, end;  
-            // double for_time,mem_time;  
-            // clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
-            //     if (top->pip_reg_en==1) {
-            //         #ifdef diff_reg0
-            //             if(cpu_gpr[0]!=0) {
-            //                 std::cout << "[cmd_c]Error  Cannot write to register zero" << std::endl;
-            //                 exit_now();
-            //             }
-            //         #endif
-            //         cpureg.gpr[top->pip_reg_addr]=top->pip_reg_data;//准备需要被检查的寄存器数据 
-            //     }
-            // clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
-            // mem_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
-            // printf("printf addr copy reg time%lf\n",mem_time);
-            // exit(0);
-            // clock_gettime(CLOCK_MONOTONIC, &start); // 记录开始时间  
-            //     for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
-            //         cpureg.gpr[i] = cpu_gpr[i];
-            //     } // sp regs are used for addtion
-            // clock_gettime(CLOCK_MONOTONIC, &end); // 记录结束时间  
-        
-            // for_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec);
-            // printf("printf for copy reg time%lf\n",for_time);
-            // exit(0);
-
 
             // for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
             //    cpureg.gpr[i] = cpu_gpr[i];
@@ -422,14 +395,17 @@ int main(int argc,char **argv){
 
   clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);
   end_time =  sys_time.tv_sec;
-  double ipc,icache_l1_hit,dcache_l1_hit;
+  double ipc ,icache_l1_hit ,dcache_l1_hit ,ifu_pred_hit;
+
   ipc=((double)main_dir_value)/main_clk_value;
   icache_l1_hit=((double)top->Icache_L1_hit)/(top->Icache_L1_miss+top->Icache_L1_hit);
   dcache_l1_hit=((double)top->Dcache_L1_hit)/(top->Dcache_L1_miss+top->Dcache_L1_hit);
-
+  ifu_pred_hit =((double)top->IFU_Pred_hit)/(top->IFU_Pred_miss+top->IFU_Pred_hit);
   printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
+  printf(     "ifu_pred   hit reat:%lf \n",ifu_pred_hit*100);
+  printf(     "ifu_pred   hit :%ld  miss :%ld \n",top->IFU_Pred_hit,top->IFU_Pred_miss);
   printf(BLUE "NPC-IPC  :" NONE " %.4lf \n\n",ipc);
   
   double freq,inst;

@@ -16,6 +16,8 @@ module ysyx_22041412_top(
     output [63:0]       Dcache_L1_miss,
     output [63:0]       Dcache_L1_hit,
 
+    output [63:0]       IFU_Pred_miss,
+    output [63:0]       IFU_Pred_hit,
     // Advanced eXtensible Interface    AXI4总线接口
 // 写地址通道
     input                               io_master_awready,
@@ -213,13 +215,11 @@ ysyx_22041412_axi axi4(
     .axi_r_last_i(io_master_rlast),  // 标识是否是最后一次突发传�?
     .axi_r_id_i(io_master_rid),    // 读数据ID
     .axi_r_user_i(io_master_ruser)   // 用户定义信号
-);
-wire          if_ar_valid;                           //IF请求
+);                        
 wire          if_ar_ready;
-wire   [127:0]if_ar_data;
+wire   [31:0] if_ar_data;
 wire   [31:0] if_ar_addr;
-wire          if_read_vaild;
-wire          if_read_clean;
+wire          if_read_vaild;//IF请求
 
 wire          mem_r_valid;                           //MEM 读请求
 wire          mem_r_ready;
@@ -294,12 +294,10 @@ ysyx_22041412_Icache Icache_L1(
 
 //cpu       <---> icache
     .cpu_req_addr   (if_ar_addr),
-    .cpu_valid      (if_ar_valid),
-    .cpu_read_data  (if_ar_data),
+    .cpu_read_imm   (if_ar_data),
     .cpu_ready      (if_ar_ready),
     .cpu_read_vaild (if_read_vaild),
-    .cpu_read_clean (if_read_clean),
-    .cache_clear    (Icache_clear), 
+
     .fence_i        (if_fence_i),            
     .fence_ready    (if_fence_ready),
 //icache    <---> AXI
@@ -322,6 +320,8 @@ reg if_jr_hit;
 ysyx_22041412_if IF_s1 (      //imm
     .clk           (clk),
     .rst           (rst),
+    .pred_miss_count     (IFU_Pred_miss),
+    .pred_hit_count      (IFU_Pred_hit),
 
     .pc            (if_pc),
 	.imm_data      (if_imm),
@@ -330,7 +330,7 @@ ysyx_22041412_if IF_s1 (      //imm
     .jarl_rady     (if_jr_ready),
     .jal_pc        (jal_pc[31:0]),
     .jal_ok        (jal_ok),
-
+    .jal_b_hit     (if_jr_hit),
     .fence_i       (if_fence_i),            
     .fence_ready   (if_fence_ready),
     //流水线握手
@@ -339,12 +339,9 @@ ysyx_22041412_if IF_s1 (      //imm
 
     //if <------->cache
     .ready_i       (if_ar_ready),
-    .valid_o       (if_ar_valid),
     .r_data_i      (if_ar_data),
     .r_addr_o      (if_ar_addr),
-    .if_read_vaild (if_read_vaild),
-    .if_read_clean (if_read_clean),
-    .cache_clear   (Icache_clear)
+    .if_read_vaild (if_read_vaild)
   );
 
 
