@@ -404,7 +404,7 @@ int main(int argc,char **argv){
   printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
-  printf(     "ifu_pred   hit reat:%lf \n",ifu_pred_hit*100);
+  printf(     "ifu_pred   hit reat:%.2lf %% \n",ifu_pred_hit*100);
   printf(     "ifu_pred   hit :%ld  miss :%ld \n",top->IFU_Pred_hit,top->IFU_Pred_miss);
   printf(BLUE "NPC-IPC  :" NONE " %.4lf \n\n",ipc);
   
