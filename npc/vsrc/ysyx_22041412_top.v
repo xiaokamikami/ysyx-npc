@@ -317,6 +317,10 @@ wire if_fence_i;
 wire if_fence_ready;
 reg if_jr_ready;
 reg if_jr_hit;
+wire      if_decode_jal;
+wire      if_decode_jarl;
+wire      if_decode_jump_b;
+wire      if_decode_fence_i;
 ysyx_22041412_if IF_s1 (      //imm
     .clk           (clk),
     .rst           (rst),
@@ -337,6 +341,12 @@ ysyx_22041412_if IF_s1 (      //imm
     .ready_o       (if_ready_o),       //准备好输出数据并更新pc
     .valid_i       (id_vaild_o),
 
+    //快速译码
+    .if_decode_jal (if_decode_jal),
+    .if_decode_jarl(if_decode_jarl),
+    .if_decode_jump_b(if_decode_jump_b),
+    .if_decode_fence_i(if_decode_fence_i),
+
     //if <------->cache
     .ready_i       (if_ar_ready),
     .r_data_i      (if_ar_data),
@@ -348,6 +358,10 @@ ysyx_22041412_if IF_s1 (      //imm
 //ID
 reg [31:0]id_imm;
 reg [PC_WIDTH-1:0]id_pc;
+reg      id_decode_jal;
+reg      id_decode_jarl;
+reg      id_decode_jump_b;
+reg      id_decode_fence_i;
 
 wire [1:0]id_imm_V1Type;
 wire [1:0]id_imm_V2Type;
@@ -392,7 +406,14 @@ ysyx_22041412_decode ID_decode( //opcode
     .clk  (clk),
 	.instr(id_imm),
     .pc   (id_pc[31:0]),
+    .decode_jal    (id_decode_jal),
+    .decode_jarl   (id_decode_jarl),
+    .decode_jump_b (id_decode_jump_b),
+    .decode_fence_i(id_decode_fence_i),
 
+
+
+    //output 
 	.opcode(id_opcode),
 	.func3(id_func3),
 	.func7(id_func7),
@@ -420,18 +441,34 @@ always@(posedge clk )begin //IF ID
         id_imm     <= if_imm;
         id_pc      <= if_pc;
         id_ready_o <= 1'b1;
+        id_decode_jal    <= if_decode_jal;
+        id_decode_jarl   <= if_decode_jarl;
+        id_decode_jump_b <= if_decode_jump_b;
+        id_decode_fence_i<= if_decode_fence_i;
     end else if( ~id_vaild_o )begin    //暂停 保持信号
         id_imm     <= id_imm;
         id_pc      <= id_pc;
-        id_ready_o <= id_ready_o; 
+        id_ready_o <= id_ready_o;
+        id_decode_jal    <= id_decode_jal;
+        id_decode_jarl   <= id_decode_jarl;
+        id_decode_jump_b <= id_decode_jump_b;
+        id_decode_fence_i<= id_decode_fence_i;
     end else if(ex_valid_o) begin//没有新指令? 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
         id_ready_o <= 1'b1;
+        id_decode_jal    <= 1'b0;
+        id_decode_jarl   <= 1'b0;
+        id_decode_jump_b <= 1'b0;
+        id_decode_fence_i<= 1'b0;
     end else begin
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;     
-        id_ready_o <= 1'b0;  
+        id_ready_o <= 1'b0;
+        id_decode_jal    <= 1'b0;
+        id_decode_jarl   <= 1'b0;
+        id_decode_jump_b <= 1'b0;
+        id_decode_fence_i<= 1'b0;
     end
 
 

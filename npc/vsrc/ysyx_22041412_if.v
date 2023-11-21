@@ -24,6 +24,11 @@ module ysyx_22041412_if(
 
     output reg  fence_i,
     input       fence_ready,
+    //ifu   ----> decode //输出提前解码的指令
+    output      if_decode_jal,
+    output      if_decode_jarl,
+    output      if_decode_jump_b,
+    output      if_decode_fence_i,
     //ifu   <---> cache 
     input       ready_i,        // 读有效等待接收
 
@@ -42,6 +47,10 @@ module ysyx_22041412_if(
 reg  [2:0] state;            //状态机 
 reg  [31:0]dnpc;
 //-------------快速解码部分 BEGIN----------------------
+assign      if_decode_jal     = jal;
+assign      if_decode_jarl    = jarl;
+assign      if_decode_jump_b  = jump_b;
+assign      if_decode_fence_i = fence_i;
 wire jump ;
 wire jump_b;
 wire jal ;
@@ -76,10 +85,13 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
     wire pred_miss=  ~pred_hit;
 
     reg [31:0]pred_pc;//分支预测器取到的数据暂留
-    reg [31:0]pred_imm;
-    reg       pred_imm_ready;
-    reg       pred_result_ready;
-    reg       pred_falt;
+    wire[31:0]pred_miss_pc = pred_result_ready_ld ? pred_pc : mem_dnpc[31:0];
+    reg       pred_imm_ready_ld;
+    wire      pred_imm_ready = (pred_imm_ready_ld | ready_i ) ;
+    reg       pred_result_ready_ld;
+    wire      pred_result_ready = (pred_result_ready_ld | jarl_rady);
+    reg       pred_falt_ld;
+    wire      pred_falt = (pred_falt_ld | pred_miss);
 
   // always @(posedge clk) begin
   //    $display("IF clk 1 oneline=%d state=%b jar %b",one_line,state,jar);
@@ -172,16 +184,16 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
             dnpc           <= dnpc;
         end
         `IF_WORK:begin
-          pred_falt        <= 1'b0;
-          pred_imm_ready   <= 1'b0;
-          pred_result_ready<= 1'b0;
+          pred_falt_ld        <= 1'b0;
+          pred_imm_ready_ld   <= 1'b0;
+          pred_result_ready_ld<= 1'b0;
           if(~valid_i & ready_i)begin //如果发出请求后ID暂停，需要先缓存下来数据
             last_imm       <= r_data_i;
             last_pc        <= r_addr_o;
             last_stall     <= 1'b1;
             if_read_vaild  <= 1'b0;
           end 
-          if(valid_i & ready_i & ~wait_jal)begin //每次取回指令后发出一条新的指令请求，地址递增+4
+          if(valid_i & ((ready_i & ~wait_jal) | last_stall ))begin //每次取回指令后发出一条新的指令请求，地址递增+4
             if_read_vaild  <= (~jump & ~jal) ? 1'b1 : jump_b;
             wait_jal       <= jal;
             r_addr_o       <= jump_pred ? B_pc :dnpc;
@@ -189,14 +201,6 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
             jump_pred_ld   <= jump_pred;
             dnpc           <= dnpc+4;
             last_stall     <= 1'b0;          
-          end else if(last_stall & valid_i)begin //发出遗留的指令并请求新指令
-            if_read_vaild  <= (~jump & ~jal) ? 1'b1 : jump_b;
-            wait_jal       <= jal;
-            r_addr_o       <= jump_pred ? B_pc :  dnpc;
-            pred_pc        <= jump_b ? jump_pred ? B_pc : dnpc : 32'b0;
-            jump_pred_ld   <= jump_pred;
-            dnpc           <= dnpc+4;
-            last_stall     <= 1'b0;
           end
           else if (wait_jal & jal_ok)begin
             wait_jal       <= 1'b0;
@@ -223,27 +227,25 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
         `IF_BRANCH:begin    //条件分支的处理
             last_stall     <=1'b0;
             if(ready_i) begin
-                pred_imm  <= r_data_i;
-                pred_imm_ready <= 1'b1;
+                pred_imm_ready_ld <= 1'b1;
             end else begin
-                pred_imm  <= pred_imm;
-                pred_imm_ready <= pred_imm_ready;
+                pred_imm_ready_ld <= pred_imm_ready;
             end
 
-            if(jarl_rady & ~pred_result_ready) begin// 结果出来了
+            if(jarl_rady) begin// 结果出来了
                 if(pred_hit) begin
                     pred_hit_count <= pred_hit_count+1 ;
                     //命中 直接让流水线动起来
-                    pred_falt<= 1'b0;
-                    pred_pc  <= pred_pc;
+                    pred_falt_ld<= 1'b0;
+                    pred_pc     <= pred_pc;
                 end
                 else  begin
                     pred_miss_count <= pred_miss_count+1;
                     //MISS 需清空预取数据重新取
-                    pred_falt <= 1'b1;
-                    pred_pc   <= mem_dnpc[31:0];
+                    pred_falt_ld <= 1'b1;
+                    pred_pc      <= mem_dnpc[31:0];
                 end
-                pred_result_ready<= 1'b1;
+                pred_result_ready_ld<= 1'b1;
             end
             else begin
                 jump_pred_ld<= jump_pred_ld;
@@ -252,20 +254,20 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
                 if_read_vaild  <= (~jump & ~jal) ? 1'b1 : jump_b;
                 wait_jal       <= jal;
                 r_addr_o       <= jump_pred ? B_pc 
-                                            : pred_falt ? pred_pc
+                                            : pred_falt ? pred_miss_pc
                                             : pred_pc+4;
 
                 pred_pc        <= jump_b ? jump_pred ? B_pc : 
-                                           pred_falt ? pred_pc : pred_pc+4 
+                                           pred_falt ? pred_miss_pc : pred_pc+4 
                                          : 32'b0;
 
-                dnpc           <= pred_falt ? pred_pc+4 : pred_pc+8;
+                dnpc           <= pred_falt ? pred_miss_pc+4 : pred_pc+8;
                 jump_pred_ld   <= jump_pred;
                 last_stall     <= 1'b0;
 
-                pred_falt        <= 1'b0;
-                pred_imm_ready   <= 1'b0;
-                pred_result_ready<= 1'b0;
+                pred_falt_ld        <= 1'b0;
+                pred_imm_ready_ld   <= 1'b0;
+                pred_result_ready_ld<= 1'b0;
             end
         end
         `IF_FENCE:begin    //等待cache处理完fence

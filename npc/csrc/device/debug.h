@@ -15,7 +15,7 @@
 //波形记录开关
 #define vcd_en        1
 //debug波形的时钟地点
-#define debuge_time   7220000
+#define debuge_time   6000
 //debug波形的pc地址
 //#define debuge_pc   0
 
