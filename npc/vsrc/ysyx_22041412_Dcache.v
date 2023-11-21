@@ -91,7 +91,6 @@ assign cache_offset = cpu_req_addr[3:0];
 
 // sram接口
 reg  [127:0]  write_data;
-reg  [127:0]  wrtie_strb;
 reg  [3:0]    write_en  ;
 
 reg  [127:0]  rw_strb;  //写cache掩码 
@@ -134,9 +133,8 @@ assign      device    =  (cache_tag[20:16]>='b10001) ? 1'b1 : 1'b0;   // 8000000
 
 
 reg [63:0] write_back_data;  //需要回写的数据
-reg [27:0] write_back_addr;
+//reg [27:0] write_back_addr;
 wire       write_busy_stall;
-reg        write_busy_stall_ld;
 assign     write_busy_stall = (write_en!=4'b0000 ) ? 1'b1 : 1'b0;
 
 genvar index; //生成存储器    与ICACHE不同的是 需要加入写掩码引脚
@@ -187,7 +185,7 @@ wire[1:0] tag_v_w;  //译码到二进制的命中位置
 //写DRAM =  axi读后cache写，读DRAM= axi读或cache读   读写外设=axi读写  返回数据=axi写
 //解耦后  写状态机控制 写外设和返回数据    读状态机控制 读写dram和读外设
 
-reg bust_rd;  //axi bust rd计数
+//reg bust_rd;  //axi bust rd计数
 reg [2:0] rd_state;  //cache状态机
 reg [2:0] rd_next_state;
 
@@ -208,7 +206,7 @@ reg [2:0] wr_state;  //cache状态机
       end else begin
         case(rd_state) //状态机的控制 
         `DCACHE_IDLE: begin
-            if(cpu_valid & ~device & ~cache_rd_ready & ~fence_i & ~(write_busy_stall )) //读写内存
+            if(cpu_valid & ~device & ~cache_rd_ready & ~fence_i & ~write_busy_stall ) //读写内存
                 rd_next_state = `DCACHE_CACHE;
             else if(cpu_valid  & (device & ~cpu_rw_en) & ~cache_rd_ready & ~fence_i)  //读外设 不用等命中了直接访问AXI
                 rd_next_state = `DCACHE_RAM;
@@ -220,7 +218,8 @@ reg [2:0] wr_state;  //cache状态机
 				rd_next_state = `DCACHE_IDLE;
 			else if(~dcache_w_busy) //不命中且写返回通道没有被占用  进入AXI访问
 				rd_next_state = `DCACHE_RAM;
-            else rd_next_state =  `DCACHE_CACHE;
+            else
+                rd_next_state = `DCACHE_CACHE;
         end
         `DCACHE_RAM:begin
             if(axi_r_last_i & (device || ~cpu_rw_en) )
@@ -239,9 +238,23 @@ reg [2:0] wr_state;  //cache状态机
         endcase
       end
     end
-    
+
+    wire [63:0]cache_read_data_ld_mux = cache_hiter ? rw_offset ? cache_read_data_ld[127:64] : cache_read_data_ld[63:0] : 64'b0;
     always @(*) begin  //read data 数据的输出
         case (rd_state)
+           `DCACHE_IDLE: begin
+                if(cpu_valid & cache_hiter)begin
+                    cpu_read_data      = (cache_read_data_ld_mux >> (cache_offset[2:0] *8));
+                    cache_rd_ready     = 1'b1; 
+                end else begin
+                    cpu_read_data      = 64'b0;
+                    cache_rd_ready     = 1'b0;
+                end
+                write_index    = 7'b0;
+                rw_strb        = 128'b0;
+                write_data     = 128'b0;
+                write_en    [cache_write_point]  =1'b0;
+            end
            `DCACHE_CACHE: begin
                 if(tag_v !=4'b0000)begin 
                     cpu_read_data  = (~cpu_rw_en)?(cache_read_data >> (cache_offset[2:0] *8)) :0;  //通过移位将数据对齐到合适的地址上
@@ -301,19 +314,23 @@ reg [2:0] wr_state;  //cache状态机
             end 
         endcase
     end
+
+    reg [127:0]     cache_read_data_ld;//上次请求的cache_line数据
+    reg [31:0]      cache_read_addr_ld;//上次请求的cache_addr
+    wire            cpu_req_addr_hit = (cache_read_addr_ld[31:4]==cpu_req_addr[31:4]) ? 1'b1 : 1'b0;
+    wire            cache_hiter      = (cpu_req_addr_hit & ~device & ~cpu_rw_en & ~fence_i) ? 1'b1 : 1'b0;
     reg [63:0]axi_read_first;//暂存的axi第一次数据
     always@(posedge clk)begin //cache执行状态机
       if(rst )begin
-          axi_r_valid_o <= 1'b0;
-
-          cache_hit     <= 64'b0;
-          cache_miss    <= 64'b0;
+          axi_r_valid_o  <= 1'b0;
+          cache_hit      <= 64'b0;
+          cache_miss     <= 64'b0;
+          cache_read_data_ld<= 128'b0;
+          cache_read_addr_ld<= 32'b0;
       end else begin
         case(rd_state) 
         `DCACHE_IDLE: begin
           axi_r_valid_o     <= 1'b0;
-
-          write_busy_stall_ld<=write_busy_stall;
           if(cpu_valid & device & ~cpu_rw_en & ~cache_rd_ready )begin    //读外设  直接发起AXI请求
               axi_r_valid_o <= 1'b1;
               axi_r_len_o   <= 8'd0;   //外设 不支持突发传输
@@ -321,13 +338,25 @@ reg [2:0] wr_state;  //cache状态机
           end else if(cpu_valid)begin
               rw_strb_64_ld   <= rw_strb_64 ;
           end 
+          if(~fence_i) begin
+                cache_read_data_ld   <= cache_read_data_ld;
+                cache_read_addr_ld   <= cache_read_addr_ld;
+          end else begin
+                cache_read_data_ld   <= 128'b0;
+                cache_read_addr_ld   <= 32'b0;
+          end
         end
         `DCACHE_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           if(tag_v !=4'b0000)begin      //操作命中的区域  如写则将数据标记为dirty 
-                  cache_hit                           <= cache_hit+1;
+                  cache_hit                              <= cache_hit+1;
                   if(cpu_rw_en)begin
-                    cache_d_ram[cache_index][tag_v_w] <=  1'b1 ;                                
-                  end 
+                    cache_d_ram[cache_index][tag_v_w]    <=  1'b1 ;
+                    cache_read_data_ld                   <=  cpu_req_addr_hit ? 128'b0: cache_read_data_ld;
+                    cache_read_addr_ld                   <=  cpu_req_addr_hit ? 32'b0 : cache_read_addr_ld;
+                  end else begin
+                    cache_read_data_ld <= ram_rd_data[tag_v_w][cache_index[6]];
+                    cache_read_addr_ld <= cpu_req_addr;
+                  end
                   //$display("Dcache hit write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
 //近期最少使用计数
 /*             cache_fwen_ct[cache_index][0] <=(tag_v_w=='d0) ? 'b00:
@@ -375,13 +404,14 @@ reg [2:0] wr_state;  //cache状态机
                     cache_d_ram          [cache_index][cache_write_point] <= cpu_rw_en;  //如果是写数据，就标记为dirty 并进入写模式
                     //cache_fwen_ct        [cache_index][cache_write_point] <= 2'b00;
                   end
+                  cache_read_data_ld      <= (cpu_rw_en | device) ? 128'b0 : {axi_r_data_i,write_data[63:0]};
+                  cache_read_addr_ld      <= (cpu_rw_en | device) ? 32'b0  : cpu_req_addr;
             end else  begin
-                  axi_read_first        <= axi_r_data_i;  //接收第一次bust的数据
+                  axi_read_first          <= axi_r_data_i;  //接收第一次bust的数据
             end
           end
-		    end
+		end
         `DCACHE_W_CACHE:begin
-
           //$display("Dcache axi write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
 
         end
@@ -595,7 +625,6 @@ reg [2:0] wr_state;  //cache状态机
       end
     end
 wire  [1:0] cache_write_point;
-reg  [1:0] cache_write_point_l1;
 reg  [1:0] cache_rodom_cnt;
 assign cache_write_point = cache_rodom_cnt;
 
@@ -627,9 +656,6 @@ end   */
     cache_rodom_cnt <= cache_rodom_cnt+1;
   end 
 end 
-
-
-
 
 
 endmodule

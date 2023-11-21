@@ -54,7 +54,7 @@ reg [127:0]      cpu_read_data;
 assign cpu_read_imm = (cache_offset == 'h0) ? cpu_read_data[31:0]  :
                       (cache_offset == 'h4) ? cpu_read_data[63:32] :
                       (cache_offset == 'h8) ? cpu_read_data[95:64] :
-                      (cache_offset == 'hc)? cpu_read_data[127:96] : 32'b0;
+                      (cache_offset == 'hc) ? cpu_read_data[127:96]: 32'b0;
 /* 
     31     11 9    4 3      0                   127       0
    +---------+-------+--------+                 +---------+
@@ -75,7 +75,7 @@ assign cache_index  = (write_en!=4'b0000) ? cache_write_index :cpu_req_addr[10:4
 assign cache_offset = cpu_req_addr[3:0];
 
 reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
-reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
+//reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
 reg        cache_v_ram   [127:0][3:0]; //tag  V
 
 
@@ -243,17 +243,15 @@ reg [2:0] next_state;
           axi_valid_o    <= 1'b0;
           write_en       <= 4'b0000;
           write_data     <= 128'b0;
-          cache_read_data<= cache_read_data;
-          cache_read_addr<= cache_read_addr;
           fence_ready    <= 1'b0;
-          if(fence_i) begin
+          if(~fence_i) begin
+                cache_read_data   <= cache_read_data;
+                cache_read_addr   <= cache_read_addr;
+          end else begin
                 fence_write_index <= 7'b00000000;
                 fence_page        <= 2'b00;
                 cache_read_data   <= 128'b0;
                 cache_read_addr   <= 32'b0;
-          end else begin
-                cache_read_data<= cache_read_data;
-                cache_read_addr<= cache_read_addr;
           end
         end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
@@ -304,7 +302,6 @@ reg [2:0] next_state;
     end
 
 wire [1:0] cache_write_point;
-reg  [1:0] cache_write_point_l1;
 assign cache_write_point = cache_rodom_cnt;  //伪随机替换
 
 // //没存满数据的话，先存空的line  评价为没啥用  可能对经常切换线程的任务有用

@@ -5,7 +5,7 @@ module ysyx_22041412_if(
     output reg [63:0]       pred_miss_count,
     output reg [63:0]       pred_hit_count,
 
-    output reg[63:0]pc,
+    output reg[PC_WIDTH-1:0]pc,
     output reg[31:0]imm_data,
 
     input jarl_rady,
@@ -20,7 +20,7 @@ module ysyx_22041412_if(
     input [31:0]jal_pc,
     input       jal_ok  ,
     input       jal_b_hit,        //1 分支结果为跳转   0不跳    为分支预测使用的引脚
-    input [63:0]mem_dnpc,        //其他跳转的结果
+    input [PC_WIDTH-1:0]mem_dnpc,        //其他跳转的结果
 
     output reg  fence_i,
     input       fence_ready,
@@ -38,6 +38,7 @@ module ysyx_22041412_if(
 
     output reg if_read_vaild   //IFU读cache
  );
+parameter PC_WIDTH = 64;
 `define IF_IDLE         3'b000  
 `define IF_WORK         3'b001 
 `define IF_WAIT         3'b010 //其他跳转处理
@@ -51,15 +52,15 @@ assign      if_decode_jal     = jal;
 assign      if_decode_jarl    = jarl;
 assign      if_decode_jump_b  = jump_b;
 assign      if_decode_fence_i = fence_i;
-wire jump ;
+wire jump;
 wire jump_b;
-wire jal ;
+wire jal;
 wire jarl;
-wire ecall ;
+wire ecall;
 assign fence_i  = (imm_data[6:0]==`ysyx_22041412_FENCE) ? imm_data[12] : 1'b0;
-assign jal  = ( imm_data[6:0]==`ysyx_22041412_jal) ?1'b1:1'b0;  //直接跳转命令  可以直接出结果 由 译码部分计算
-assign jarl = ( imm_data[6:0]==`ysyx_22041412_jalr)?1'b1:1'b0;  //直接跳转  但是需要等读取寄存器
-assign ecall= (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010))? 1'b1 : 1'b0;
+assign jal      = (imm_data[6:0]==`ysyx_22041412_jal)   ? 1'b1:1'b0;  //直接跳转命令  可以直接出结果 由 译码部分计算
+assign jarl     = (imm_data[6:0]==`ysyx_22041412_jalr)  ? 1'b1:1'b0;  //直接跳转  但是需要等读取寄存器
+assign ecall    = (imm_data[6:0]==`ysyx_22041412_Environment & (imm_data[31:20]==12'b00000000000 || imm_data[31:20]==12'b001100000010))? 1'b1 : 1'b0;
               //ECALL MRET
 assign jump_b =(imm_data[6:0]==`ysyx_22041412_B_type) ? 1'b1 : 1'b0 ;           //这段可以用分支预测
 assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
@@ -80,22 +81,18 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
 
     reg branch_op;
     reg branch_ok;
-    reg [31:0]jump_pc;
     wire pred_hit =  (jump_pred_ld & jal_b_hit) | (~jump_pred_ld & ~jal_b_hit);
     wire pred_miss=  ~pred_hit;
 
     reg [31:0]pred_pc;//分支预测器取到的数据暂留
-    wire[31:0]pred_miss_pc = pred_result_ready_ld ? pred_pc : mem_dnpc[31:0];
     reg       pred_imm_ready_ld;
-    wire      pred_imm_ready = (pred_imm_ready_ld | ready_i ) ;
     reg       pred_result_ready_ld;
-    wire      pred_result_ready = (pred_result_ready_ld | jarl_rady);
     reg       pred_falt_ld;
-    wire      pred_falt = (pred_falt_ld | pred_miss);
 
-  // always @(posedge clk) begin
-  //    $display("IF clk 1 oneline=%d state=%b jar %b",one_line,state,jar);
-  // end  
+    wire[31:0]pred_miss_pc = pred_result_ready_ld ? pred_pc : mem_dnpc[31:0];
+    wire      pred_imm_ready = (pred_imm_ready_ld | ready_i ) ;
+    wire      pred_result_ready = (pred_result_ready_ld | jarl_rady);
+    wire      pred_falt = (pred_falt_ld | pred_miss);
 
 
   always@(posedge clk)begin //IFU状态机

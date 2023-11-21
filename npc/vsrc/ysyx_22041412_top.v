@@ -284,7 +284,6 @@ wire   [63:0] icache_ar_data;
 wire   [31:0] icache_ar_addr;
 wire    [7:0] icache_ar_len;
 wire          icache_last_i;
-wire          Icache_clear ;
 ysyx_22041412_Icache Icache_L1(
     .clk(clk),
     .rst(rst),
@@ -379,7 +378,7 @@ wire id_mul_en;
 wire id_div_en;
 wire [1:0]id_rv64_en;
 wire id_fence_i;
-wire [63:0]jal_pc;
+wire [PC_WIDTH-1:0]jal_pc;
 wire       jal_ok;
 
 wire id_vaild_o;
@@ -475,8 +474,6 @@ always@(posedge clk )begin //IF ID
 end
 
 //EXE
-reg [1:0]ex_imm_V1Type;
-reg [1:0]ex_imm_V2Type;
 reg [63:0]ex_imm_data;
 reg [63:0]ex_v1;
 reg [63:0]ex_v2;
@@ -508,7 +505,6 @@ reg [2:0]ex_csr_id;
 
 wire ex_wait;
 wire ex_load_wait;
-wire ex_mem_load_wait;
 wire alu_ready_o;
 wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o & ~ex_load_wait ;
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
@@ -614,9 +610,6 @@ always@(posedge clk)begin
         ex_v2      <= ex_v2_in;
         ex_rs2     <= ex_rs2_in;
 
-        ex_imm_V1Type<= id_imm_V1Type;
-        ex_imm_V2Type<= id_imm_V2Type;
-
         ex_mul_en  <= id_mul_en;
         ex_div_en  <= id_div_en;
         ex_rv64_en <= id_rv64_en;
@@ -658,7 +651,6 @@ reg [31:0]mem_addr;
 reg [63:0]mem_wdata;
 reg [PC_WIDTH-1:0]mem_pc;
 reg [PC_WIDTH-1:0]mem_dnpc;
-reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg [1:0] mem_jump_mode;
@@ -726,7 +718,6 @@ always@(posedge clk)begin
         mem_pc        <=ex_pc;
         mem_rw        <=ex_rw;
         mem_func3     <=ex_func3;
-        mem_imm_data  <=ex_imm_data;
         mem_res       <=ex_csr_en?csr_data_o : ex_res;
         mem_jump_mode <=ex_jump_mode;
         mem_mem_mode  <=ex_mem_mode;
@@ -750,7 +741,6 @@ always@(posedge clk)begin
             mem_pc        <=0;
             mem_rw        <=0;
             mem_func3     <=0;
-            mem_imm_data  <=0;
 
             mem_res       <=0;
             mem_mem_mode  <=0;
@@ -813,10 +803,5 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusW(wb_data)
 
 );
-
-
-
-
-    
 
 endmodule
