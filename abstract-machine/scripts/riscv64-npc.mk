@@ -22,8 +22,8 @@ VSRCS += $(NPC_HOME)/resource/*.hex
 INCFLAGS += $(addprefix -Ldir, $(VSRCS))
 
 image: $(IMAGE).elf
-	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
-	@$(OBJDUMP) -d $(IMAGE).elf > $(NPC_HOME)/resource/bin.txt
+	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).s
+	@$(OBJDUMP) -d $(IMAGE).elf > $(NPC_HOME)/resource/bin.s
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 	@cp $(IMAGE_REL).bin $(NPC_HOME)/resource/Imm.bin

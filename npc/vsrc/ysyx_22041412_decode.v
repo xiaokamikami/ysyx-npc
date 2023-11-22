@@ -3,6 +3,13 @@ module ysyx_22041412_decode(
 	input  clk,
 	input  [31:0]instr,
 	input  [31:0]pc,
+    input  decode_jal,
+    input  decode_jarl,
+    input  decode_jump_b,
+    input  decode_fence_i,
+
+
+    //output
 	output [6:0]opcode,
 	output [2:0]func3,
 	output func7,
@@ -57,7 +64,7 @@ module ysyx_22041412_decode(
 	assign R_Imm = (instr[6:0]==`ysyx_22041412_R_type) ? 1'b1 : 1'b0;
 
 	wire Jarl;
-	assign Jarl = (instr[6:0]==`ysyx_22041412_jalr)?1'b1 : 1'b0;
+	assign Jarl = decode_jarl ? 1'b1 : 1'b0;
 	wire Li;
 	wire Auipc;
 	assign Li    = (instr[6:0]==`ysyx_22041412_lui) ? 1'b1 :1'b0 ;
@@ -68,8 +75,8 @@ module ysyx_22041412_decode(
 
 	assign I_type=(Jarl| Load |I_Imm |RV64_I_IMM|Handle) ;
 	assign U_type=(Li | Auipc);
-	assign J_type=(instr[6:0]==`ysyx_22041412_jal) ;
-	assign B_type=(instr[6:0]==`ysyx_22041412_B_type);
+	assign J_type=decode_jal;
+	assign B_type=decode_jump_b;
 	assign S_type=(instr[6:0]==`ysyx_22041412_store );
 	assign R_type=(RV64_R_IMM)|(R_Imm);  
 
@@ -92,7 +99,7 @@ module ysyx_22041412_decode(
 
 	assign RV64_en  = (RV64_R_IMM)?2'b10 :
 					  (RV64_I_IMM)?2'b01 : 2'b00;
-	assign FENCE_i  = (instr[6:0]==`ysyx_22041412_FENCE) ? func3[0] : 1'b0;
+	assign FENCE_i  = decode_fence_i ? func3[0] : 1'b0;
 	assign jump_mode=(Jarl)                         ?`ysyx_22041412_j_jalr:
 				     J_type                         ?`ysyx_22041412_j_jal :
 					 B_type						    ?`ysyx_22041412_j_B   :

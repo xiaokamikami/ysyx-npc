@@ -50,13 +50,17 @@ assign dividend_sub_32 = dividend_r[95:63] - {{1'b0},divisor_r[31:0]};
 
 
 always @(posedge clk)begin
-    if(div_valid & ~div_doing)begin
-        div_doing<=  1'b1;
-    end else if(div_doing & out_valid)begin
-        div_doing<=  1'b0;      
-    end
-    else begin
-        div_doing<=  div_doing;   
+    if(rst)begin
+        div_doing<=  1'b0; 
+    end else begin
+        if(div_valid & ~div_doing)begin
+            div_doing<=  1'b1;
+        end else if(div_doing & out_valid)begin
+            div_doing<=  1'b0;      
+        end
+        else begin
+            div_doing<=  div_doing;   
+        end
     end
 end
 

@@ -4,6 +4,9 @@ module ysyx_22041412_top(
     input wire rst,
     //EXE
     output wire [63:0]pip_pc,
+    output reg  [4:0] pip_reg_addr,
+    output reg  [63:0]pip_reg_data,
+    output reg        pip_reg_en,
     output wire [63:0]pip_mem_pc,
     output Ebreak,
 
@@ -13,6 +16,8 @@ module ysyx_22041412_top(
     output [63:0]       Dcache_L1_miss,
     output [63:0]       Dcache_L1_hit,
 
+    output [63:0]       IFU_Pred_miss,
+    output [63:0]       IFU_Pred_hit,
     // Advanced eXtensible Interface    AXI4总线接口
 // 写地址通道
     input                               io_master_awready,
@@ -108,9 +113,15 @@ module ysyx_22041412_top(
     parameter PC_WIDTH          = 64;
 
 //DIFF-TEST
-assign pip_pc     = wb_pc;
-assign pip_mem_pc = mem_pc;
+assign pip_pc      = wb_pc;
+assign pip_mem_pc  = mem_pc;
 assign Ebreak=(id_imm=='b000100000000000001110011)?1:0;
+
+always @(posedge clk) begin
+    pip_reg_addr <= wb_addr;
+    pip_reg_data <= wb_data;
+    pip_reg_en   <= wb_reg_en;
+end
 //
 
 
@@ -204,13 +215,11 @@ ysyx_22041412_axi axi4(
     .axi_r_last_i(io_master_rlast),  // 标识是否是最后一次突发传�?
     .axi_r_id_i(io_master_rid),    // 读数据ID
     .axi_r_user_i(io_master_ruser)   // 用户定义信号
-);
-wire          if_ar_valid;                           //IF请求
+);                        
 wire          if_ar_ready;
-wire   [127:0]if_ar_data;
+wire   [31:0] if_ar_data;
 wire   [31:0] if_ar_addr;
-wire          if_read_vaild;
-wire          if_read_clean;
+wire          if_read_vaild;//IF请求
 
 wire          mem_r_valid;                           //MEM 读请求
 wire          mem_r_ready;
@@ -275,7 +284,6 @@ wire   [63:0] icache_ar_data;
 wire   [31:0] icache_ar_addr;
 wire    [7:0] icache_ar_len;
 wire          icache_last_i;
-wire          Icache_clear ;
 ysyx_22041412_Icache Icache_L1(
     .clk(clk),
     .rst(rst),
@@ -285,12 +293,10 @@ ysyx_22041412_Icache Icache_L1(
 
 //cpu       <---> icache
     .cpu_req_addr   (if_ar_addr),
-    .cpu_valid      (if_ar_valid),
-    .cpu_read_data  (if_ar_data),
+    .cpu_read_imm   (if_ar_data),
     .cpu_ready      (if_ar_ready),
     .cpu_read_vaild (if_read_vaild),
-    .cpu_read_clean (if_read_clean),
-    .cache_clear    (Icache_clear), 
+
     .fence_i        (if_fence_i),            
     .fence_ready    (if_fence_ready),
 //icache    <---> AXI
@@ -310,9 +316,15 @@ wire if_fence_i;
 wire if_fence_ready;
 reg if_jr_ready;
 reg if_jr_hit;
+wire      if_decode_jal;
+wire      if_decode_jarl;
+wire      if_decode_jump_b;
+wire      if_decode_fence_i;
 ysyx_22041412_if IF_s1 (      //imm
     .clk           (clk),
     .rst           (rst),
+    .pred_miss_count     (IFU_Pred_miss),
+    .pred_hit_count      (IFU_Pred_hit),
 
     .pc            (if_pc),
 	.imm_data      (if_imm),
@@ -321,27 +333,34 @@ ysyx_22041412_if IF_s1 (      //imm
     .jarl_rady     (if_jr_ready),
     .jal_pc        (jal_pc[31:0]),
     .jal_ok        (jal_ok),
-
+    .jal_b_hit     (if_jr_hit),
     .fence_i       (if_fence_i),            
     .fence_ready   (if_fence_ready),
     //流水线握手
     .ready_o       (if_ready_o),       //准备好输出数据并更新pc
     .valid_i       (id_vaild_o),
 
+    //快速译码
+    .if_decode_jal (if_decode_jal),
+    .if_decode_jarl(if_decode_jarl),
+    .if_decode_jump_b(if_decode_jump_b),
+    .if_decode_fence_i(if_decode_fence_i),
+
     //if <------->cache
     .ready_i       (if_ar_ready),
-    .valid_o       (if_ar_valid),
     .r_data_i      (if_ar_data),
     .r_addr_o      (if_ar_addr),
-    .if_read_vaild (if_read_vaild),
-    .if_read_clean (if_read_clean),
-    .cache_clear   (Icache_clear)
+    .if_read_vaild (if_read_vaild)
   );
 
 
 //ID
 reg [31:0]id_imm;
 reg [PC_WIDTH-1:0]id_pc;
+reg      id_decode_jal;
+reg      id_decode_jarl;
+reg      id_decode_jump_b;
+reg      id_decode_fence_i;
 
 wire [1:0]id_imm_V1Type;
 wire [1:0]id_imm_V2Type;
@@ -359,7 +378,7 @@ wire id_mul_en;
 wire id_div_en;
 wire [1:0]id_rv64_en;
 wire id_fence_i;
-wire [63:0]jal_pc;
+wire [PC_WIDTH-1:0]jal_pc;
 wire       jal_ok;
 
 wire id_vaild_o;
@@ -386,7 +405,14 @@ ysyx_22041412_decode ID_decode( //opcode
     .clk  (clk),
 	.instr(id_imm),
     .pc   (id_pc[31:0]),
+    .decode_jal    (id_decode_jal),
+    .decode_jarl   (id_decode_jarl),
+    .decode_jump_b (id_decode_jump_b),
+    .decode_fence_i(id_decode_fence_i),
 
+
+
+    //output 
 	.opcode(id_opcode),
 	.func3(id_func3),
 	.func7(id_func7),
@@ -414,26 +440,40 @@ always@(posedge clk )begin //IF ID
         id_imm     <= if_imm;
         id_pc      <= if_pc;
         id_ready_o <= 1'b1;
+        id_decode_jal    <= if_decode_jal;
+        id_decode_jarl   <= if_decode_jarl;
+        id_decode_jump_b <= if_decode_jump_b;
+        id_decode_fence_i<= if_decode_fence_i;
     end else if( ~id_vaild_o )begin    //暂停 保持信号
         id_imm     <= id_imm;
         id_pc      <= id_pc;
-        id_ready_o <= id_ready_o; 
+        id_ready_o <= id_ready_o;
+        id_decode_jal    <= id_decode_jal;
+        id_decode_jarl   <= id_decode_jarl;
+        id_decode_jump_b <= id_decode_jump_b;
+        id_decode_fence_i<= id_decode_fence_i;
     end else if(ex_valid_o) begin//没有新指令? 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
         id_ready_o <= 1'b1;
+        id_decode_jal    <= 1'b0;
+        id_decode_jarl   <= 1'b0;
+        id_decode_jump_b <= 1'b0;
+        id_decode_fence_i<= 1'b0;
     end else begin
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;     
-        id_ready_o <= 1'b0;  
+        id_ready_o <= 1'b0;
+        id_decode_jal    <= 1'b0;
+        id_decode_jarl   <= 1'b0;
+        id_decode_jump_b <= 1'b0;
+        id_decode_fence_i<= 1'b0;
     end
 
 
 end
 
 //EXE
-reg [1:0]ex_imm_V1Type;
-reg [1:0]ex_imm_V2Type;
 reg [63:0]ex_imm_data;
 reg [63:0]ex_v1;
 reg [63:0]ex_v2;
@@ -465,7 +505,6 @@ reg [2:0]ex_csr_id;
 
 wire ex_wait;
 wire ex_load_wait;
-wire ex_mem_load_wait;
 wire alu_ready_o;
 wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en ) & mem_valid_o & ~ex_load_wait ;
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
@@ -571,9 +610,6 @@ always@(posedge clk)begin
         ex_v2      <= ex_v2_in;
         ex_rs2     <= ex_rs2_in;
 
-        ex_imm_V1Type<= id_imm_V1Type;
-        ex_imm_V2Type<= id_imm_V2Type;
-
         ex_mul_en  <= id_mul_en;
         ex_div_en  <= id_div_en;
         ex_rv64_en <= id_rv64_en;
@@ -615,7 +651,6 @@ reg [31:0]mem_addr;
 reg [63:0]mem_wdata;
 reg [PC_WIDTH-1:0]mem_pc;
 reg [PC_WIDTH-1:0]mem_dnpc;
-reg [63:0]mem_imm_data;
 reg [63:0]mem_temp;
 reg [63:0]mem_res;
 reg [1:0] mem_jump_mode;
@@ -683,7 +718,6 @@ always@(posedge clk)begin
         mem_pc        <=ex_pc;
         mem_rw        <=ex_rw;
         mem_func3     <=ex_func3;
-        mem_imm_data  <=ex_imm_data;
         mem_res       <=ex_csr_en?csr_data_o : ex_res;
         mem_jump_mode <=ex_jump_mode;
         mem_mem_mode  <=ex_mem_mode;
@@ -707,7 +741,6 @@ always@(posedge clk)begin
             mem_pc        <=0;
             mem_rw        <=0;
             mem_func3     <=0;
-            mem_imm_data  <=0;
 
             mem_res       <=0;
             mem_mem_mode  <=0;
@@ -770,10 +803,5 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusW(wb_data)
 
 );
-
-
-
-
-    
 
 endmodule
