@@ -1,3 +1,4 @@
+`include "vsrc/ysyx_22041412_define.v"
 module ysyx_22041412_if(
     input clk,
     input rst,
