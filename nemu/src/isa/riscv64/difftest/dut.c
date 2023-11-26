@@ -17,9 +17,15 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
     printf(ANSI_FMT("ref_pc:%08lx , dut_pc:%08lx\n",ANSI_FG_RED),ref_r->pc, pc);
     return false;
   }
-  else{
+
+  uint64_t s1=csrR_id(mstatus);
+  if(ref_r->mstatus != s1){
+    printf(ANSI_FMT("ref_mstatus:%16lx , dut_mstatus:%16lx\n",ANSI_FG_RED),ref_r->mstatus ,s1);
+    return false;
+  } 
+
+
     return true;
-  }
 
 }
 

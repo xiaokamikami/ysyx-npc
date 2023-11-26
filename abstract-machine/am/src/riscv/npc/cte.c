@@ -9,11 +9,15 @@ Context* __am_irq_handle(Context *c) {
     //printf("m=%x 0=%x 1=%x 2=%x 3=%x r=%x\n",c->mcause,c->GPR1,c->GPR2,c->GPR3,c->GPR4,c->GPRx);
     switch (c->mcause) {
 			case 0xb:
-				switch(c->GPR1){
-					case -1:ev.event = EVENT_YIELD;break;
-					default:ev.event = EVENT_SYSCALL;break;
-				}
+				if(c->GPR1 == -1)
+					ev.event = EVENT_YIELD;break;
+                else
+                    ev.event = EVENT_SYSCALL;break;
 				break;
+            case 0x8000000000000007: // M TIME interrupt
+                ev.event = EVENT_IRQ_TIMER;
+                printf("EVENT_IRQ_TIMER\n");
+                break;
       default: ev.event = EVENT_ERROR; break;
     }
     

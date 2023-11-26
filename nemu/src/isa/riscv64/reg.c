@@ -8,13 +8,7 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
 };
 
-const char *csrs[] = {
-  "mcause","mstatus","mepc","mtvec",
-};
-const word_t csrindexs[] = {
-  0x300, 0x305, 0x341, 0x342, 
-};
-word_t csr_regs[4]={0xa00001800,0,0,0};
+word_t csr_regs[6];
 
 void isa_reg_display() {
   int i;
@@ -25,10 +19,12 @@ void isa_reg_display() {
     printf("    %d-%s  :0x%16lx,",i+2,regs[i+2],gpr(i+2));
     printf("    %d-%s  :0x%16lx;\n",i+3,regs[i+3],gpr(i+3));
   }
-  printf("%s  :0x%16lx;\n",csrs[0],SR_mcause);
-  printf("%s  :0x%16lx;\n",csrs[1],SR_mstatus);
-  printf("%s  :0x%16lx;\n",csrs[2],SR_mepc);
-  printf("%s  :0x%16lx;\n",csrs[3],SR_mtvec);
+  printf("%s  :0x%16lx\t","mcause",csrR_id(mcause));
+  printf("%s  :0x%16lx\n","mstatus",csrR_id(mstatus));
+  printf("%s  :0x%16lx\t","mepc",csrR_id(mepc));
+  printf("%s  :0x%16lx\n","mtvec",csrR_id(mtvec));
+  printf("%s  :0x%16lx\t","mie",csrR_id(mie));
+  printf("%s  :0x%16lx\n","mip",csrR_id(mip));
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
@@ -48,33 +44,32 @@ word_t isa_reg_str2val(const char *s, bool *success) {
   return 0;
 }
 
-word_t csrindex(char* s)
-{
-  for(int i=0;i<4;i++)
-  {
-    if(strcmp(s,csrs[i])==0)
-      return csrindexs[i];
-  }
-	return -1;
+word_t csrR_id(int id) {
+    assert(id <= csr_size);
+	return csr_regs[id];
+}
+void csrW_id(int id, word_t data) {
+    assert(id <= csr_size);
+    csr_regs[id]=data;
 }
 word_t csrR(word_t csr)
 {
 	int i=-1;
-	/*printf("csr=%lx",csr);*/
+	//printf("csrr=%lx",csr);
 	switch(csr)
 	{
 		case 0x300:
-			i=0;
-			break;
+			i=mstatus;break;
+        case 0x304:
+            i=mie;break;
 		case 0x305:
-			i=1;
-			break;
+			i=mtvec;break;
 		case 0x341:
-			i=2;
-			break;
+			i=mepc;break;
 		case 0x342:
-			i=3;
-			break;
+			i=mcause;break;
+        case 0x344:
+            i=mip;break;
 		default:
 			Assert(0,"wrong csr!\n");
 	}
@@ -84,21 +79,21 @@ word_t csrR(word_t csr)
 void csrW(word_t csr, word_t data)
 {
 	int i=-1;
-	/*printf("csr=%lx",csr);*/
+	//printf("csrw=%lx,data=%lx",csr,data);
 	switch(csr)
 	{
 		case 0x300:
-			i=0;
-			break;
+			i=mstatus;break;
+        case 0x304:
+            i=mie;break;
 		case 0x305:
-			i=1;
-			break;
+			i=mtvec;break;
 		case 0x341:
-			i=2;
-			break;
+			i=mepc;break;
 		case 0x342:
-			i=3;
-			break;
+			i=mcause;break;
+        case 0x344:
+            i=mip;break;
 		default:
 			Assert(0,"wrong csr!\n");
 	}

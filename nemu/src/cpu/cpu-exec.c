@@ -42,8 +42,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("     %s\n", _this->logbuf); }
-#endif 
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
+#endif 
+
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->dnpc, dnpc));
 }
 
@@ -165,16 +166,16 @@ static void execute(uint64_t n) {
   //}
 
   for (;n > 0; n --) {
-    if ((END_flag ==1)){
-      //exec_once(&s, cpu.pc);
-      printf("npc:%lx,pc:%lx",s.dnpc, cpu.pc);
-      trace_and_difftest(&s, cpu.pc);
-    }
-    else if (nemu_state.state == NEMU_RUNNING) {
+    if (nemu_state.state == NEMU_RUNNING) {
       exec_once(&s, cpu.pc);
       //printf("pc:%lx \t",cpu.pc);
       trace_and_difftest(&s, cpu.pc);
       g_nr_guest_inst ++;
+    }
+    else if ((END_flag ==1)){
+      //exec_once(&s, cpu.pc);
+      printf("npc:%lx,pc:%lx",s.dnpc, cpu.pc);
+      trace_and_difftest(&s, cpu.pc);
     }
     else{
       //printf("ERROR:%lx\n",cpu.pc);

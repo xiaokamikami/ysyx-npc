@@ -5,12 +5,12 @@
 #include <memory/paddr.h>
 #include <utils.h>
 #include <difftest-def.h>
-
+#include "../local-include/reg.h"
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
 void (*ref_difftest_regcpy)(CPU_state *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
-
+static void cpu_copy_csrs();
 #ifdef CONFIG_DIFFTEST
 
 static bool is_skip_ref = false;
@@ -70,11 +70,12 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   Log("The result of every instruction will be compared with %s. "
       "This will help you a lot for debugging, but also significantly reduce the performance. "
       "If it is not necessary, you can turn it off in menuconfig.", ref_so_file);
-
+  cpu_copy_csrs();
   ref_difftest_init(port);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
-
+  printf("init cpu.mstatus=%lx\n",cpu.mstatus);
+  difftest_skip_ref();
 }
 
 static void checkregs(CPU_state *ref, vaddr_t pc) {
@@ -84,7 +85,11 @@ static void checkregs(CPU_state *ref, vaddr_t pc) {
     isa_reg_display();
     printf("pc :0x %lx\n",pc);
   }
-  
+}
+
+static void cpu_copy_csrs() {
+    cpu.mstatus = csrR_id(mstatus);
+    cpu.mcause  = csrR_id(mcause);
 }
 
 void difftest_step(vaddr_t pc, vaddr_t npc) {

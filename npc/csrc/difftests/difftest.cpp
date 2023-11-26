@@ -117,7 +117,7 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t npc) {
     eqreg = false;
     printf("now pc 0x%08lx\n", cpureg.pc);
   }
-  
+
   return eqreg;
 }
 
