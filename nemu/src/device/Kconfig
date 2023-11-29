@@ -46,6 +46,21 @@ config RTC_MMIO
   default 0xa0000048
 endif # HAS_TIMER
 
+
+menuconfig MTIME
+  bool "Enable MTIME"
+  default y
+
+if MTIME
+config CLINT_START
+  hex "CLINT_START"
+  default 0x2000000
+
+config CLINT_MTIMCMP 
+  hex "CLINT_MTIMCMP"
+  default 0x2004000
+endif # MTIME
+
 menuconfig HAS_KEYBOARD
   bool "Enable keyboard"
   default y

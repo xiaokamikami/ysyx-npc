@@ -12,4 +12,7 @@
 #define FB_ADDR         (MMIO_BASE   + 0x1000000)
 #define AUDIO_SBUF_ADDR (MMIO_BASE   + 0x1200000)
 
+#define CLINT_START     (0x2000000)
+#define CLINT_MTIMCMP   (0x2000000 + 0x4000)
+
 #endif

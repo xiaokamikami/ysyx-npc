@@ -10,9 +10,8 @@ void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) =
 void (*ref_difftest_regcpy)(CPU_state *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
-static void cpu_copy_csrs();
 #ifdef CONFIG_DIFFTEST
-
+static void cpu_copy_csrs();
 static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
 

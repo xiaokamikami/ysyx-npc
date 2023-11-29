@@ -10,10 +10,10 @@ Context* __am_irq_handle(Context *c) {
     switch (c->mcause) {
 			case 0xb:
 				if(c->GPR1 == -1)
-					ev.event = EVENT_YIELD;break;
+					ev.event = EVENT_YIELD;
                 else
-                    ev.event = EVENT_SYSCALL;break;
-				break;
+                    ev.event = EVENT_SYSCALL;
+                break;
             case 0x8000000000000007: // M TIME interrupt
                 ev.event = EVENT_IRQ_TIMER;
                 printf("EVENT_IRQ_TIMER\n");
