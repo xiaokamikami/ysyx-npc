@@ -26,6 +26,7 @@ module ysyx_22041412_decode(
 	output Div_en,
 	output [1:0]RV64_en,
 	output FENCE_i,
+    output Handle,
 	output reg[63:0] jal_pc,  //直接跳转命令 结果
 	output reg       jal_ok,
 
@@ -40,7 +41,6 @@ module ysyx_22041412_decode(
 	wire S_type;
 	wire R_type;
 
-	wire Handle;
 	assign Handle = (instr[6:0]==`ysyx_22041412_Environment)?1'b1:1'b0;
 
 	assign opcode=instr[6:0];
@@ -140,7 +140,7 @@ module ysyx_22041412_decode(
 
                 (Auipc)?`ysyx_22041412_UADD:
                 (Li  )?`ysyx_22041412_li:
-                ( (mem_mode!='b00 ) |opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
+                ((mem_mode!='b00 ) |opcode==`ysyx_22041412_jalr)?`ysyx_22041412_UADD:
                 0;
 	//提前计算出Jal的地址
     always@(posedge clk)begin

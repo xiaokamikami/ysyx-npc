@@ -7,7 +7,9 @@ bool update_interrupt() {
     if (csrR_id(mip) == 0x80)//挂起时钟中断 默认直接接管
     {
         csrW_id(mie,0);
+        return 1;
     }
+    return 0;
 }
 //中断程序处理完毕
 void end_interrupt() {

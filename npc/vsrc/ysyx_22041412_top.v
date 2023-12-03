@@ -380,25 +380,35 @@ wire [1:0]id_rv64_en;
 wire id_fence_i;
 wire [PC_WIDTH-1:0]jal_pc;
 wire       jal_ok;
-
+wire       id_Handle;
 wire id_vaild_o;
 reg id_ready_o ;
 assign id_vaild_o = ex_valid_o;
-//**************csr*****************//
+//**************csr decode*****************//
+localparam mstatus = 1;
+localparam mie     = 2;
+localparam mtvec   = 3;
+localparam mepc    = 4;
+localparam mcause  = 5;
+localparam mip     = 6;
+
+localparam ecall   = 10;
+localparam mret    = 11;
     wire csr_jar_en;
     wire [11:0]csr;
-    wire [2:0]id_csr_id;
+    wire [3:0]id_csr_id;
     wire id_csr_en;
-    assign csr_jar_en=id_csr_en?(id_csr_id==0 | id_csr_id==1)?1'b1:1'b0:1'b0;
-    assign csr =id_csr_en?id_imm_data[11:0]:0;
-    assign id_csr_id=(csr==12'h000)?3'd1:   //ecall
-                    (csr==12'h302)?3'd0:   //mret
-                    (csr==12'h300)?3'd2:   //mstatus
-                    (csr==12'h305)?3'd3:   //mtvec
-                    (csr==12'h341)?3'd4:   //mepc
-                    (csr==12'h342)?3'd5:   //mcause
-                                     0; 
-    assign id_csr_en =  (id_opcode==`ysyx_22041412_Environment)?1:0;
+    assign id_csr_en = id_Handle;
+    assign csr = id_csr_en ? id_imm_data[11:0]:0;
+
+    assign id_csr_id = (id_csr_en )?(csr==12'h300)?mstatus: //mstatus
+                                    (csr==12'h305)?mtvec:   //mtvec
+                                    (csr==12'h341)?mepc:    //mepc
+                                    (csr==12'h342)?mcause:  //mcause
+                                    (csr==12'h000)?ecall:   //ecall
+                                    (csr==12'h302)?mret:    //mret
+                                    'd0:'d0; 
+    assign csr_jar_en= id_csr_en ? (id_csr_id == ecall || id_csr_id == mret ) ? 1'b1 : 1'b0 : 1'b0;
 
 
 ysyx_22041412_decode ID_decode( //opcode
@@ -428,6 +438,7 @@ ysyx_22041412_decode ID_decode( //opcode
     .Div_en(id_div_en),
     .RV64_en(id_rv64_en),
     .FENCE_i(id_fence_i),
+    .Handle(id_Handle),
     .jal_pc (jal_pc),
     .jal_ok (jal_ok),
 
@@ -491,7 +502,6 @@ reg ex_div_en;
 reg [1:0]ex_rv64_en;
 reg ex_fence_i;
 
-
 wire [63:0]ex_v1_in;
 wire [63:0]ex_v2_in;
 wire [63:0]ex_rs2_in;
@@ -501,7 +511,7 @@ wire [63:0]csr_data_o;
 wire [63:0]csr_data_i;
 reg ex_csr_jar_en;
 reg ex_csr_en;
-reg [2:0]ex_csr_id;
+reg [3:0]ex_csr_id;
 
 wire ex_wait;
 wire ex_load_wait;
@@ -616,11 +626,11 @@ always@(posedge clk)begin
         ex_fence_i <= id_fence_i;
 
         ex_csr_jar_en<= csr_jar_en;
-        ex_csr_id    <=id_csr_id;
-        ex_csr_en    <=id_csr_en;
+        ex_csr_id    <= id_csr_id;
+        ex_csr_en    <= id_csr_en;
 
-        ex_mem_mode  <=id_mem_mode;
-        ex_jump_mode <=id_jump_mode;
+        ex_mem_mode  <= id_mem_mode;
+        ex_jump_mode <= id_jump_mode;
         //if(id_pc!=0)$display("ex load PC:%8h",id_pc);
     end 
     else if(mem_valid_o & ex_ready_o & (ex_wait|ex_load_wait))begin  //ex load 类暂停 当 mem开始执行后，清空这条指令，使旁路指向MEM read_data

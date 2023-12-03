@@ -2,7 +2,7 @@
 #include <cpu/cpu.h>
 #include <difftest-def.h>
 #include <memory/paddr.h>
-
+#include "../../isa/riscv64/local-include/reg.h"
 // DUT buf,REF addr
 void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
   if (direction == DIFFTEST_TO_REF) {
@@ -53,6 +53,7 @@ void difftest_init(int port) {
   /* Perform ISA dependent initialization. */
   cpu.pc = RESET_VECTOR;
   /* The zero register is always 0. */
-  cpu.gpr[0] = 0;
+  cpu.gpr[0] = 0; 
+  csrW_id(mstatus,0xa00001800);
 }
 

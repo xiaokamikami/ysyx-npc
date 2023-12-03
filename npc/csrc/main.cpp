@@ -52,10 +52,10 @@ static inline void updata_clk();
 static inline int cmd_c();
 
 using namespace std;
-vluint64_t main_time = 0;
-static uint64_t main_dir_value= 0;
-static uint64_t main_clk_value= 0;
-static uint64_t main_time_us;
+uint64_t main_time = 0;
+static uint64_t main_dir_value = 0;
+static uint64_t main_clk_value = 0;
+static uint64_t main_time_us = 0;
 
 static uint32_t boot_time = 0;
 static uint32_t end_time  = 0;
@@ -85,7 +85,7 @@ void device_read(uint64_t raddr, uint64_t *rdata){
       case RTC_ADDR   : main_time_us=get_time(); 
                         *rdata = (uint32_t)main_time_us;
         break;
-      case RTC_ADDR+4 : *rdata = main_time_us>>32;
+      case RTC_ADDR+4 : *rdata = main_time_us >> 32;
         break;
       default: printf("error mem read device  %lx\n",raddr);    assert(0);
         break;
@@ -93,9 +93,7 @@ void device_read(uint64_t raddr, uint64_t *rdata){
       #ifdef diff_en
 	      Push(&dut_data, top->pip_mem_pc);
         //printf(GREEN "in_queue  dut_num %d,pc %lx \n" NONE,dut_data.m_size,dut_data.m_array[dut_data.m_front]);
-
-
-        //printf("Device read : pc =%lx  dut_num =%d main_time =%d \n",top->pip_mem_pc,dut_num,main_time);
+        //printf("Device read : pc =%lx  dut_num =%d main_clk_value =%d \n",top->pip_mem_pc,dut_num,main_clk_value);
       #endif
 }
 //内存写外设处理
@@ -155,7 +153,7 @@ double getCalcuationTime(){
 
 static uint8_t star_debug;
 static uint64_t start_time;
-static uint8_t updevice_clk;
+static uint16_t updevice_clk;
 static inline void updata_clk()    //刷新一次时钟与设备
 {
       //getCalcuationTime();
@@ -173,14 +171,9 @@ static inline void updata_clk()    //刷新一次时钟与设备
           tfp->dump(main_time);
           start_time++;
         }else{ star_debug = 0;}
-        
       #elif debuge_time
-        star_debug = 1;
         if( debuge_time < main_time & main_time< debuge_time+5000){
           tfp->dump(main_time);
-        }else if(star_debug & (debuge_time < start_time & start_time< debuge_time+5000)){
-          tfp->dump(main_time);
-          start_time++;
         }
       #endif 
     contextp->timeInc(1);
@@ -201,7 +194,7 @@ static inline void updata_clk()    //刷新一次时钟与设备
       //getCalcuationTime();
     cmd_c();//记录指令的变化 并验证正确性
       //printf("printf dif-update  time%lf\n",getCalcuationTime());
-    if(updevice_clk==250){
+    if(updevice_clk == 0x7ff){
         //getCalcuationTime();
       device_update();  //准备外设数据
        //printf("printf device-update  time%lf\n",getCalcuationTime());
@@ -220,11 +213,11 @@ void isa_reg_display() {
 		printf("%s\t0x%16lx\t", regs[i], cpu_gpr[i]);
 		printf("%s\t0x%16lx\n", regs[i+1], cpu_gpr[i+1]);
 	}
-  for (int i = 2; i < 5; i++)
-  {
-    printf("%s\t0x%16lx\n", csrs[i], csr_gpr[i]);
-  }
-  
+    for (int i = 1; i <= csr_size; i++)
+    {
+        printf("%s\t0x%16lx\n", csrs[i], csr_gpr[i]);
+    }
+
 	printf("pc = \t0x%16lx\n", cpureg.pc);
 }
 void isa_reg_print(uint8_t num) {
@@ -248,10 +241,10 @@ static inline int cmd_c()                //DIFFTEST
         }
     #endif
 
-  if((pc > CONFIG_MBASE) && (pc <= (CONFIG_MBASE + CONFIG_MSIZE))) {
+  if((pc > CONFIG_MBASE) && (pc < (CONFIG_MBASE + CONFIG_MSIZE))) {
     if(last_pc != pc){
         #ifdef diff_en      //正确性检查
-        //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_time);
+        //printf("DIFFTEST : pc=%lx time=%ld \n",pc,main_clk_value);
 
             // for(int i = 0; i < 32; i++) {   //准备需要被检查的数据
             //    cpureg.gpr[i] = cpu_gpr[i];
@@ -275,7 +268,7 @@ static inline int cmd_c()                //DIFFTEST
     #ifdef diff_pc
       else {      //PC长时间无变化，视为卡死
         ++same_pc;
-        if(same_pc > 10000) {
+        if(same_pc > 30000) {
           printf("The pc No update many times \n");
           is_exit =true;
           //assert(0);
@@ -286,7 +279,7 @@ static inline int cmd_c()                //DIFFTEST
   #ifdef diff_pc
     else if(pc==0){       //PC长时间为0  说明IFU有问题或跳转后流水线堵塞没有解除
       ++same_pc;
-      if(same_pc > 10000) {   
+      if(same_pc > 30000) {   
         printf("The pc No update many times PC==0\n");
         is_exit =true;
         //assert(0);
@@ -366,15 +359,15 @@ int main(int argc,char **argv){
       }
     #endif
 
-    if(top->Ebreak==true | sdl_exit==true ){  //ebreak   或人为关闭窗口
+    if(top->Ebreak == true || sdl_exit == true ){  //ebreak   或人为关闭窗口
       printf(BLUE "[HIT GOOD ]" GREEN " PC=%08x\n" NONE,last_diff_pc);
       updata_clk();  
       break;
     }
-    else if(is_exit ==true){            //遇到错误，停止运行
+    else if(is_exit == true){            //遇到错误，停止运行
       //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_diff_pc,main_time);
-      
+
       updata_clk();  
       //break;
       top->final();
@@ -404,7 +397,7 @@ int main(int argc,char **argv){
   printf(BLUE "\nCore Cache info:\n" NONE "icache_l1  hit rate  %.2lf %% \ndcache_l1  hit rate  %.2lf %% \n",icache_l1_hit*100 , dcache_l1_hit*100);
   printf(     "icache_l1  hit :%ld  miss :%ld \n",top->Icache_L1_hit,top->Icache_L1_miss);
   printf(     "dcache_l1  hit :%ld  miss :%ld \n",top->Dcache_L1_hit,top->Dcache_L1_miss);
-  printf(     "ifu_pred   hit reat:%.2lf %% \n",ifu_pred_hit*100);
+  printf(     "ifu_pred   hit rate  %.2lf %% \n",ifu_pred_hit*100);
   printf(     "ifu_pred   hit :%ld  miss :%ld \n",top->IFU_Pred_hit,top->IFU_Pred_miss);
   printf(BLUE "NPC-IPC  :" NONE " %.4lf \n\n",ipc);
   

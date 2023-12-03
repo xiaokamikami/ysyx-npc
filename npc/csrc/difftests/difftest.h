@@ -10,5 +10,8 @@ const char* reg_name(int idx);
 extern const char *regs[];
 extern const char *csrs[];
 extern void difftest_skip_ref();
+typedef enum {
+    mstatus=1, mie, mtvec , mepc, mcause, mip , csr_size=5
+}csr_id;
 
 #endif

@@ -34,10 +34,10 @@ LDFLAGS += "-lSDL2 -lLLVM-11 -ldl"
 build:$(VSRCS) $(CSRCS) $(CSRCS_H)
 	-@rm -rf $(OBJ_DIR)
 	verilator $(VERILATOR_FLAGS) -j 4 --top-module $(TOPNAME) \
-		$(VSRCS_INC) $(CSRCS) -LDFLAGS $(LDFLAGS) 
+		$(VSRCS_INC) $(CSRCS) -O3 -LDFLAGS $(LDFLAGS) 
 
 compile: 
-	make -C $(NPC_HOME)/obj_dir -j4 -f V$(TOPNAME).mk  V$(TOPNAME) 
+	make -C $(NPC_HOME)/obj_dir -j4 -f V$(TOPNAME).mk  V$(TOPNAME)
 
 run:
 	./obj_dir/Vysyx_22041412_top $(NEMU_HOME) $(NPC_HOME)

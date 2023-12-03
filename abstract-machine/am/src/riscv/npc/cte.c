@@ -2,7 +2,8 @@
 #include <klib.h>
 
 static Context* (*user_handler)(Event, Context*) = NULL;
-
+static void set_csr(uint32_t csrid,uint8_t mask);
+static void clear_csr(uint32_t csrid,uint8_t mask);
 Context* __am_irq_handle(Context *c) {
   if (user_handler) {
     Event ev = {0};
@@ -53,4 +54,52 @@ bool ienabled() {
 }
 
 void iset(bool enable) {
+    if(enable) {
+        uint64_t temp;
+        asm volatile (  
+            "csrr %0, mstatus\n\t"  // 从 MIP 寄存器读取数据到 temp  
+            "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
+            "csrw mstatus, %0\n\t"  // 将 temp 写回 MIP 寄存器  
+            : "=r"(temp)  // 输出操作数  
+        );
+        set_csr(mie,MIP_MTIP);          // mie_MTIE
+    }
+    else {
+        uint64_t temp;
+        asm volatile (  
+            "csrr %0, mstatus\n\t"  // 从 MIP 寄存器读取数据到 temp  
+            "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
+            "csrw mstatus, %0\n\t"  // 将 temp 写回 MIP 寄存器  
+            : "=r"(temp)  // 输出操作数  
+        );     
+        asm volatile("csrci mstatus,8");// mstatus_MIE
+        clear_csr(mie,MIP_MTIP);        // mie_MTIE
+    }
+}
+
+static void set_csr(uint32_t csrid,uint8_t mask) {
+    if(csrid==mie) {
+        if(mask==MIP_MTIP) {
+            uint64_t temp;  
+            asm volatile (  
+                "csrr %0, mie\n\t"  // 从 MIE 寄存器读取数据到 temp  
+                "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
+                "csrw mie, %0\n\t"  // 将 temp 写回 MIE 寄存器  
+                : "=r"(temp)  // 输出操作数  
+            );     
+        }
+    }
+}
+static void clear_csr(uint32_t csrid,uint8_t mask) {
+    if(csrid==mie) {
+        if(mask==MIP_MTIP) {
+            uint64_t temp;  
+            asm volatile (  
+                "csrr %0, mie\n\t"  // 从 MIE 寄存器读取数据到 temp  
+                "ori %0, %0, 0<<7\n\t"  // 设置 temp 的第七位  
+                "csrw mie, %0\n\t"  // 将 temp 写回 MIE 寄存器  
+                : "=r"(temp)  // 输出操作数  
+            );     
+        }
+    }
 }
