@@ -385,15 +385,15 @@ wire id_vaild_o;
 reg id_ready_o ;
 assign id_vaild_o = ex_valid_o;
 //**************csr decode*****************//
-localparam mstatus = 1;
-localparam mie     = 2;
-localparam mtvec   = 3;
-localparam mepc    = 4;
-localparam mcause  = 5;
-localparam mip     = 6;
+localparam mstatus = 'h1;
+localparam mie     = 'h2;
+localparam mtvec   = 'h3;
+localparam mepc    = 'h4;
+localparam mcause  = 'h5;
+localparam mip     = 'h6;
 
-localparam ecall   = 10;
-localparam mret    = 11;
+localparam ecall   = 'hb;
+localparam mret    = 'hc;
     wire csr_jar_en;
     wire [11:0]csr;
     wire [3:0]id_csr_id;
@@ -402,9 +402,11 @@ localparam mret    = 11;
     assign csr = id_csr_en ? id_imm_data[11:0]:0;
 
     assign id_csr_id = (id_csr_en )?(csr==12'h300)?mstatus: //mstatus
+                                    (csr==12'h304)?mie:     //mie
                                     (csr==12'h305)?mtvec:   //mtvec
                                     (csr==12'h341)?mepc:    //mepc
                                     (csr==12'h342)?mcause:  //mcause
+                                    (csr==12'h344)?mip:     //mip
                                     (csr==12'h000)?ecall:   //ecall
                                     (csr==12'h302)?mret:    //mret
                                     'd0:'d0; 
@@ -585,6 +587,9 @@ ysyx_22041412_mcsr csr_reg(
      .addr(ex_csr_id),
      .data_i(csr_data_i),
      .data_o(csr_data_o),
+
+    //interrupt
+     .interrupt_mtime_en(),
 
      .valid_i(ex_valid_o),
      .ready_o(csr_ready_o)

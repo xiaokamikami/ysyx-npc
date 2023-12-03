@@ -13,9 +13,9 @@
 //const uint32_t end_times =500;
 
 //波形记录开关
-//#define vcd_en        1
+#define vcd_en        1
 //debug波形的时钟地点
-//#define debuge_time   6120100
+#define debuge_time   6119000
 //debug波形的pc地址
 //#define debuge_pc   0
 

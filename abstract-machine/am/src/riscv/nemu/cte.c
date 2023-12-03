@@ -60,7 +60,7 @@ void iset(bool enable) {
         set_csr(mie,MIP_MTIP);          // mie_MTIE
     }
     else {
-        asm volatile("csrci mstatus,8");// mstatus_MIE
+        asm volatile("csrci mstatus,0");// mstatus_MIE
         clear_csr(mie,MIP_MTIP);        // mie_MTIE
     }
 }

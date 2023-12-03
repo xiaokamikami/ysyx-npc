@@ -21,10 +21,11 @@ ysyx_22041412_mtime mtime (
     .clk        (clk),
     .rst        (rst),
     .enable     (mtime_en),
-    .upcmptime  (),//更新time cmp值
 
-    .mtime_h    (mtime_data),
-    .interrupt  (interrupt_mtime)
+    .r_data_o   (),
+    .rw_mode    (),  // 0 none 1 rtime 2 rcmp 3 wcmp
+    .r_data_o   (),
+    .interrupt(interrupt_mtime)
 );
 
 endmodule

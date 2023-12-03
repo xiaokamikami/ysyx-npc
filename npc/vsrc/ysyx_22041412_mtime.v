@@ -1,7 +1,7 @@
 module ysyx_22041412_mtime(
 input           clk,
 input           rst,
-input           upcmptime,
+
 input           enable,
 input  [1:0]    rw_mode,  // 0 none 1 rtime 2 rcmp 3 wcmp
 output [63:0]   r_data_o,

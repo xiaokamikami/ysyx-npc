@@ -1,6 +1,9 @@
 #include <am.h>
 #include <klib.h>
-
+//csr id
+#define mie 0x304
+//csr mask
+#define MIP_MTIP 0x07
 static Context* (*user_handler)(Event, Context*) = NULL;
 static void set_csr(uint32_t csrid,uint8_t mask);
 static void clear_csr(uint32_t csrid,uint8_t mask);
@@ -55,24 +58,11 @@ bool ienabled() {
 
 void iset(bool enable) {
     if(enable) {
-        uint64_t temp;
-        asm volatile (  
-            "csrr %0, mstatus\n\t"  // 从 MIP 寄存器读取数据到 temp  
-            "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
-            "csrw mstatus, %0\n\t"  // 将 temp 写回 MIP 寄存器  
-            : "=r"(temp)  // 输出操作数  
-        );
+        asm volatile("csrsi mstatus,8");// mstatus_MIE
         set_csr(mie,MIP_MTIP);          // mie_MTIE
     }
     else {
-        uint64_t temp;
-        asm volatile (  
-            "csrr %0, mstatus\n\t"  // 从 MIP 寄存器读取数据到 temp  
-            "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
-            "csrw mstatus, %0\n\t"  // 将 temp 写回 MIP 寄存器  
-            : "=r"(temp)  // 输出操作数  
-        );     
-        asm volatile("csrci mstatus,8");// mstatus_MIE
+        asm volatile("csrci mstatus,0");// mstatus_MIE    
         clear_csr(mie,MIP_MTIP);        // mie_MTIE
     }
 }

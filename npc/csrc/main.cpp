@@ -365,7 +365,7 @@ int main(int argc,char **argv){
       break;
     }
     else if(is_exit == true){            //遇到错误，停止运行
-      //isa_reg_display();
+      isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_diff_pc,main_time);
 
       updata_clk();  
