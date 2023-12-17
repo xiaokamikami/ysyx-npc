@@ -6,8 +6,14 @@ module ysyx_22041412_if(
     output reg [63:0]       pred_miss_count,
     output reg [63:0]       pred_hit_count,
 
-    output reg[PC_WIDTH-1:0]pc,
+    output reg[31:0]pc,
     output reg[31:0]imm_data,
+//interrupt
+    input       interrupt_en, // 触发硬件中断
+    input [31:0]interrupt_pc,  //中断入口地址
+    output reg  interrupt_accepted,//接管中断标识
+    output reg[31:0] interrupt_mepc,//中断返回地址
+
 
     input jarl_rady,
     input valid_i,  //ID OK
@@ -44,6 +50,7 @@ parameter PC_WIDTH = 64;
 `define IF_WORK         3'b001 
 `define IF_WAIT         3'b010 //其他跳转处理
 `define IF_BRANCH       3'b100 //条件分支的处理
+`define IF_INTER        3'b101 //中断的取指令等待区
 `define IF_FENCE        3'b111 //FENCE I
 
 reg  [2:0] state;            //状态机 
@@ -130,16 +137,15 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
     always@(*)begin //负责转发cache的数据
         case (state)
             `IF_WORK: begin
-                if (ready_i & ~last_stall)begin
+                if (ready_i & ~last_stall & interrupt_contrl)begin
                     imm_data = r_data_i;
                     pc[31:0] = r_addr_o;
                     ready_o  = 1'b1;
-                end else if(last_stall)begin
+                end else if(last_stall & interrupt_contrl)begin
                     imm_data = last_imm;
                     pc[31:0] = last_pc;
                     ready_o  = 1'b1;   
-                end
-                else begin
+                end else begin
                     imm_data = 32'b0;
                     pc[31:0] = 32'b0;
                     ready_o  = 1'b0;
@@ -170,6 +176,27 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
  reg last_stall;
  reg wait_jal;
  
+ //接收中断请求
+ reg interrupt_ld;
+ wire interrupt_contrl = (~interrupt_en || interrupt_en & interrupt_ld);
+ always @(posedge clk) begin
+    if (rst) begin
+        interrupt_accepted <= 1'b0;
+    end else begin
+        if(interrupt_en & ~interrupt_ld)begin
+            interrupt_accepted <= !ready_i;
+            interrupt_ld       <= !ready_i;
+        end else if(interrupt_en & interrupt_ld & ready_o)begin//中断后第一条指令发出后关掉接管信号
+            interrupt_accepted <= 1'b0;
+            interrupt_ld       <= interrupt_ld;
+        end
+        else if(~interrupt_en) begin
+            interrupt_accepted <= 1'b0;
+            interrupt_ld       <= 1'b0;
+        end
+    end
+ end
+
  always @(posedge clk) begin   //IFU  DNPC控制  -->> ICACHE
   if(rst)begin
     if_read_vaild  <= 1'b1;
@@ -179,9 +206,10 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
     case (state)
         `IF_IDLE: begin
             if_read_vaild  <= 1'b0;
+            interrupt_mepc <= 32'b0; 
             dnpc           <= dnpc;
         end
-        `IF_WORK:begin
+        `IF_WORK:begin//普通取指模式
           pred_falt_ld        <= 1'b0;
           pred_imm_ready_ld   <= 1'b0;
           pred_result_ready_ld<= 1'b0;
@@ -190,28 +218,31 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
             last_pc        <= r_addr_o;
             last_stall     <= 1'b1;
             if_read_vaild  <= 1'b0;
-          end 
-          if(valid_i & ((ready_i & ~wait_jal) | last_stall ))begin //每次取回指令后发出一条新的指令请求，地址递增+4
+          end
+         //每次取回指令后发出一条新的指令请求，地址递增+4
+         if(valid_i & ((ready_i & ~wait_jal) | last_stall) & interrupt_contrl)begin
             if_read_vaild  <= (~jump & ~jal) ? 1'b1 : jump_b;
             wait_jal       <= jal;
             r_addr_o       <= jump_pred ? B_pc :dnpc;
             pred_pc        <= jump_b ? jump_pred ? B_pc : dnpc : 32'b0;
             jump_pred_ld   <= jump_pred;
             dnpc           <= dnpc+4;
-            last_stall     <= 1'b0;          
+            last_stall     <= 1'b0;
           end
-          else if (wait_jal & jal_ok)begin
+          else if (wait_jal & jal_ok & interrupt_contrl)begin
             wait_jal       <= 1'b0;
             if_read_vaild  <= 1'b1;
             r_addr_o       <= jal_pc;
             dnpc           <= jal_pc+4;
             last_stall     <= 1'b0;
-          end
-        //   else if(jump_b)begin
-        //     if_read_vaild <= 1'b1;
-        //     dnpc          <= jump_pred ? B_pc : dnpc+4 ;
-        //   end
-
+          end else if(interrupt_en & ~interrupt_ld) begin  //中断挂起未接管
+            if_read_vaild <= !ready_i;
+            if (ready_i) begin
+                r_addr_o      <= interrupt_pc;
+                dnpc          <= interrupt_pc + 4;
+                interrupt_mepc<= r_addr_o;
+            end
+         end
         end
         `IF_WAIT:begin       //等待分支指令给出新地址
           last_stall       <=1'b0;
@@ -229,7 +260,6 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
             end else begin
                 pred_imm_ready_ld <= pred_imm_ready;
             end
-
             if(jarl_rady) begin// 结果出来了
                 if(pred_hit) begin
                     pred_hit_count <= pred_hit_count+1 ;

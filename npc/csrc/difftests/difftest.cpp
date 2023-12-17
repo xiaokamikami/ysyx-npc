@@ -99,6 +99,8 @@ const char *csrs[] = {
   "$0","mstatus","mie","mtvec","mepc","mcause","mip"
 };
 
+const int csrs_num = 6;
+
 const char* reg_name(int idx) {
   return regs[idx];
 }
@@ -166,6 +168,5 @@ void difftest_step(vaddr_t pc, vaddr_t npc)
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     //printf("cheek dut:%08lx,ref:%08lx\n",npc,ref_r.pc);
     checkregs(&ref_r, npc);
-
 
 }

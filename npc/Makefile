@@ -21,20 +21,20 @@ VSRCS_INC = $(shell find $(abspath ./vsrc) -name "ysyx_22041412*.v")
 #rules for verilator
 VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 1\
 	-O3 --x-assign fast --x-initial fast --noassert \
-	--timescale "1ns/1ns"
+	--timescale "1ns/1ns" --stats
 #micro.vlt pal.vlt
 #--prof-pgo profile.vlt
 
  
 # rules for verilator
 
-LDFLAGS += "-lSDL2 -lLLVM-11 -ldl"
-
+LDFLAGS += "-lSDL2 -lLLVM-11 -ldl -lm -ffast-math"
+CFLAGS  += "-O3 -ftree-vectorize -ffast-math"
 #-CFLAGS -g
 build:$(VSRCS) $(CSRCS) $(CSRCS_H)
 	-@rm -rf $(OBJ_DIR)
 	verilator $(VERILATOR_FLAGS) -j 4 --top-module $(TOPNAME) \
-		$(VSRCS_INC) $(CSRCS) -O3 -LDFLAGS $(LDFLAGS) 
+		$(VSRCS_INC) $(CSRCS) -CFLAGS $(CFLAGS) -LDFLAGS $(LDFLAGS) 
 
 compile: 
 	make -C $(NPC_HOME)/obj_dir -j4 -f V$(TOPNAME).mk  V$(TOPNAME)

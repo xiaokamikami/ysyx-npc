@@ -58,11 +58,11 @@ bool ienabled() {
 
 void iset(bool enable) {
     if(enable) {
-        asm volatile("csrsi mstatus,8");// mstatus_MIE
+        asm volatile("csrsi mstatus,1 << 3");// mstatus_MIE
         set_csr(mie,MIP_MTIP);          // mie_MTIE
     }
     else {
-        asm volatile("csrci mstatus,0");// mstatus_MIE    
+        asm volatile("csrci mstatus,1 << 3");// mstatus_MIE    
         clear_csr(mie,MIP_MTIP);        // mie_MTIE
     }
 }
@@ -70,26 +70,16 @@ void iset(bool enable) {
 static void set_csr(uint32_t csrid,uint8_t mask) {
     if(csrid==mie) {
         if(mask==MIP_MTIP) {
-            uint64_t temp;  
-            asm volatile (  
-                "csrr %0, mie\n\t"  // 从 MIE 寄存器读取数据到 temp  
-                "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
-                "csrw mie, %0\n\t"  // 将 temp 写回 MIE 寄存器  
-                : "=r"(temp)  // 输出操作数  
-            );     
+            asm volatile("li x10,(1 << 7)");// mstatus_MIE   
+            asm volatile("csrs mie,x10");// mstatus_MIE    
         }
     }
 }
 static void clear_csr(uint32_t csrid,uint8_t mask) {
     if(csrid==mie) {
         if(mask==MIP_MTIP) {
-            uint64_t temp;  
-            asm volatile (  
-                "csrr %0, mie\n\t"  // 从 MIE 寄存器读取数据到 temp  
-                "ori %0, %0, 0<<7\n\t"  // 设置 temp 的第七位  
-                "csrw mie, %0\n\t"  // 将 temp 写回 MIE 寄存器  
-                : "=r"(temp)  // 输出操作数  
-            );     
+            asm volatile("li x10,(1 << 7)");// mstatus_MIE   
+            asm volatile("csrc mie,x10");// mstatus_MIE    
         }
     }
 }

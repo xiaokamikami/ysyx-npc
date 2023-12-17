@@ -4,6 +4,7 @@ module ysyx_22041412_top(
     input wire rst,
     //EXE
     output wire [63:0]pip_pc,
+    output wire       pip_interrupt_acpt,
     output reg  [4:0] pip_reg_addr,
     output reg  [63:0]pip_reg_data,
     output reg        pip_reg_en,
@@ -122,6 +123,7 @@ always @(posedge clk) begin
     pip_reg_data <= wb_data;
     pip_reg_en   <= wb_reg_en;
 end
+assign pip_interrupt_acpt = wb_interrupt_acpt;
 //
 
 
@@ -309,25 +311,37 @@ ysyx_22041412_Icache Icache_L1(
 );
 //IF 
 wire [31:0]if_imm;
-
+wire [31:0]interrupt_mepc;
 wire [PC_WIDTH-1:0]if_pc;
 wire if_ready_o;
 wire if_fence_i;
 wire if_fence_ready;
+wire if_interrupt_acpt;//指示本条指令为中断接管取出的
 reg if_jr_ready;
 reg if_jr_hit;
+//快速译码
 wire      if_decode_jal;
 wire      if_decode_jarl;
 wire      if_decode_jump_b;
 wire      if_decode_fence_i;
+
+
+
+
+//IFU
 ysyx_22041412_if IF_s1 (      //imm
     .clk           (clk),
     .rst           (rst),
     .pred_miss_count     (IFU_Pred_miss),
     .pred_hit_count      (IFU_Pred_hit),
 
-    .pc            (if_pc),
+    .pc            (if_pc[31:0]),
 	.imm_data      (if_imm),
+//interrupt
+    .interrupt_en  (csr_interrupt_accepted), // 触发硬件中断
+    .interrupt_pc  (trap_pc),
+    .interrupt_accepted(if_interrupt_acpt),//接管中断成功标识
+    .interrupt_mepc(interrupt_mepc),
 
     .mem_dnpc      (mem_dnpc),
     .jarl_rady     (if_jr_ready),
@@ -381,6 +395,7 @@ wire id_fence_i;
 wire [PC_WIDTH-1:0]jal_pc;
 wire       jal_ok;
 wire       id_Handle;
+reg        id_interrupt_acpt;
 wire id_vaild_o;
 reg id_ready_o ;
 assign id_vaild_o = ex_valid_o;
@@ -422,8 +437,6 @@ ysyx_22041412_decode ID_decode( //opcode
     .decode_jump_b (id_decode_jump_b),
     .decode_fence_i(id_decode_fence_i),
 
-
-
     //output 
 	.opcode(id_opcode),
 	.func3(id_func3),
@@ -457,6 +470,7 @@ always@(posedge clk )begin //IF ID
         id_decode_jarl   <= if_decode_jarl;
         id_decode_jump_b <= if_decode_jump_b;
         id_decode_fence_i<= if_decode_fence_i;
+        id_interrupt_acpt<= if_interrupt_acpt;
     end else if( ~id_vaild_o )begin    //暂停 保持信号
         id_imm     <= id_imm;
         id_pc      <= id_pc;
@@ -465,6 +479,7 @@ always@(posedge clk )begin //IF ID
         id_decode_jarl   <= id_decode_jarl;
         id_decode_jump_b <= id_decode_jump_b;
         id_decode_fence_i<= id_decode_fence_i;
+        id_interrupt_acpt<= id_interrupt_acpt;
     end else if(ex_valid_o) begin//没有新指令? 插入空泡
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;
@@ -473,6 +488,7 @@ always@(posedge clk )begin //IF ID
         id_decode_jarl   <= 1'b0;
         id_decode_jump_b <= 1'b0;
         id_decode_fence_i<= 1'b0;
+        id_interrupt_acpt<= 1'b0;
     end else begin
         id_imm     <= 32'b0;
         id_pc      <= `ysyx_22041412_zero_word;     
@@ -481,6 +497,7 @@ always@(posedge clk )begin //IF ID
         id_decode_jarl   <= 1'b0;
         id_decode_jump_b <= 1'b0;
         id_decode_fence_i<= 1'b0;
+        id_interrupt_acpt<= 1'b0;
     end
 
 
@@ -513,6 +530,7 @@ wire [63:0]csr_data_o;
 wire [63:0]csr_data_i;
 reg ex_csr_jar_en;
 reg ex_csr_en;
+reg ex_interrupt_acpt;
 reg [3:0]ex_csr_id;
 
 wire ex_wait;
@@ -522,7 +540,7 @@ wire ex_valid_o = ~ex_wait & alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_
 wire ex_ready_o = alu_ready_o & ((ex_csr_en & csr_ready_o) | ~ex_csr_en );
 
 wire csr_ready_o;
-assign csr_data_i = ex_v1;
+assign csr_data_i = if_interrupt_acpt ? {{32{1'b0}},interrupt_mepc} : ex_v1;
 //数据旁路
 assign ex_v1_in = (id_imm_V1Type==`ysyx_22041412_v1pc)?id_pc:
                   (id_imm_V1Type==`ysyx_22041412_v1zim)?{{59{1'b0}},id_Ra}:
@@ -577,7 +595,9 @@ assign ex_load_wait=  ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & ex_opcode
         
     end    */
   
-
+wire clint_mtime_en;
+wire csr_interrupt_accepted;
+wire [31:0]trap_pc;
 ysyx_22041412_mcsr csr_reg(
      .clk(clk),
      .rst(rst),
@@ -587,10 +607,12 @@ ysyx_22041412_mcsr csr_reg(
      .addr(ex_csr_id),
      .data_i(csr_data_i),
      .data_o(csr_data_o),
-
+     .mtvec_o(trap_pc),
     //interrupt
-     .interrupt_mtime_en(),
-
+     .interrupt_mtime_en(clint_mtime_en),
+     .interrupt_tag_i   (clint_tag_id),
+     .interrupt_accept  (csr_interrupt_accepted),
+     .interrupt_accepted(if_interrupt_acpt),
      .valid_i(ex_valid_o),
      .ready_o(csr_ready_o)
  );
@@ -636,6 +658,7 @@ always@(posedge clk)begin
 
         ex_mem_mode  <= id_mem_mode;
         ex_jump_mode <= id_jump_mode;
+        ex_interrupt_acpt <= id_interrupt_acpt;
         //if(id_pc!=0)$display("ex load PC:%8h",id_pc);
     end 
     else if(mem_valid_o & ex_ready_o & (ex_wait|ex_load_wait))begin  //ex load 类暂停 当 mem开始执行后，清空这条指令，使旁路指向MEM read_data
@@ -650,7 +673,7 @@ always@(posedge clk)begin
         ex_csr_jar_en<= 0;
         ex_csr_id    <= 0;
         ex_csr_en    <= 0;
-
+        ex_interrupt_acpt <= 0;
         //$display("ex stall PC:%8h",ex_pc);
     end
 
@@ -671,6 +694,7 @@ reg [63:0]mem_res;
 reg [1:0] mem_jump_mode;
 reg [1:0] mem_mem_mode;
 reg mem_fence_i;
+reg mem_interrupt_acpt;
 wire [63:0]mem_rdata;
 wire mem_valid_o;
 wire sram_ready_o;
@@ -739,6 +763,7 @@ always@(posedge clk)begin
         mem_rw_type   <= (ex_mem_mode ==`ysyx_22041412_mem_stor)  ? 1'b1 : 1'b0;
         mem_ram_en    <= (ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load || ex_fence_i) ? 1'b1 :1'b0;
         mem_fence_i   <= ex_fence_i;
+        mem_interrupt_acpt <= ex_interrupt_acpt;
         if(ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load)begin //mem  dram
             mem_reg_en <=(ex_mem_mode == `ysyx_22041412_mem_load)?1'b1 : 1'b0;
             mem_addr   <=ex_res[31:0];
@@ -770,12 +795,12 @@ reg wb_reg_en;
 reg [4:0]wb_addr;
 reg [63:0]wb_data;
 reg [PC_WIDTH-1:0]wb_pc;
-
+reg wb_interrupt_acpt;
 always@(posedge clk)begin          
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
         wb_pc         <=mem_pc;
         wb_reg_en     <=mem_reg_en;
-
+        wb_interrupt_acpt <= mem_interrupt_acpt;
         //  if( mem_reg_en & mem_rw==0 & mem_pc!=0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
         //     $display("WB  GET PC  NOT IMM");
         // end  
@@ -817,6 +842,22 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusB(id_rsB),
     .BusW(wb_data)
 
+);
+
+wire [63:0]clint_data_r;
+wire [63:0]clint_data_w;
+wire       clint_tag_id;
+wire [1:0] clint_rw_mode;
+ysyx_22041412_clint clint(
+    .clk            (clk),
+    .rst            (rst),
+    .mtime_en       (clint_mtime_en),
+
+    .rw_mode        (clint_rw_mode),
+    .data_w         (clint_data_w),
+    .data_r         (clint_data_r),
+
+    .clint_tag_id   (clint_tag_id)//当前发生的中断序号 暂时只有mtime中断
 );
 
 endmodule

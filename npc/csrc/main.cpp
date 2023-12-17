@@ -28,17 +28,16 @@ struct CPU_state
 {
   uint64_t gpr[32];
   uint64_t pc;
-
-  uint64_t mepc;
-  uint64_t mstatus;
-  uint64_t mcause;
-  uint64_t mtvec;
+  uint64_t csrs[csr_size];
 }cpureg;
 
 //export module example;
 
 VerilatedContext *contextp = NULL;
+#ifdef vcd_en
 VerilatedFstC* tfp = new VerilatedFstC;
+#endif
+
 Vysyx_22041412_top *top = new Vysyx_22041412_top("ysyx_22041412_top");
 uint64_t *cpu_gpr = NULL;
 uint64_t *csr_gpr = NULL;
@@ -122,9 +121,6 @@ void sim_init() {                 //vcd init
     contextp->traceEverOn(true);
     top->trace(tfp,0);
     tfp->open("wave.vcd");
-  #else 
-    contextp = new VerilatedContext;
-    contextp->traceEverOn(false);
   #endif 
 
   clock_gettime(CLOCK_MONOTONIC_COARSE, &sys_time);  //获取启动时间
@@ -253,10 +249,15 @@ static inline int cmd_c()                //DIFFTEST
 
             cpureg.pc=pc;
             last_diff_pc=pc;
-            if(dut_data.m_size>0 && Pop(&dut_data,pc))  {   //有访问外设的情况
-              //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
+            if((dut_data.m_size>0 && Pop(&dut_data,pc)) || top->pip_interrupt_acpt)  {   //有访问外设或中断的情况
+              printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
               difftest_skip_ref();
-              dut_num=dut_num-1;
+              if(top->pip_interrupt_acpt) {
+                memcpy(cpureg.csrs,csr_gpr,csr_size*sizeof(uint64_t));
+              } else {
+                dut_num=dut_num-1;
+              }
+
             }
             else difftest_step(pc, pc);
         #endif
@@ -365,13 +366,16 @@ int main(int argc,char **argv){
       break;
     }
     else if(is_exit == true){            //遇到错误，停止运行
-      isa_reg_display();
+      //isa_reg_display();
       printf(RED "[HIT BAD ]" GREEN " PC=%08x " NONE "maintime=%ld\n",last_diff_pc,main_time);
 
       updata_clk();  
       //break;
       top->final();
-      tfp->close();
+      #ifdef vcd_en
+        tfp->close();
+      #endif
+
       delete top;
       return(-1);
       break; 
@@ -411,7 +415,9 @@ int main(int argc,char **argv){
   printf("Difftest : imm count:%ld \n",main_dir_value);
 
   top->final();
+  #ifdef vcd_en
   tfp->close();
+  #endif
   delete top;
   return 0;
 }

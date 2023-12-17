@@ -8,7 +8,6 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
 };
 
-word_t csr_regs[6];
 
 void isa_reg_display() {
   int i;
@@ -46,11 +45,11 @@ word_t isa_reg_str2val(const char *s, bool *success) {
 
 word_t csrR_id(int id) {
     assert(id <= csr_size);
-	return csr_regs[id];
+	return csr(id);
 }
 void csrW_id(int id, word_t data) {
     assert(id <= csr_size);
-    csr_regs[id]=data;
+    csr(id)=data;
 }
 word_t csrR(word_t csr)
 {
@@ -73,7 +72,7 @@ word_t csrR(word_t csr)
 		default:
 			Assert(0,"wrong csr!\n");
 	}
-	return csr_regs[i];
+	return csr(i);
 }
 
 void csrW(word_t csr, word_t data)
@@ -97,5 +96,5 @@ void csrW(word_t csr, word_t data)
 		default:
 			Assert(0,"wrong csr!\n");
 	}
-	csr_regs[i]=data;
+	csr(i)=data;
 }
