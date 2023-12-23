@@ -25,9 +25,7 @@ VERILATOR_FLAGS += -MMD --build -cc --exe --trace-fst --threads 1\
 #micro.vlt pal.vlt
 #--prof-pgo profile.vlt
 
- 
 # rules for verilator
-
 LDFLAGS += "-lSDL2 -lLLVM-11 -ldl -lm -ffast-math"
 CFLAGS  += "-O3 -ftree-vectorize -ffast-math"
 #-CFLAGS -g

@@ -250,12 +250,13 @@ static inline int cmd_c()                //DIFFTEST
             cpureg.pc=pc;
             last_diff_pc=pc;
             if((dut_data.m_size>0 && Pop(&dut_data,pc)) || top->pip_interrupt_acpt)  {   //有访问外设或中断的情况
-              printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
               difftest_skip_ref();
               if(top->pip_interrupt_acpt) {
                 memcpy(cpureg.csrs,csr_gpr,csr_size*sizeof(uint64_t));
+                //printf(GREEN "skip turn interrupt pc %lx\n" NONE,pc);
               } else {
                 dut_num=dut_num-1;
+                //printf(GREEN "out_queue dut_num %d ,pc %lx \n" NONE,dut_num,pc);
               }
 
             }

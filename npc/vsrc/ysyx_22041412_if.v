@@ -241,6 +241,7 @@ assign jump= (jump_b  | jarl | ecall ) ? 1'b1 : 1'b0;
                 r_addr_o      <= interrupt_pc;
                 dnpc          <= interrupt_pc + 4;
                 interrupt_mepc<= r_addr_o;
+                //$display("set interrupt mepc = %h",r_addr_o);
             end
          end
         end

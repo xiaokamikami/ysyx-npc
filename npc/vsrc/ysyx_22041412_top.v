@@ -698,7 +698,11 @@ reg mem_interrupt_acpt;
 wire [63:0]mem_rdata;
 wire mem_valid_o;
 wire sram_ready_o;
-
+wire[63:0] mem_tip_data_o;
+wire       mem_tip_rw;
+wire       mem_tip_en;
+wire       mem_tip_ready;
+wire       mem_tip_addr;
 assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en) ;
 
 ysyx_22041412_mem u_ysyx_22041412_mem(
@@ -718,6 +722,14 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     .mem_ready_o ( sram_ready_o    ),
     .r_data_o    ( mem_rdata       ),
     .fence_i     ( mem_fence_i     ),
+
+    //tip
+    .tip_data_i  (clint_data_r),
+    .tip_data_o  (mem_tip_data_o),   
+    .tip_rw      (mem_tip_rw),
+    .tip_en      (mem_tip_en),
+    .tip_ready   (clint_ready),
+    .tip_addr_o  (mem_tip_addr),
     //axi
     .r_ready_i   ( mem_r_ready   ),
     .r_valid_o   ( mem_r_valid   ),
@@ -763,7 +775,7 @@ always@(posedge clk)begin
         mem_rw_type   <= (ex_mem_mode ==`ysyx_22041412_mem_stor)  ? 1'b1 : 1'b0;
         mem_ram_en    <= (ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load || ex_fence_i) ? 1'b1 :1'b0;
         mem_fence_i   <= ex_fence_i;
-        mem_interrupt_acpt <= ex_interrupt_acpt;
+        mem_interrupt_acpt <= ex_interrupt_acpt | ex_csr_jar_en;
         if(ex_mem_mode == `ysyx_22041412_mem_stor || ex_mem_mode == `ysyx_22041412_mem_load)begin //mem  dram
             mem_reg_en <=(ex_mem_mode == `ysyx_22041412_mem_load)?1'b1 : 1'b0;
             mem_addr   <=ex_res[31:0];
@@ -800,7 +812,7 @@ always@(posedge clk)begin
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
         wb_pc         <=mem_pc;
         wb_reg_en     <=mem_reg_en;
-        wb_interrupt_acpt <= mem_interrupt_acpt;
+        wb_interrupt_acpt <= mem_interrupt_acpt | mem_tip_en;
         //  if( mem_reg_en & mem_rw==0 & mem_pc!=0)begin    // 如果因为这个diff出错 没有指令 但有PC的话 �? 那就是取值模块有问题
         //     $display("WB  GET PC  NOT IMM");
         // end  
@@ -843,17 +855,21 @@ ysyx_22041412_dff M_reg (        //32*64bitREG
     .BusW(wb_data)
 
 );
-
+wire       clint_tag_id;//clint发生的中断标记
 wire [63:0]clint_data_r;
-wire [63:0]clint_data_w;
-wire       clint_tag_id;
-wire [1:0] clint_rw_mode;
+wire [63:0]clint_data_w = mem_tip_data_o;
+wire [1:0] clint_rw_mode = { mem_tip_rw, mem_tip_addr};
+wire       clint_addr    = mem_tip_addr;
+wire       clint_rw_en   = mem_tip_en;
+wire       clint_ready;
 ysyx_22041412_clint clint(
     .clk            (clk),
     .rst            (rst),
     .mtime_en       (clint_mtime_en),
 
     .rw_mode        (clint_rw_mode),
+    .rw_en          (clint_rw_en),
+    .clint_ready    (clint_ready),
     .data_w         (clint_data_w),
     .data_r         (clint_data_r),
 

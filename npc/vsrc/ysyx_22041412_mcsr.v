@@ -46,7 +46,7 @@ wire [2:0]addr_r = addr[2:0];
 wire [63:0]data_r;
 reg  [63:0]data_w;           //待写入
 
-assign interrupt_accept = mcsr_reg[mie][7] & mcsr_reg[mip][7];
+assign interrupt_accept = ~csr_busy & mcsr_reg[mie][7] & mcsr_reg[mip][7];
 always @(*) begin
     if(en)begin
         data_o  = data_r;
@@ -61,11 +61,12 @@ always @(*) begin
         ready_o = 1'b0; 
     end
 end
-
+reg csr_busy;
 always @(posedge clk) begin
     if(rst) begin
         mcsr_reg[mstatus] <= 64'ha00001800;
         write_en          <= 1'b0;
+        csr_busy          <= 1'b0;
     end
     else if(en) begin // 异常指令处理
         if(func3!='b000 )begin
@@ -80,10 +81,12 @@ always @(posedge clk) begin
             mcsr_reg[mepc]  <=pc;
             mcsr_reg[mcause]<='h000b;
             write_en        <=1'b0;
+            csr_busy        <=1'b1;
             //$display("PC:%8h ecall",pc);
         end
         else if(addr==mret )begin//mret
             write_en        <=1'b0;
+            csr_busy        <=1'b0;
             if(interrupt_accept)begin
                 mcsr_reg[mstatus][7] <= 1'b0;//clear mpie
                 mcsr_reg[mstatus][3] <= 1'b1;//set mie
@@ -94,15 +97,14 @@ always @(posedge clk) begin
         end
     end
     //中断相关  待优化
-    else if(interrupt_tag_i & mcsr_reg[mie][7] & ~interrupt_accept)begin // MTIME INTERRUPT
+    else if(~csr_busy & interrupt_tag_i & mcsr_reg[mie][7] & ~interrupt_accept)begin // MTIME INTERRUPT
         mcsr_reg[mstatus][3] <= 1'b0;//clear mie
         mcsr_reg[mstatus][7] <= 1'b1;//set mpie
         mcsr_reg[mcause]     <= 64'h8000000000000007; //set cause of mtime interrupt
         mcsr_reg[mip][7]     <= 1'b1;// 挂起mtime中断
     end else if(interrupt_accepted) begin//core 接管中断 记录mepc
-        write_en <= 1'b1;
-        w_addr   <= mepc;
-        data_w   <= data_i;
+        mcsr_reg[mepc]   <= data_i;
+        //$display("get set mepc %h",data_i);
     end
 
     else begin

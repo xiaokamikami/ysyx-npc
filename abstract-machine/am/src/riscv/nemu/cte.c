@@ -18,6 +18,7 @@ Context* __am_irq_handle(Context *c) {
 					case -1:ev.event = EVENT_YIELD;break;
 					default:ev.event = EVENT_SYSCALL;break;
 				}
+                c->mepc+=4;
 				break;
             case 0x8000000000000007: // M TIME interrupt
                 ev.event = EVENT_IRQ_TIMER;
@@ -29,7 +30,6 @@ Context* __am_irq_handle(Context *c) {
     c = user_handler(ev, c);
     assert(c != NULL);
   }
-  c->mepc+=4;
   return c;
 }
 
@@ -60,11 +60,11 @@ bool ienabled() {
 
 void iset(bool enable) {
     if(enable) {
-        asm volatile("csrsi mstatus,8");// mstatus_MIE
+        asm volatile("csrsi mstatus,1 << 3");// mstatus_MIE
         set_csr(mie,MIP_MTIP);          // mie_MTIE
     }
     else {
-        asm volatile("csrci mstatus,0");// mstatus_MIE
+        asm volatile("csrci mstatus,1 << 3");// mstatus_MIE    
         clear_csr(mie,MIP_MTIP);        // mie_MTIE
     }
 }
@@ -72,26 +72,16 @@ void iset(bool enable) {
 static void set_csr(uint32_t csrid,uint8_t mask) {
     if(csrid==mie) {
         if(mask==MIP_MTIP) {
-            uint64_t temp;  
-            asm volatile (  
-                "csrr %0, mip\n\t"  // 从 MIP 寄存器读取数据到 temp  
-                "ori %0, %0, 1<<7\n\t"  // 设置 temp 的第七位  
-                "csrw mie, %0\n\t"  // 将 temp 写回 MIP 寄存器  
-                : "=r"(temp)  // 输出操作数  
-            );     
+            asm volatile("li x10,(1 << 7)");// mstatus_MIE   
+            asm volatile("csrs mie,x10");// mstatus_MIE    
         }
     }
 }
 static void clear_csr(uint32_t csrid,uint8_t mask) {
     if(csrid==mie) {
         if(mask==MIP_MTIP) {
-            uint64_t temp;  
-            asm volatile (  
-                "csrr %0, mip\n\t"  // 从 MIP 寄存器读取数据到 temp  
-                "ori %0, %0, 0<<7\n\t"  // 设置 temp 的第七位  
-                "csrw mie, %0\n\t"  // 将 temp 写回 MIP 寄存器  
-                : "=r"(temp)  // 输出操作数  
-            );     
+            asm volatile("li x10,(1 << 7)");// mstatus_MIE   
+            asm volatile("csrc mie,x10");// mstatus_MIE    
         }
     }
 }

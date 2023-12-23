@@ -19,6 +19,13 @@ module ysyx_22041412_mem#(
     output [DATA_WIDTH-1:0]    r_data_o,
 
     input                      fence_i,
+    //mem <---> mtime
+    input  [63:0]       tip_data_i,
+    output reg[63:0]    tip_data_o,   
+    output reg          tip_rw,
+    output reg          tip_en,
+    input               tip_ready,
+    output reg          tip_addr_o,
     //mem <---> axi
 
     input       r_ready_i,          // 数据操作完成
@@ -50,13 +57,45 @@ assign wmask =  (func3==3'b000)?8'd8:     //sb
                 (func3==3'b011)?8'd64:    //sd
                 0;    */
 
+parameter CLINT_MTIME  = 32'h2000000;
+parameter CLINT_MTIMECMP =  (32'h2000000 + 32'h4000);
+reg cache_en;
+//临时MMIO
+always @( *) begin
+    case (addr)
+        CLINT_MTIME : begin
+            cache_en = 1'b0;
+            tip_addr_o = 1'b0;
+            tip_en     = 1'b1;
+            tip_rw     = wen;
+            tip_data_o = 64'b0;
+        end
+        CLINT_MTIMECMP: begin
+            cache_en = 1'b0;
+            tip_addr_o = 1'b1;
+            tip_en     = 1'b1;
+            tip_rw     = wen;
+            tip_data_o = wen ? wdata : 64'b0;
+        end
+        default:begin
+            cache_en = mem_valid_i;
+            tip_addr_o = 1'b0;
+            tip_en     = 1'b0;
+            tip_rw     = 1'b0;
+            tip_data_o = 64'b0;
+        end
+    endcase
+end
+
 wire [63:0] cache_read_data;
 wire  dcache_ready_o;
 wire  dcache_fence_ready;
 
-assign mem_ready_o = dcache_ready_o | (fence_i & dcache_fence_ready);
-
-assign        r_data_o  =(~wen && mem_valid_i) ? (func3==3'b000)?{{56{cache_read_data[7]}},cache_read_data[7:0]}:    //lb
+assign mem_ready_o = cache_en ? (dcache_ready_o | (fence_i & dcache_fence_ready)) :
+                                tip_ready;
+wire [63:0] cache_r_data;
+assign r_data_o = cache_en ? cache_r_data : tip_data_i;
+assign        cache_r_data  =(~wen && mem_valid_i) ? (func3==3'b000)?{{56{cache_read_data[7]}},cache_read_data[7:0]}:    //lb
                                                  (func3==3'b001)?{{48{cache_read_data[15]}},cache_read_data[15:0]}:  //lh
                                                  (func3==3'b010)?{{32{cache_read_data[31]}},cache_read_data[31:0]}:  //lw
                                                  (func3==3'b011)?{cache_read_data[63:0]}:                            //ld
@@ -77,7 +116,7 @@ ysyx_22041412_Dcache u_ysyx_22041412_Dcache(
     .cpu_write_data                 ( wdata                      ),
     .cpu_rw_size                    ( func3                      ),
     .cpu_read_data                  ( cache_read_data            ),
-    .cpu_valid                      ( mem_valid_i                ),
+    .cpu_valid                      ( cache_en                   ),
     .cpu_ready                      ( dcache_ready_o             ),
     .fence_i                        ( fence_i                    ),
     .fence_ready                    ( dcache_fence_ready         ),
