@@ -21,7 +21,7 @@ Context* __am_irq_handle(Context *c) {
                 break;
             case 0x8000000000000007: // M TIME interrupt
                 ev.event = EVENT_IRQ_TIMER;
-                printf("EVENT_IRQ_TIMER\n");
+                //printf("EVENT_IRQ_TIMER\n");
                 break;
       default: ev.event = EVENT_ERROR; break;
     }

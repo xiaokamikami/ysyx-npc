@@ -102,9 +102,9 @@ always @(posedge clk) begin
         mcsr_reg[mstatus][7] <= 1'b1;//set mpie
         mcsr_reg[mcause]     <= 64'h8000000000000007; //set cause of mtime interrupt
         mcsr_reg[mip][7]     <= 1'b1;// 挂起mtime中断
-    end else if(interrupt_accepted) begin//core 接管中断 记录mepc
+    end else if(~csr_busy & interrupt_accepted) begin//core 接管中断 记录mepc
         mcsr_reg[mepc]   <= data_i;
-        //$display("get set mepc %h",data_i);
+        //$display("clint set mepc %h",data_i);
     end
 
     else begin
