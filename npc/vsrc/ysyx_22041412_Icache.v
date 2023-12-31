@@ -50,7 +50,12 @@ module ysyx_22041412_Icache(
 `define ICACHE_RD_RAM       3'b100
 `define ICACHE_W_WAIT       3'b101
 `define ICACHE_FENCE        3'b111
+
+localparam flash_req = 1'b0;
+localparam mem_req = 1'b1;
 reg [127:0]      cpu_read_data;
+wire bust_en = (~cpu_req_addr[31]) ? flash_req : mem_req;
+
 assign cpu_read_imm = (cache_offset == 'h0) ? cpu_read_data[31:0]  :
                       (cache_offset == 'h4) ? cpu_read_data[63:32] :
                       (cache_offset == 'h8) ? cpu_read_data[95:64] :

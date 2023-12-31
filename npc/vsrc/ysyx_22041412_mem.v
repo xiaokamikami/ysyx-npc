@@ -57,8 +57,8 @@ assign wmask =  (func3==3'b000)?8'd8:     //sb
                 (func3==3'b011)?8'd64:    //sd
                 0;    */
 
-parameter CLINT_MTIME  = 32'h2000000;
-parameter CLINT_MTIMECMP =  (32'h2000000 + 32'h4000);
+localparam CLINT_MTIME  = 32'h2000000;
+localparam CLINT_MTIMECMP =  (32'h2000000 + 32'h4000);
 reg cache_en;
 //临时MMIO
 always @( *) begin

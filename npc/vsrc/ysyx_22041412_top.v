@@ -19,8 +19,8 @@ module ysyx_22041412_top(
 
     output [63:0]       IFU_Pred_miss,
     output [63:0]       IFU_Pred_hit,
-    // Advanced eXtensible Interface    AXI4总线接口
-// 写地址通道
+// Advanced eXtensible Interface    AXI4总线接口
+    // 写地址通道
     input                               io_master_awready,
     output                              io_master_awvalid,
     output [AXI_ADDR_WIDTH-1:0]         io_master_awaddr,
@@ -35,7 +35,7 @@ module ysyx_22041412_top(
     output [3:0]                        io_master_awqos,
     output [3:0]                        io_master_awregion,
 
-// 写数据通道
+    // 写数据通道
     input                               io_master_wready,
     output                              io_master_wvalid,
     output [AXI_DATA_WIDTH-1:0]         io_master_wdata,
@@ -43,14 +43,14 @@ module ysyx_22041412_top(
     output                              io_master_wlast,
     output [AXI_USER_WIDTH-1:0]         io_master_wuser,
 
-// 写响应通道
+    // 写响应通道
     output                              io_master_bready,
     input                               io_master_bvalid,
     input  [1:0]                        io_master_bresp,
     input  [AXI_ID_WIDTH-1:0]           io_master_bid,
     input  [AXI_USER_WIDTH-1:0]         io_master_buser,
 
-// 读地址通道
+    // 读地址通道
     input                               io_master_arready,
     output                              io_master_arvalid,
     output [AXI_ADDR_WIDTH-1:0]         io_master_araddr,
@@ -65,7 +65,7 @@ module ysyx_22041412_top(
     output [3:0]                        io_master_arqos,
     output [3:0]                        io_master_arregion,
 
-// 读数据通道
+    // 读数据通道
     output                              io_master_rready,
     input                               io_master_rvalid,
     input  [1:0]                        io_master_rresp,
@@ -74,8 +74,7 @@ module ysyx_22041412_top(
     input  [AXI_ID_WIDTH-1:0]           io_master_rid,
     input  [AXI_USER_WIDTH-1:0]         io_master_ruser,
 
-
-
+    // 从机
     input                               io_slave_awready,
     output                              io_slave_awvalid,
     output [31:0]                       io_slave_awaddr,
@@ -105,6 +104,66 @@ module ysyx_22041412_top(
     input  [63:0]                       io_slave_rdata,
     input                               io_slave_rlast,
     input  [3:0]                        io_slave_rid
+/*
+//ICACHE SRAM
+    //SRAM0
+    output [5:0]                        io_sram0_addr,
+    output                              io_sram0_cen,
+    output                              io_sram0_wen,
+    output [127:0]                      io_sram0_wmask,
+    output [127:0]                      io_sram0_wdata,
+    input  [127:0]                      io_sram0_rdata,
+    //SRAM1
+    output [5:0]                        io_sram1_addr,
+    output                              io_sram1_cen,
+    output                              io_sram1_wen,
+    output [127:0]                      io_sram1_wmask,
+    output [127:0]                      io_sram1_wdata,
+    input  [127:0]                      io_sram1_rdata,
+    //SRAM2
+    output [5:0]                        io_sram2_addr,
+    output                              io_sram2_cen,
+    output                              io_sram2_wen,
+    output [127:0]                      io_sram2_wmask,
+    output [127:0]                      io_sram2_wdata,
+    input  [127:0]                      io_sram2_rdata,
+    //SRAM3
+    output [5:0]                        io_sram3_addr,
+    output                              io_sram3_cen,
+    output                              io_sram3_wen,
+    output [127:0]                      io_sram3_wmask,
+    output [127:0]                      io_sram3_wdata,
+    input  [127:0]                      io_sram3_rdata,
+    //SRAM4
+    output [5:0]                        io_sram4_addr,
+    output                              io_sram4_cen,
+    output                              io_sram4_wen,
+    output [127:0]                      io_sram4_wmask,
+    output [127:0]                      io_sram4_wdata,
+    input  [127:0]                      io_sram4_rdata,
+//DCACHE SRAM
+    //SRAM5
+    output [5:0]                        io_sram5_addr,
+    output                              io_sram5_cen,
+    output                              io_sram5_wen,
+    output [127:0]                      io_sram5_wmask,
+    output [127:0]                      io_sram5_wdata,
+    input  [127:0]                      io_sram5_rdata,
+    //SRAM6
+    output [5:0]                        io_sram6_addr,
+    output                              io_sram6_cen,
+    output                              io_sram6_wen,
+    output [127:0]                      io_sram6_wmask,
+    output [127:0]                      io_sram6_wdata,
+    input  [127:0]                      io_sram6_rdata,
+    //SRAM7
+    output [5:0]                        io_sram7_addr,
+    output                              io_sram7_cen,
+    output                              io_sram7_wen,
+    output [127:0]                      io_sram7_wmask,
+    output [127:0]                      io_sram7_wdata,
+    input  [127:0]                      io_sram7_rdata,
+*/
 );
     parameter AXI_DATA_WIDTH    = 64;
     parameter AXI_ADDR_WIDTH    = 32;

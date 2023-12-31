@@ -51,7 +51,6 @@ module ysyx_22041412_Dcache(
 `define BUST_4           3'b010
 `define BUST_8           3'b011 
 
-
 `define DCACHE_IDLE         3'b000 
 `define DCACHE_CACHE        3'b001
 `define DCACHE_WTBACK       3'b001
@@ -129,7 +128,7 @@ reg        cache_d_ram   [127:0][3:0]; //tag  D  标识数据是否为dirty的
 
 wire        device    ;     //指示本次地址访问的是否为外设
 //assign      device    =  (cache_tag[20:13]>='b1000_0011)?1'b1 :1'b0;   // 80000000---82FFFFFF  为访问程序内存 ramdisk视为外设的情况，在没做fence_i的时候用的  device 为1时 视为访问外设
-assign      device    =  (cache_tag[20:16]>='b10001) ? 1'b1 : 1'b0;   // 80000000---87FFFFFF  为访问程序内存     device 为1时 视为访问外设
+assign      device    =  (~cache_tag[20]) ? 1'b1 : 1'b0;   // 80000000---FFFFFFFF  为访问程序内存     device 为1时 视为访问外设
 
 
 reg [63:0] write_back_data;  //需要回写的数据
