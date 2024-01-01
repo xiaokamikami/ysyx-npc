@@ -1,8 +1,9 @@
 `include "vsrc/ysyx_22041412_define.v"
 module ysyx_22041412_top(
-    input wire clk,
-    input wire rst,
-    //EXE
+    input wire clock,
+    input wire reset,
+    input      io_interrupt,
+    //veriltor
     output wire [63:0]pip_pc,
     output wire       pip_interrupt_acpt,
     output reg  [4:0] pip_reg_addr,
@@ -19,21 +20,17 @@ module ysyx_22041412_top(
 
     output [63:0]       IFU_Pred_miss,
     output [63:0]       IFU_Pred_hit,
+
 // Advanced eXtensible Interface    AXI4总线接口
     // 写地址通道
     input                               io_master_awready,
     output                              io_master_awvalid,
     output [AXI_ADDR_WIDTH-1:0]         io_master_awaddr,
-    output [2:0]                        io_master_awprot,
     output [AXI_ID_WIDTH-1:0]           io_master_awid,
     output [AXI_USER_WIDTH-1:0]         io_master_awuser,
     output [7:0]                        io_master_awlen,
     output [2:0]                        io_master_awsize,
-    output [1:0]                        io_master_awburst,
-    output                              io_master_awlock,
-    output [3:0]                        io_master_awcache,
-    output [3:0]                        io_master_awqos,
-    output [3:0]                        io_master_awregion,
+    output [1:0]                        io_master_awburest,
 
     // 写数据通道
     input                               io_master_wready,
@@ -54,16 +51,12 @@ module ysyx_22041412_top(
     input                               io_master_arready,
     output                              io_master_arvalid,
     output [AXI_ADDR_WIDTH-1:0]         io_master_araddr,
-    output [2:0]                        io_master_arprot,
+
     output [AXI_ID_WIDTH-1:0]           io_master_arid,
     output [AXI_USER_WIDTH-1:0]         io_master_aruser,
     output [7:0]                        io_master_arlen,
     output [2:0]                        io_master_arsize,
-    output [1:0]                        io_master_arburst,
-    output                              io_master_arlock,
-    output [3:0]                        io_master_arcache,
-    output [3:0]                        io_master_arqos,
-    output [3:0]                        io_master_arregion,
+    output [1:0]                        io_master_arburest,
 
     // 读数据通道
     output                              io_master_rready,
@@ -81,7 +74,7 @@ module ysyx_22041412_top(
     output [3:0]                        io_slave_awid,
     output [7:0]                        io_slave_awlen,
     output [2:0]                        io_slave_awsize,
-    output [1:0]                        io_slave_awburst,
+    output [1:0]                        io_slave_awburest,
     input                               io_slave_wready,
     output                              io_slave_wvalid,
     output [63:0]                       io_slave_wdata,
@@ -97,7 +90,7 @@ module ysyx_22041412_top(
     output [3:0]                        io_slave_arid,
     output [7:0]                        io_slave_arlen,
     output [2:0]                        io_slave_arsize,
-    output [1:0]                        io_slave_arburst,
+    output [1:0]                        io_slave_arburest,
     output                              io_slave_rready,
     input                               io_slave_rvalid,
     input  [1:0]                        io_slave_rresp,
@@ -177,7 +170,7 @@ assign pip_pc      = wb_pc;
 assign pip_mem_pc  = mem_pc;
 assign Ebreak=(id_imm=='b000100000000000001110011)?1:0;
 
-always @(posedge clk) begin
+always @(posedge clock) begin
     pip_reg_addr <= wb_addr;
     pip_reg_data <= wb_data;
     pip_reg_en   <= wb_reg_en;
@@ -206,8 +199,8 @@ wire        r_last_o;
 wire        w_last_o;
 
 ysyx_22041412_axi axi4(
-    .clk(clk),
-    .rst(rst),
+    .clk(clock),
+    .rst(reset),
 
     .r_valid_i(r_valid),         //读请�?
     .w_valid_i(w_valid),         //写请�?
@@ -229,14 +222,14 @@ ysyx_22041412_axi axi4(
     .axi_aw_addr_o(io_master_awaddr),    // 写地址
     .axi_aw_prot_o(io_master_awprot),   // 保护类型
     .axi_aw_id_o(io_master_awid),     // 写地址ID
-    .axi_aw_user_o(io_master_awuser),   // 用户定义信号
+    .axi_aw_user_o(),   // 用户定义信号
     .axi_aw_len_o(io_master_awlen),    // 突发长度
     .axi_aw_size_o(io_master_awsize),   // 突发大小
     .axi_aw_burst_o(io_master_awburst),  // 突发类型
-    .axi_aw_lock_o(io_master_awlock),   // 原子锁类�?
-    .axi_aw_cache_o(io_master_awcache),  // 存储器类�?
-    .axi_aw_qos_o(io_master_awqos),    // 服务质量
-    .axi_aw_region_o(io_master_awregion), // 区域标识�?
+    .axi_aw_lock_o(),   // 原子锁类�?
+    .axi_aw_cache_o(),  // 存储器类�?
+    .axi_aw_qos_o(),    // 服务质量
+    .axi_aw_region_o(), // 区域标识�?
 
     // 写数据通道
     .axi_w_ready_i(io_master_wready), // 从设备已准备好接收数据和字节选通信�?
@@ -244,14 +237,14 @@ ysyx_22041412_axi axi4(
     .axi_w_data_o(io_master_wdata),  // 写出的数�?
     .axi_w_strb_o(io_master_wstrb),  // 数据的字节选通信�?
     .axi_w_last_o(io_master_wlast),  // 标识是否是最后一次突发传�?
-    .axi_w_user_o(io_master_wuser),  // 用户定义信号
+    .axi_w_user_o(),  // 用户定义信号
 
     // 写响应通道
     .axi_b_ready_o(io_master_bready), // 主设备已准备好接收写响应信号
     .axi_b_valid_i(io_master_bvalid), // 从设备给出的写响应信号有�?
     .axi_b_resp_i(io_master_bresp),  // 写传输的状�?
     .axi_b_id_i(io_master_bid),    // 写响应ID
-    .axi_b_user_i(io_master_buser),  // 用户定义信号
+    .axi_b_user_i(),  // 用户定义信号
 
     // 读地址通道
     .axi_ar_ready_i(io_master_arready),  // 从设备已经准备好接收地址和相关信�?
@@ -259,14 +252,14 @@ ysyx_22041412_axi axi4(
     .axi_ar_addr_o(io_master_araddr),   // 读地址
     .axi_ar_prot_o(io_master_arprot),   // 保护类型
     .axi_ar_id_o(io_master_arid),     // 读地址ID
-    .axi_ar_user_o(io_master_aruser),   // 用户定义信号
+    .axi_ar_user_o(),   // 用户定义信号
     .axi_ar_len_o(io_master_arlen),    // 突发长度
     .axi_ar_size_o(io_master_arsize),   // 突发大小（每次突发传输的大小�?
     .axi_ar_burst_o(io_master_arburst),  // 突发类型
-    .axi_ar_lock_o(io_master_arlock),   // 原子锁类�?
-    .axi_ar_cache_o(io_master_arcache),  // 存储器类�?
-    .axi_ar_qos_o(io_master_arqos),    // 服务质量
-    .axi_ar_region_o(io_master_arregion), // 区域标识�?
+    .axi_ar_lock_o(),   // 原子锁类�?
+    .axi_ar_cache_o(),  // 存储器类�?
+    .axi_ar_qos_o(),    // 服务质量
+    .axi_ar_region_o(), // 区域标识�?
 
     // 读数据通道
     .axi_r_ready_o(io_master_rready), // 主设备已经准备好接收读取的数据和响应信息
@@ -275,7 +268,7 @@ ysyx_22041412_axi axi4(
     .axi_r_data_i(io_master_rdata),  // 读出的数�?
     .axi_r_last_i(io_master_rlast),  // 标识是否是最后一次突发传�?
     .axi_r_id_i(io_master_rid),    // 读数据ID
-    .axi_r_user_i(io_master_ruser)   // 用户定义信号
+    .axi_r_user_i()   // 用户定义信号
 );                        
 wire          if_ar_ready;
 wire   [31:0] if_ar_data;
@@ -297,8 +290,8 @@ wire    [7:0] mem_w_len;
 wire    [2:0] mem_w_size;
 wire          mem_w_last;
 ysyx_22041412_axi_Arbiter axi_Arbiter(
-    .clk(clk),
-    .rst(rst),
+    .clk(clock),
+    .rst(reset),
 // if   
     .if_ar_valid(icache_ar_valid),                           //IF请求
     .if_ar_ready(icache_ar_ready),
@@ -346,8 +339,8 @@ wire   [31:0] icache_ar_addr;
 wire    [7:0] icache_ar_len;
 wire          icache_last_i;
 ysyx_22041412_Icache Icache_L1(
-    .clk(clk),
-    .rst(rst),
+    .clk(clock),
+    .rst(reset),
 //performance counter
     .cache_hit      (Icache_L1_hit),
     .cache_miss     (Icache_L1_miss),
@@ -389,8 +382,8 @@ wire      if_decode_fence_i;
 
 //IFU
 ysyx_22041412_if IF_s1 (      //imm
-    .clk           (clk),
-    .rst           (rst),
+    .clk(clock),
+    .rst(reset),
     .pred_miss_count     (IFU_Pred_miss),
     .pred_hit_count      (IFU_Pred_hit),
 
@@ -488,7 +481,7 @@ localparam mret    = 'hc;
 
 
 ysyx_22041412_decode ID_decode( //opcode
-    .clk  (clk),
+    .clk(clock),
 	.instr(id_imm),
     .pc   (id_pc[31:0]),
     .decode_jal    (id_decode_jal),
@@ -520,7 +513,7 @@ ysyx_22041412_decode ID_decode( //opcode
     .jump_mode(id_jump_mode)
 );
 
-always@(posedge clk )begin //IF ID
+always@(posedge clock )begin //IF ID
     if(if_ready_o & id_vaild_o)begin
         id_imm     <= if_imm;
         id_pc      <= if_pc;
@@ -623,7 +616,7 @@ assign ex_wait = ( ((id_Ra != ex_rw & id_Ra == mem_rw) | (id_Rb != ex_rw & id_Rb
                     ?1'b1:1'b0;
 assign ex_load_wait=  ( (id_Ra == ex_rw | id_Rb == ex_rw) & ex_rw!=0 & ex_opcode==`ysyx_22041412_load )
                      ?1'b1:1'b0;
-/*   always @(posedge clk) begin //ex级旁路的DEBUG 模块   临时使用
+/*   always @(posedge clock) begin //ex级旁路的DEBUG 模块   临时使用
         if(id_imm_V1Type==0 & id_Ra == ex_rw & ex_rw!=0 & ex_opcode!=`ysyx_22041412_load )       
             $display("id_pc=%8h  ex_v1 = ex_res   -->pc=%16h",id_pc,ex_pc);
         else if(id_imm_V1Type==0 & id_Ra != ex_rw & id_Ra == mem_rw  & mem_rw!=0 & (~mem_ram_en))
@@ -658,8 +651,8 @@ wire clint_mtime_en;
 wire csr_interrupt_accepted;
 wire [31:0]trap_pc;
 ysyx_22041412_mcsr csr_reg(
-     .clk(clk),
-     .rst(rst),
+    .clk(clock),
+    .rst(reset),
      .en(ex_csr_en),
      .pc(ex_pc),
      .func3(ex_func3),
@@ -676,8 +669,8 @@ ysyx_22041412_mcsr csr_reg(
      .ready_o(csr_ready_o)
  );
 ysyx_22041412_alu EXE_alu(          //ALU
-    .clk(clk),
-    .rst(rst),
+    .clk(clock),
+    .rst(reset),
     .scr1(ex_v1),
     .scr2(ex_v2),
     .imm(ex_imm_data),
@@ -693,7 +686,7 @@ ysyx_22041412_alu EXE_alu(          //ALU
     .ready_o(alu_ready_o),
     .result(ex_res)
 );
-always@(posedge clk)begin
+always@(posedge clock)begin
     if(id_ready_o & ex_valid_o )begin
         ex_rw      <= id_Rw;
         ex_opcode  <= id_opcode;
@@ -765,8 +758,8 @@ wire       mem_tip_addr;
 assign mem_valid_o  = (sram_ready_o & mem_ram_en) | (~mem_ram_en) ;
 
 ysyx_22041412_mem u_ysyx_22041412_mem(
-    .clk         ( clk         ),
-    .rst         ( rst         ),
+    .clk(clock),
+    .rst(reset),
 
     //cache
     .cache_miss  ( Dcache_L1_miss  ),
@@ -823,7 +816,7 @@ always @(*)begin
 end
 
 
-always@(posedge clk)begin           
+always@(posedge clock)begin           
     if(mem_valid_o & ex_ready_o)begin
         mem_pc        <=ex_pc;
         mem_rw        <=ex_rw;
@@ -867,7 +860,7 @@ reg [4:0]wb_addr;
 reg [63:0]wb_data;
 reg [PC_WIDTH-1:0]wb_pc;
 reg wb_interrupt_acpt;
-always@(posedge clk)begin          
+always@(posedge clock)begin          
     if((sram_ready_o & mem_ram_en) | (~mem_ram_en))begin
         wb_pc         <=mem_pc;
         wb_reg_en     <=mem_reg_en;
@@ -903,8 +896,8 @@ end
 
 
 ysyx_22041412_dff M_reg (        //32*64bitREG
-    .clk(clk),
-    .rst(rst),
+    .clk(clock),
+    .rst(reset),
     .Ra(id_Ra),
     .Rb(id_Rb),  
     .Rw(wb_addr),
@@ -922,8 +915,8 @@ wire       clint_addr    = mem_tip_addr;
 wire       clint_rw_en   = mem_tip_en;
 wire       clint_ready;
 ysyx_22041412_clint clint(
-    .clk            (clk),
-    .rst            (rst),
+    .clk(clock),
+    .rst(reset),
     .mtime_en       (clint_mtime_en),
 
     .rw_mode        (clint_rw_mode),
