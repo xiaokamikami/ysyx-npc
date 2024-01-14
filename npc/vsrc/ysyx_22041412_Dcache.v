@@ -11,6 +11,35 @@ module ysyx_22041412_Dcache(
 //performance counter
     output reg [63:0]       cache_miss,
     output reg [63:0]       cache_hit,
+//SRAM
+    //SRAM0
+    output [5:0]                        io_sram0_addr,
+    output                              io_sram0_cen,
+    output                              io_sram0_wen,
+    output [127:0]                      io_sram0_wmask,
+    output [127:0]                      io_sram0_wdata,
+    input  [127:0]                      io_sram0_rdata,
+    //SRAM1
+    output [5:0]                        io_sram1_addr,
+    output                              io_sram1_cen,
+    output                              io_sram1_wen,
+    output [127:0]                      io_sram1_wmask,
+    output [127:0]                      io_sram1_wdata,
+    input  [127:0]                      io_sram1_rdata,
+    //SRAM2
+    output [5:0]                        io_sram2_addr,
+    output                              io_sram2_cen,
+    output                              io_sram2_wen,
+    output [127:0]                      io_sram2_wmask,
+    output [127:0]                      io_sram2_wdata,
+    input  [127:0]                      io_sram2_rdata,
+    //SRAM3
+    output [5:0]                        io_sram3_addr,
+    output                              io_sram3_cen,
+    output                              io_sram3_wen,
+    output [127:0]                      io_sram3_wmask,
+    output [127:0]                      io_sram3_wdata,
+    input  [127:0]                      io_sram3_rdata,
 //cpu       <---> dcache
     input                   cpu_rw_en,          //本次操作的类型  1w  0r
     input       [31:0]      cpu_req_addr,
@@ -70,23 +99,52 @@ assign cpu_ready = cache_rd_ready | cache_wr_ready ;
    V |  tag   | index | offset |                  cache_data
    +----------+-------+--------+                 +---------+   
 */      
-wire [20:0] cache_tag;
-wire [6:0]  cache_index;
+wire [21:0] cache_tag;
+wire [5:0]  cache_index;
 wire [3:0]  cache_offset;
-wire [6:0]  cpu_index;
-reg  [6:0]  write_index;
+wire [5:0]  cpu_index;
+reg  [5:0]  write_index;
 reg dcache_w_busy;  //为1时 不能接受新的数据返回
 
 reg [1:0]  fence_page;       //返回cache页计数
 reg [6:0]  fence_write_index;//返回cache地址计数
 reg        fence_wait;
-assign cpu_index    = cpu_req_addr[10:4];
-assign cache_tag    = cpu_req_addr[31:11];
+assign cpu_index    = cpu_req_addr[9:4];
+assign cache_tag    = cpu_req_addr[31:10];
 assign cache_index  = (~fence_i & write_en==4'b0000) ? cpu_index : 
                       (~fence_i & write_en!=4'b0000) ? write_index :
                        fence_write_index;
 assign cache_offset = cpu_req_addr[3:0];
 
+assign io_sram0_wmask = ~rw_strb;
+assign io_sram1_wmask = ~rw_strb;
+assign io_sram2_wmask = ~rw_strb;
+assign io_sram3_wmask = ~rw_strb;
+
+assign io_sram0_addr = cache_index;
+assign io_sram1_addr = cache_index;
+assign io_sram2_addr = cache_index;
+assign io_sram3_addr = cache_index;
+
+assign io_sram0_cen = ~(cpu_read_vaild | write_en[0]);
+assign io_sram1_cen = ~(cpu_read_vaild | write_en[1]);
+assign io_sram2_cen = ~(cpu_read_vaild | write_en[2]);
+assign io_sram3_cen = ~(cpu_read_vaild | write_en[3]);
+
+assign io_sram0_wen = ~write_en[0];
+assign io_sram1_wen = ~write_en[1];
+assign io_sram2_wen = ~write_en[2];
+assign io_sram3_wen = ~write_en[3];
+
+assign io_sram0_wdata = write_en[0] ? write_data : 128'b0;
+assign io_sram1_wdata = write_en[1] ? write_data : 128'b0;
+assign io_sram2_wdata = write_en[2] ? write_data : 128'b0;
+assign io_sram3_wdata = write_en[3] ? write_data : 128'b0;
+
+assign io_sram0_rdata = ram_rd_data[0];
+assign io_sram1_rdata = ram_rd_data[1];
+assign io_sram2_rdata = ram_rd_data[2];
+assign io_sram3_rdata = ram_rd_data[3];
 
 // sram接口
 reg  [127:0]  write_data;
@@ -96,7 +154,7 @@ reg  [127:0]  rw_strb;  //写cache掩码
 reg   [63:0]  rw_strb_64_ld;
 wire  [63:0]  rw_strb_64; //8字节对齐的掩码
 wire          rw_offset;
-wire [127:0]  ram_rd_data [3:0][1:0];   //CACHE读数据
+wire [127:0]  ram_rd_data [3:0];   //CACHE读数据
 
 //掩码计算
 assign  rw_offset  =cache_offset[3];   
@@ -110,10 +168,10 @@ assign  rw_strb_64 =(cpu_rw_en )? (cpu_rw_size==3'b000)?{{56{1'b0}},{8{1'b1}}}  
 
 //cache数据接口
 wire [63:0] cache_read_data;
-assign cache_read_data = (~rw_offset)?ram_rd_data[tag_v_w][cache_index[6]][63:0]:ram_rd_data[tag_v_w][cache_index[6]][127:64];
+assign cache_read_data = (~rw_offset)?ram_rd_data[tag_v_w][63:0]:ram_rd_data[tag_v_w][127:64];
 
 wire [127:0] cache_fence_data;
-assign cache_fence_data = (fence_i) ? ram_rd_data[fence_page][cache_index[6]]  : 128'b0;
+assign cache_fence_data = (fence_i) ? ram_rd_data[fence_page]  : 128'b0;
 
 wire [127:0] cache_write_data;
 assign cache_write_data = (~rw_offset)?{{64{1'b0}},cpu_write_data}:{cpu_write_data,{64{1'b0}}}; 
@@ -121,7 +179,7 @@ assign cache_write_data = (~rw_offset)?{{64{1'b0}},cpu_write_data}:{cpu_write_da
 
 
 // TAG + V + D 
-reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
+reg [21:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
 //reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
 reg        cache_v_ram   [127:0][3:0]; //tag  V  标识数据是否有效
 reg        cache_d_ram   [127:0][3:0]; //tag  D  标识数据是否为dirty的
@@ -135,7 +193,7 @@ reg [63:0] write_back_data;  //需要回写的数据
 //reg [27:0] write_back_addr;
 wire       write_busy_stall;
 assign     write_busy_stall = (write_en!=4'b0000 ) ? 1'b1 : 1'b0;
-
+/*
 genvar index; //生成存储器    与ICACHE不同的是 需要加入写掩码引脚
 generate
     for(index=0; index<4; index=index+1) //例化16个1k ram模块    
@@ -160,7 +218,7 @@ generate
         );
     end
 endgenerate
-
+*/
 reg [3:0] tag_v;	 //命中位置
 wire[1:0] tag_v_w;  //译码到二进制的命中位置
 
@@ -168,8 +226,8 @@ wire[1:0] tag_v_w;  //译码到二进制的命中位置
       if(rst)begin
         tag_v = 4'b0000;
       end else if(cpu_valid)begin
-        tag_v = { (cache_tag_ram[cpu_req_addr[10:4]][2'd3]==cache_tag & cache_v_ram[cpu_req_addr[10:4]][2'd3]==1'b1),(cache_tag_ram[cpu_req_addr[10:4]][2'd2]==cache_tag & cache_v_ram[cpu_req_addr[10:4]][2'd2]==1'b1),
-                  (cache_tag_ram[cpu_req_addr[10:4]][2'd1]==cache_tag & cache_v_ram[cpu_req_addr[10:4]][2'd1]==1'b1),(cache_tag_ram[cpu_req_addr[10:4]][2'd0]==cache_tag & cache_v_ram[cpu_req_addr[10:4]][2'd0]==1'b1)};
+        tag_v = { (cache_tag_ram[cpu_index][2'd3]==cache_tag & cache_v_ram[cpu_index][2'd3]==1'b1),(cache_tag_ram[cpu_index][2'd2]==cache_tag & cache_v_ram[cpu_index][2'd2]==1'b1),
+                  (cache_tag_ram[cpu_index][2'd1]==cache_tag & cache_v_ram[cpu_index][2'd1]==1'b1),(cache_tag_ram[cpu_index][2'd0]==cache_tag & cache_v_ram[cpu_index][2'd0]==1'b1)};
       end else begin
         tag_v = 4'b0000;
       end
@@ -353,7 +411,7 @@ reg [2:0] wr_state;  //cache状态机
                     cache_read_data_ld                   <=  cpu_req_addr_hit ? 128'b0: cache_read_data_ld;
                     cache_read_addr_ld                   <=  cpu_req_addr_hit ? 32'b0 : cache_read_addr_ld;
                   end else begin
-                    cache_read_data_ld <= ram_rd_data[tag_v_w][cache_index[6]];
+                    cache_read_data_ld <= ram_rd_data[tag_v_w];
                     cache_read_addr_ld <= cpu_req_addr;
                   end
                   //$display("Dcache hit write cache: %8h offset %h  strb %h : %32h ",cpu_req_addr,cache_offset[2:0] ,rw_strb_64_ld,cache_write_data);
@@ -529,7 +587,7 @@ reg [2:0] wr_state;  //cache状态机
             end
             else if(wb_back)begin  //有需要回写的数据  决定了替换对象，所以提前写回数据
               axi_w_valid_o    <= 1'b1;
-              {write_back_data,axi_w_data_o}     <= ram_rd_data[cache_write_point][cache_index[6]] ;
+              {write_back_data,axi_w_data_o}     <= ram_rd_data[cache_write_point] ;
               axi_w_addr_o     <= {cache_tag_ram[cache_index][cache_write_point] ,cache_index ,4'b0};   
               axi_w_len_o      <= 'd1;
               axi_w_size_o     <= `BUST_8;
@@ -609,9 +667,9 @@ reg [2:0] wr_state;  //cache状态机
                 //$display("\33[1;33mDcache Fence succful  index:%d  pape:%1h\033[0m",fence_write_index,fence_page );
               end 
           end else if(cache_d_ram [fence_write_index][fence_page] == 1'b0 & ~fence_wait & ~fence_ready)begin
-            fence_ready       <= (fence_write_index=={7{1'b1}} & fence_page==2'b11 )  ?1'b1 : 1'b0;
+            fence_ready       <= (fence_write_index=={6{1'b1}} & fence_page==2'b11 )  ?1'b1 : 1'b0;
             fence_write_index <= fence_write_index+1;
-            fence_page        <= (fence_write_index=={7{1'b1}}) ? (fence_page +1'b1) :fence_page;    
+            fence_page        <= (fence_write_index=={6{1'b1}}) ? (fence_page +1'b1) :fence_page;    
             fence_wait        <= 1'b1;  //等Dirty寄存器刷新数据
             //$display("\33[1;33mDcache Fence no dirty  index:%d  pape:%1h\033[0m",fence_write_index,fence_page );
           end else begin         

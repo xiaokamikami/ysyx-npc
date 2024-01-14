@@ -14,8 +14,35 @@ module ysyx_22041412_Icache(
     output reg [63:0]       cache_miss,
     output reg [63:0]       cache_hit,
 
-
-
+//SRAM
+    //SRAM0
+    output [5:0]                        io_sram0_addr,
+    output                              io_sram0_cen,
+    output                              io_sram0_wen,
+    output [127:0]                      io_sram0_wmask,
+    output [127:0]                      io_sram0_wdata,
+    input  [127:0]                      io_sram0_rdata,
+    //SRAM1
+    output [5:0]                        io_sram1_addr,
+    output                              io_sram1_cen,
+    output                              io_sram1_wen,
+    output [127:0]                      io_sram1_wmask,
+    output [127:0]                      io_sram1_wdata,
+    input  [127:0]                      io_sram1_rdata,
+    //SRAM2
+    output [5:0]                        io_sram2_addr,
+    output                              io_sram2_cen,
+    output                              io_sram2_wen,
+    output [127:0]                      io_sram2_wmask,
+    output [127:0]                      io_sram2_wdata,
+    input  [127:0]                      io_sram2_rdata,
+    //SRAM3
+    output [5:0]                        io_sram3_addr,
+    output                              io_sram3_cen,
+    output                              io_sram3_wen,
+    output [127:0]                      io_sram3_wmask,
+    output [127:0]                      io_sram3_wdata,
+    input  [127:0]                      io_sram3_rdata,
 //cpu       <---> icache
     input       [31:0]      cpu_req_addr,
     output      [31:0]      cpu_read_imm,
@@ -53,6 +80,38 @@ module ysyx_22041412_Icache(
 
 localparam flash_req = 1'b0;
 localparam mem_req = 1'b1;
+
+assign io_sram0_wmask = 128'b1;
+assign io_sram1_wmask = 128'b1;
+assign io_sram2_wmask = 128'b1;
+assign io_sram3_wmask = 128'b1;
+
+assign io_sram0_addr = cache_index;
+assign io_sram1_addr = cache_index;
+assign io_sram2_addr = cache_index;
+assign io_sram3_addr = cache_index;
+
+assign io_sram0_cen = ~(cpu_read_vaild | write_en[0]);
+assign io_sram1_cen = ~(cpu_read_vaild | write_en[1]);
+assign io_sram2_cen = ~(cpu_read_vaild | write_en[2]);
+assign io_sram3_cen = ~(cpu_read_vaild | write_en[3]);
+
+assign io_sram0_wen = ~write_en[0];
+assign io_sram1_wen = ~write_en[1];
+assign io_sram2_wen = ~write_en[2];
+assign io_sram3_wen = ~write_en[3];
+
+assign io_sram0_wdata = write_en[0] ? write_data : 128'b0;
+assign io_sram1_wdata = write_en[1] ? write_data : 128'b0;
+assign io_sram2_wdata = write_en[2] ? write_data : 128'b0;
+assign io_sram3_wdata = write_en[3] ? write_data : 128'b0;
+
+assign io_sram0_rdata = ram_rd_data[0];
+assign io_sram1_rdata = ram_rd_data[1];
+assign io_sram2_rdata = ram_rd_data[2];
+assign io_sram3_rdata = ram_rd_data[3];
+
+
 reg [127:0]      cpu_read_data;
 wire bust_en = (~cpu_req_addr[31]) ? flash_req : mem_req;
 
@@ -66,27 +125,26 @@ assign cpu_read_imm = (cache_offset == 'h0) ? cpu_read_data[31:0]  :
    |   tag   | index | offset |                  cache_data
    +---------+-------+--------+                 +---------+   
 */      
-wire [20:0] cache_tag;
-wire [6:0]  cache_index;
+wire [21:0] cache_tag;
+wire [5:0]  cache_index;
 wire [3:0]  cache_offset;
 reg  [6:0]  cache_write_index;
-wire [127:0]  ram_rd_data [3:0][1:0];   //CACHE读数据
+wire [127:0]  ram_rd_data [3:0];   //CACHE读数据
 
 reg [1:0]  fence_page;       //返回cache页计数
-reg [6:0]  fence_write_index;//返回cache地址计数
+reg [5:0]  fence_write_index;//返回cache地址计数
 reg        fence_wait;
-assign cache_tag    = cpu_req_addr[31:11];
-assign cache_index  = (write_en!=4'b0000) ? cache_write_index :cpu_req_addr[10:4] ;
+assign cache_tag    = cpu_req_addr[31:10];
+assign cache_index  = (write_en!=4'b0000) ? cache_write_index :cpu_req_addr[9:4] ;
 assign cache_offset = cpu_req_addr[3:0];
 
-reg [20:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
-//reg [1:0]  cache_fwen_ct [127:0][3:0]; //tag 访问计数
+reg [21:0] cache_tag_ram [127:0][3:0]; //tag 寄存器堆
 reg        cache_v_ram   [127:0][3:0]; //tag  V
-
 
 reg [127:0] write_data;
 reg [3:0]   write_en  ;
 
+/*
 genvar index; //生成存储器
 generate
     for(index=0; index<4; index=index+1) //例化8个1k ram模块
@@ -109,7 +167,7 @@ generate
         );
     end
 endgenerate
-
+*/
 reg [3:0]tag_v;	   //命中位置
 wire[1:0]tag_v_w;  //译码到二进制的命中位置
 
@@ -197,7 +255,7 @@ reg [2:0] next_state;
         end
         `ICACHE_RD_CACHE : begin
             if(tag_v !=4'b0000 )begin
-                cpu_read_data = ram_rd_data[tag_v_w][cache_index[6]];
+                cpu_read_data = ram_rd_data[tag_v_w];
                 cpu_ready     = 1'b1; 
             end else begin
                 cpu_ready     = 1'b0;
@@ -261,7 +319,7 @@ reg [2:0] next_state;
         end
         `ICACHE_RD_CACHE:begin //检查相关位置的TAG是否命中 如果命中 则从cache赋值
           if(tag_v !=4'b0000 )begin
-            cache_read_data <= ram_rd_data[tag_v_w][cache_index[6]];
+            cache_read_data <= ram_rd_data[tag_v_w];
             cache_read_addr <= cpu_req_addr;
             cache_hit       <= cache_hit+1;
 
@@ -285,7 +343,7 @@ reg [2:0] next_state;
             write_data[127:64]   <= axi_r_data_i;  //写回cache
             cache_read_data      <= {axi_r_data_i,write_data[63:0]};
             cache_read_addr      <= cpu_req_addr;
-            cache_write_index    <= cpu_req_addr[10:4];
+            cache_write_index    <= cpu_req_addr[9:4];
             write_en             [cache_write_point]              <= 1'b1;
             cache_v_ram          [cache_index][cache_write_point] <= 1'b1;
             cache_tag_ram        [cache_index][cache_write_point] <= cache_tag;
@@ -295,9 +353,9 @@ reg [2:0] next_state;
         `ICACHE_FENCE:begin   //ICACHE的FENCE很简单，循环把数据有效位全部清了就行
           if(~fence_ready)begin
             cache_v_ram [fence_write_index][fence_page] <= 1'b0 ;  //清掉脏数据位 并标记为无效数据  
-            fence_ready       <= (fence_write_index=={7{1'b1}} & fence_page==2'b11 )  ?1'b1 : 1'b0;
+            fence_ready       <= (fence_write_index=={6{1'b1}} & fence_page==2'b11 )  ?1'b1 : 1'b0;
             fence_write_index <= fence_write_index+1;
-            fence_page        <= (fence_write_index=={7{1'b1}}) ? (fence_page +1'b1) :fence_page; 
+            fence_page        <= (fence_write_index=={6{1'b1}}) ? (fence_page +1'b1) :fence_page; 
             //$display("\33[1;33mIcache Fence_i succful  index:%d  pape:%1h\033[0m",fence_write_index,fence_page );
           end
         end

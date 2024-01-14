@@ -96,8 +96,7 @@ module ysyx_22041412_top(
     input  [1:0]                        io_slave_rresp,
     input  [63:0]                       io_slave_rdata,
     input                               io_slave_rlast,
-    input  [3:0]                        io_slave_rid
-/*
+    input  [3:0]                        io_slave_rid,
 //ICACHE SRAM
     //SRAM0
     output [5:0]                        io_sram0_addr,
@@ -127,6 +126,7 @@ module ysyx_22041412_top(
     output [127:0]                      io_sram3_wmask,
     output [127:0]                      io_sram3_wdata,
     input  [127:0]                      io_sram3_rdata,
+//DCACHE SRAM
     //SRAM4
     output [5:0]                        io_sram4_addr,
     output                              io_sram4_cen,
@@ -134,7 +134,6 @@ module ysyx_22041412_top(
     output [127:0]                      io_sram4_wmask,
     output [127:0]                      io_sram4_wdata,
     input  [127:0]                      io_sram4_rdata,
-//DCACHE SRAM
     //SRAM5
     output [5:0]                        io_sram5_addr,
     output                              io_sram5_cen,
@@ -156,7 +155,7 @@ module ysyx_22041412_top(
     output [127:0]                      io_sram7_wmask,
     output [127:0]                      io_sram7_wdata,
     input  [127:0]                      io_sram7_rdata,
-*/
+
 );
     parameter AXI_DATA_WIDTH    = 64;
     parameter AXI_ADDR_WIDTH    = 32;
@@ -345,6 +344,34 @@ ysyx_22041412_Icache Icache_L1(
     .cache_hit      (Icache_L1_hit),
     .cache_miss     (Icache_L1_miss),
 
+//icache    <---> sram
+    .io_sram0_addr(io_sram0_addr),
+    .io_sram0_cen(io_sram0_cen),
+    .io_sram0_wen(io_sram0_wen),
+    .io_sram0_wmask(io_sram0_wmask),
+    .io_sram0_wdata(io_sram0_wdata),
+    .io_sram0_rdata(io_sram0_rdata),
+
+    .io_sram1_addr(io_sram1_addr),
+    .io_sram1_cen(io_sram1_cen),
+    .io_sram1_wen(io_sram1_wen),
+    .io_sram1_wmask(io_sram1_wmask),
+    .io_sram1_wdata(io_sram1_wdata),
+    .io_sram1_rdata(io_sram1_rdata),
+
+    .io_sram2_addr(io_sram2_addr),
+    .io_sram0_cen(io_sram2_cen),
+    .io_sram2_wen(io_sram2_wen),
+    .io_sram2_wmask(io_sram2_wmask),
+    .io_sram2_wdata(io_sram2_wdata),
+    .io_sram2_rdata(io_sram2_rdata),
+
+    .io_sram3_addr(io_sram3_addr),
+    .io_sram3_cen(io_sram3_cen),
+    .io_sram3_wen(io_sram3_wen),
+    .io_sram3_wmask(io_sram3_wmask),
+    .io_sram3_wdata(io_sram3_wdata),
+    .io_sram3_rdata(io_sram3_rdata),
 //cpu       <---> icache
     .cpu_req_addr   (if_ar_addr),
     .cpu_read_imm   (if_ar_data),
@@ -764,6 +791,34 @@ ysyx_22041412_mem u_ysyx_22041412_mem(
     //cache
     .cache_miss  ( Dcache_L1_miss  ),
     .cache_hit   ( Dcache_L1_hit   ),
+
+    .io_sram0_addr(io_sram4_addr),
+    .io_sram0_cen(io_sram4_cen),
+    .io_sram0_wen(io_sram4_wen),
+    .io_sram0_wmask(io_sram4_wmask),
+    .io_sram0_wdata(io_sram4_wdata),
+    .io_sram0_rdata(io_sram4_rdata),
+
+    .io_sram1_addr(io_sram5_addr),
+    .io_sram1_cen(io_sram5_cen),
+    .io_sram1_wen(io_sram5_wen),
+    .io_sram1_wmask(io_sram5_wmask),
+    .io_sram1_wdata(io_sram5_wdata),
+    .io_sram1_rdata(io_sram5_rdata),
+
+    .io_sram2_addr(io_sram6_addr),
+    .io_sram0_cen(io_sram6_cen),
+    .io_sram2_wen(io_sram6_wen),
+    .io_sram2_wmask(io_sram6_wmask),
+    .io_sram2_wdata(io_sram6_wdata),
+    .io_sram2_rdata(io_sram6_rdata),
+
+    .io_sram3_addr(io_sram7_addr),
+    .io_sram3_cen(io_sram7_cen),
+    .io_sram3_wen(io_sram7_wen),
+    .io_sram3_wmask(io_sram7_wmask),
+    .io_sram3_wdata(io_sram7_wdata),
+    .io_sram3_rdata(io_sram7_rdata),
 
     .func3       ( mem_func3       ),
     .addr        ( mem_addr        ),
